@@ -1,0 +1,181 @@
+/*
+ * 디자인 토큰 — Figma "Live Commerce Design System" 의 변수와 1:1 대응한다.
+ *   Primitives (원시 팔레트)  →  --color-<scale>-<step>
+ *   Tokens (의미 토큰)        →  --<group>-<name>   (컴포넌트는 이쪽만 사용)
+ * 변환 규칙: Figma 변수명의 "/" → "-"   (예: brand/default → --brand-default)
+ */
+:root {
+  /* ── Primitives ─────────────────────────────── */
+  /* Primary · Light Green (주 색상 · CTA·선택) */
+  --color-primary-50: #f2fdec;
+  --color-primary-100: #e0f9d1;
+  --color-primary-200: #c8f4b0;
+  --color-primary-300: #b0ef92;
+  --color-primary-400: #a0ec7f;
+  --color-primary-500: #8de969;
+  --color-primary-600: #5fc63b;
+  --color-primary-700: #2e6b1b;
+  --color-primary-900: #1b3d10;
+
+  /* Secondary · Lemon Lime (주 색상 · 하이라이트) */
+  --color-secondary-50: #fafde6;
+  --color-secondary-100: #f2fac0;
+  --color-secondary-500: #cbef43;
+  --color-secondary-600: #a9cc1f;
+  --color-secondary-700: #6c7f10;
+
+  /* Neutral · Graphite (글씨·보더·배경) */
+  --color-neutral-0: #ffffff;
+  --color-neutral-50: #f8f7f8;
+  --color-neutral-100: #f0eef0;
+  --color-neutral-200: #e2dfe2;
+  --color-neutral-300: #cbc6cb;
+  --color-neutral-400: #9c959b;
+  --color-neutral-500: #746c72;
+  --color-neutral-600: #5a5157;
+  --color-neutral-700: #433a3f;
+  --color-neutral-800: #2f282c;
+  --color-neutral-900: #1e191c;
+
+  /* Emphasis · Muted Teal (강조: 탭·가격·링크·포커스) */
+  --color-emphasis-50: #f1f8f4;
+  --color-emphasis-100: #e0eee7;
+  --color-emphasis-200: #c6dfd2;
+  --color-emphasis-300: #a9cdbb;
+  --color-emphasis-400: #8fbaa4;
+  --color-emphasis-500: #72a98f;
+  --color-emphasis-600: #558b71;
+  --color-emphasis-700: #416f58;
+  --color-emphasis-900: #24463a;
+
+  /* Info · Blue Slate (안내·영상 배경) */
+  --color-info-50: #eef2f5;
+  --color-info-100: #dce5eb;
+  --color-info-500: #5c7f94;
+  --color-info-600: #3d5a6c;
+  --color-info-700: #2c4352;
+
+  /* Status */
+  --color-success-50: #f2fdec;
+  --color-success-100: #e0f9d1;
+  --color-success-500: #8de969;
+  --color-success-600: #5fc63b;
+  --color-success-700: #2e6b1b;
+  --color-live-50: #fff1f2;
+  --color-live-100: #ffe4e6;
+  --color-live-500: #f43f5e;
+  --color-live-600: #e11d48;
+  --color-live-700: #be123c;
+  --color-danger-50: #fef2f2;
+  --color-danger-100: #fee2e2;
+  --color-danger-500: #ef4444;
+  --color-danger-600: #dc2626;
+  --color-danger-700: #b91c1c;
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c7;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
+
+  /* ── Tokens (Semantic) ──────────────────────── */
+  --bg-page: var(--color-neutral-50);
+  --bg-surface: var(--color-neutral-0);
+  --bg-muted: var(--color-neutral-100);
+  --bg-inverse: var(--color-neutral-900);
+  --disabled-bg: var(--color-neutral-100);
+
+  --brand-default: var(--color-primary-500);
+  --brand-hover: var(--color-primary-400);
+  --brand-pressed: var(--color-primary-600);
+  --brand-subtle: var(--color-primary-50);
+  --brand-subtle-strong: var(--color-primary-100);
+  --brand-border: var(--color-primary-200);
+
+  --secondary-default: var(--color-secondary-500);
+  --secondary-strong: var(--color-secondary-600);
+  --secondary-subtle: var(--color-secondary-50);
+  --secondary-subtle-strong: var(--color-secondary-100);
+  --secondary-text: var(--color-secondary-700);
+
+  --emphasis-default: var(--color-emphasis-500);
+  --emphasis-strong: var(--color-emphasis-600);
+  --emphasis-subtle: var(--color-emphasis-50);
+  --emphasis-subtle-strong: var(--color-emphasis-100);
+  --emphasis-text: var(--color-emphasis-700);
+  --emphasis-border: var(--color-emphasis-300);
+
+  --text-primary: var(--color-neutral-900);
+  --text-secondary: var(--color-neutral-600);
+  --text-tertiary: var(--color-neutral-400);
+  --text-disabled: var(--color-neutral-300);
+  --text-on-brand: var(--color-neutral-900); /* 연두 위에서는 어두운 글씨 */
+  --text-on-strong: var(--color-neutral-0); /* 진한 배경(LIVE·위험) 위의 흰 글씨 */
+  --text-brand: var(--emphasis-text);
+
+  --border-default: var(--color-neutral-200);
+  --border-strong: var(--color-neutral-300);
+  --border-focus: var(--emphasis-default);
+
+  --live-default: var(--color-live-500);
+  --live-strong: var(--color-live-600);
+  --live-subtle: var(--color-live-50);
+  --live-subtle-strong: var(--color-live-100);
+  --live-text: var(--color-live-700);
+
+  --success-default: var(--color-success-500);
+  --success-subtle: var(--color-success-50);
+  --success-subtle-strong: var(--color-success-100);
+  --success-text: var(--color-success-700);
+  --success-border: var(--color-success-500);
+
+  --warning-default: var(--color-warning-500);
+  --warning-subtle: var(--color-warning-50);
+  --warning-subtle-strong: var(--color-warning-100);
+  --warning-text: var(--color-warning-700);
+  --warning-border: var(--color-warning-500);
+
+  --danger-default: var(--color-danger-500);
+  --danger-strong: var(--color-danger-600);
+  --danger-subtle: var(--color-danger-50);
+  --danger-subtle-strong: var(--color-danger-100);
+  --danger-text: var(--color-danger-700);
+  --danger-border: var(--color-danger-500);
+
+  --info-default: var(--color-info-500);
+  --info-strong: var(--color-info-600);
+  --info-subtle: var(--color-info-50);
+  --info-subtle-strong: var(--color-info-100);
+  --info-text: var(--color-info-700);
+  --info-border: var(--color-info-500);
+
+  /* ── Spacing (4px base) ─────────────────────── */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+
+  /* ── Radius ─────────────────────────────────── */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --radius-full: 999px;
+
+  /* ── Elevation (Figma effect styles) ────────── */
+  --shadow-sm: 0 1px 2px rgb(30 25 28 / 0.06), 0 1px 3px rgb(30 25 28 / 0.08);
+  --shadow-md: 0 4px 10px rgb(30 25 28 / 0.08), 0 2px 4px rgb(30 25 28 / 0.05);
+  --shadow-lg: 0 12px 24px rgb(30 25 28 / 0.12), 0 4px 8px rgb(30 25 28 / 0.06);
+  --focus-ring: 0 0 0 3px var(--color-emphasis-300);
+
+  /* ── Layout ─────────────────────────────────── */
+  --font-sans: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --container-max: 1200px;
+  --header-height: 64px;
+  --bottom-nav-height: 0px; /* 모바일에서 base.css 가 덮어쓴다 */
+}
