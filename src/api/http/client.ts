@@ -3,6 +3,7 @@ import { ApiError, type ApiErrorCode } from '../../domain/errors'
 interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
   query?: Record<string, string | number | undefined | null>
+  /** JSON 으로 보낼 객체, 또는 파일 업로드용 FormData */
   body?: unknown
 }
 
@@ -19,6 +20,7 @@ const KNOWN_CODES: ApiErrorCode[] = [
   'OUT_OF_STOCK',
   'NOT_ON_SALE',
   'INVALID_STATE',
+  'CONFLICT',
   'VALIDATION',
 ]
 
@@ -44,8 +46,8 @@ export function createHttpClient(baseUrl: string) {
     try {
       response = await fetch(url, {
         method: options.method ?? 'GET',
-        headers: options.body ? { 'Content-Type': 'application/json' } : undefined,
-        body: options.body ? JSON.stringify(options.body) : undefined,
+        headers: options.body && !(options.body instanceof FormData) ? { 'Content-Type': 'application/json' } : undefined,
+        body: options.body instanceof FormData ? options.body : options.body ? JSON.stringify(options.body) : undefined,
       })
     } catch {
       throw new ApiError('NETWORK', '서버에 연결하지 못했어요.')

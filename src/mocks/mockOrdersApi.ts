@@ -3,6 +3,7 @@ import type { OrdersPort, PaymentsPort } from '../domain/ports'
 import type { Order } from '../domain/types'
 import { getMockSettings } from './control'
 import { db, persist, type StoredOrder } from './db'
+import { isPublic } from './mappers'
 import { simulateNetwork } from './simulate'
 
 const toPublic = ({
@@ -19,7 +20,7 @@ const restoreStock = (order: StoredOrder) => {
   if (order.stockRestored) return
   const product = db.products.find((p) => p.id === order.productId)
   if (product) {
-    product.stock += order.quantity
+    product.stock = (product.stock ?? 0) + order.quantity
     if (product.status === 'SOLD_OUT' && product.stock > 0) product.status = 'SELLING'
   }
   order.stockRestored = true
@@ -62,19 +63,20 @@ export const mockOrdersApi: OrdersPort = {
     }
 
     const product = db.products.find((p) => p.id === input.productId)
-    if (!product || product.status === 'READY' || product.status === 'HIDDEN') {
-      throw new ApiError('NOT_FOUND', '상품을 찾을 수 없어요.')
-    }
+    // 기본정보만·판매 준비·비공개 상품은 주문할 수 없다.
+    if (!product || !isPublic(product)) throw new ApiError('NOT_FOUND', '상품을 찾을 수 없어요.')
     if (product.status === 'SOLD_OUT') throw new ApiError('OUT_OF_STOCK', '품절된 상품이에요.')
+    const unitPrice = product.price ?? 0
+    const available = product.stock ?? 0
     // 화면에서 본 가격과 현재 가격이 다르면 새 금액을 확인받도록 거절한다.
-    if (product.price !== input.expectedUnitPrice) {
-      throw new ApiError('PRICE_CHANGED', '가격이 변경되었어요.', { currentUnitPrice: product.price })
+    if (unitPrice !== input.expectedUnitPrice) {
+      throw new ApiError('PRICE_CHANGED', '가격이 변경되었어요.', { currentUnitPrice: unitPrice })
     }
-    if (product.stock < input.quantity) {
-      throw new ApiError('OUT_OF_STOCK', '재고가 부족해요.', { stock: product.stock })
+    if (available < input.quantity) {
+      throw new ApiError('OUT_OF_STOCK', '재고가 부족해요.', { stock: available })
     }
 
-    product.stock -= input.quantity
+    product.stock = available - input.quantity
     if (product.stock === 0) product.status = 'SOLD_OUT'
 
     const order: StoredOrder = {
@@ -82,9 +84,9 @@ export const mockOrdersApi: OrdersPort = {
       status: 'UNPAID',
       productId: product.id,
       productName: product.name, // 주문 당시 상품명 보존
-      unitPrice: product.price,
+      unitPrice,
       quantity: input.quantity,
-      totalPrice: product.price * input.quantity,
+      totalPrice: unitPrice * input.quantity,
       ordererName: input.ordererName.trim(),
       ordererPhone: input.ordererPhone.trim(),
       lookupPassword: input.lookupPassword,

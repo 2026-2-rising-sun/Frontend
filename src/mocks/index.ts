@@ -1,4 +1,5 @@
 import type { Api } from '../domain/ports'
+import { mockAdminLivesApi, mockAdminProductsApi } from './mockAdminApi'
 import { mockLivesApi } from './mockLivesApi'
 import { mockOrdersApi, mockPaymentsApi } from './mockOrdersApi'
 import { mockProductsApi } from './mockProductsApi'
@@ -14,6 +15,7 @@ export function createMockApi(): Api {
     lives: mockLivesApi,
     orders: mockOrdersApi,
     payments: mockPaymentsApi,
+    admin: { products: mockAdminProductsApi, lives: mockAdminLivesApi },
   }
 }
 

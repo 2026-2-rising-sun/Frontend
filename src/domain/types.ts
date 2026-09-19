@@ -98,3 +98,64 @@ export interface CreateOrderInput {
   /** 주문 조회·결제·취소에 쓰는 비밀번호 (계정 아님) */
   lookupPassword: string
 }
+
+/* ───────────────────────── 관리(Admin) ─────────────────────────
+ * P1 에는 회원·역할 구분이 없다. "관리 기능"은 사용자 유형이 아니라 기능을 쓰는 화면의 구분이며,
+ * 개발·시연 환경에서만 사용한다. (불특정 외부에 무제한 공개하지 않는다.)
+ */
+
+/** 관리용 상품 상태. DRAFT = 기본정보만 등록되고 판매 설정(가격·재고)이 아직 없는 상태. */
+export type AdminProductStatus = 'DRAFT' | ProductStatus
+export type AdminProductStatusFilter = 'ALL' | AdminProductStatus
+
+export interface AdminProduct {
+  id: string
+  name: string
+  description: string
+  imageUrl: string | null
+  /** 대표 이미지가 등록되었는지. 이미지가 없으면 판매를 시작할 수 없다. */
+  hasImage: boolean
+  /** 판매 설정 전(DRAFT)에는 null */
+  price: number | null
+  stock: number | null
+  status: AdminProductStatus
+  /** 기본정보 수정 충돌 감지용. 수정할 때 화면이 본 version 을 함께 보낸다. */
+  version: number
+}
+
+export interface AdminProductListParams extends PageParams {
+  status?: AdminProductStatusFilter
+  query?: string
+}
+
+export interface ProductBasicInput {
+  name: string
+  description: string
+  /** 대표 이미지 파일(선택). 화면에서 형식·용량을 확인한 뒤 전달한다. */
+  image?: File | null
+}
+
+export interface SaleInfoInput {
+  /** 양의 정수, 원 단위 */
+  price: number
+  /** 0 이상 정수 (최초 재고) */
+  stock: number
+}
+
+/** START_SALE: 판매 준비 → 판매 중 / HIDE: 비공개로 전환 / RESUME: 비공개 → 판매 중(재고 없으면 품절) */
+export type SaleAction = 'START_SALE' | 'HIDE' | 'RESUME'
+
+export interface LiveInput {
+  title: string
+  description: string
+  /** 예정 시작 시각 (ISO 8601, 화면은 한국 시간으로 입력) */
+  scheduledAt: string
+  /** AWS IVS 시청(재생) 연결 정보. 송출용 비밀 정보(스트림 키 등)는 입력하지 않는다. */
+  playbackUrl: string
+}
+
+export interface AdminLive extends LiveDetail {
+  version: number
+  /** 연결 상품 (노출 순서대로, 공개 상태와 무관하게 모두) */
+  products: Product[]
+}

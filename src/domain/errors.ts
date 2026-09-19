@@ -8,7 +8,8 @@ export type ApiErrorCode =
   | 'PRICE_CHANGED' // details.currentUnitPrice 에 현재 가격
   | 'OUT_OF_STOCK'
   | 'NOT_ON_SALE'
-  | 'INVALID_STATE' // 허용되지 않는 주문 상태 전이
+  | 'INVALID_STATE' // 허용되지 않는 상태 전이 (주문·상품·방송)
+  | 'CONFLICT' // 다른 수정이 먼저 반영됨 — 최신 내용을 확인해야 한다
   | 'VALIDATION'
   | 'NETWORK'
   | 'UNKNOWN'
