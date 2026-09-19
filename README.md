@@ -24,6 +24,20 @@ mock 모드에서는 화면 우측 아래 **MOCK** 버튼으로 시연용 패널
 | 상품·방송 조회 실패시키기 | 오류 화면과 "다시 시도" 확인 |
 | 데이터 초기화 | 재고·주문을 시드 상태로 되돌림 |
 
+## 배포 (Vercel, 수동)
+
+CI/CD 없이 CLI 로 직접 배포합니다. (`vercel.json` 에 빌드·SPA 라우팅 설정이 있음)
+
+```bash
+npx vercel login          # 최초 1회 (브라우저 인증)
+npx vercel --prod         # 프로덕션 배포. 첫 실행 시 프로젝트를 연결(link)한다
+```
+
+- `vercel.json` 의 `buildCommand` 가 `VITE_USE_MOCK=true` 로 빌드하므로 **배포본은 mock 모드**로 동작합니다.
+  (백엔드가 없는데 production 기본값(`false`)으로 빌드하면 `/api` 호출이 실패해 화면이 비어 보입니다.)
+- 백엔드가 준비되면 `buildCommand` 를 `npm run build` 로 바꾸고, mock 제거 절차를 진행하세요.
+- `/products/1` 같은 경로로 새로고침해도 404 가 나지 않도록 모든 경로를 `index.html` 로 rewrite 합니다.
+
 ## 구조: 화면은 "계약"만 안다
 
 ```
