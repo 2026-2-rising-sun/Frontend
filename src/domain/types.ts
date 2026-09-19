@@ -79,6 +79,13 @@ export interface Order {
   totalPrice: number
   ordererName: string
   orderedAt: string
+  /**
+   * 결제 가능 기한(ISO). 미결제 주문 만료를 채택한 경우에만 내려온다. 기한이 지나면 자동 취소되고 재고가 복구된다.
+   * 결제를 시작한 주문(확인 중·완료)은 기한으로 취소되지 않는다.
+   */
+  expiresAt: string | null
+  /** 취소 사유. USER = 사용자 취소, EXPIRED = 결제 기한 만료 */
+  cancelReason: 'USER' | 'EXPIRED' | null
 }
 
 export interface CreateOrderInput {

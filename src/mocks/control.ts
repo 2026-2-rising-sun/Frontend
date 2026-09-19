@@ -14,6 +14,11 @@ export interface MockSettings {
   latencyMs: number
   /** true 면 상품·방송 조회를 실패시킨다 (오류 화면 시연용) */
   failReads: boolean
+  /**
+   * 미결제 주문 만료 시간(ms). 0 이면 만료를 사용하지 않는다.
+   * 명세상 유효시간은 팀 합의 사항이라 기본값을 정하지 않고(끔) 시연용으로만 조절한다.
+   */
+  orderExpiryMs: number
 }
 
 const DEFAULTS: MockSettings = {
@@ -21,6 +26,7 @@ const DEFAULTS: MockSettings = {
   confirmDelayMs: 4000,
   latencyMs: 400,
   failReads: false,
+  orderExpiryMs: 0,
 }
 
 let settings: MockSettings = { ...DEFAULTS }

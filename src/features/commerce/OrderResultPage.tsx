@@ -7,6 +7,7 @@ import { Alert, Button, ButtonLink, ResultState, Skeleton, StatusBadge, orderBad
 import { ApiError } from '../../domain/errors'
 import type { Order } from '../../domain/types'
 import { useAsync } from '../../hooks/useAsync'
+import { formatRemaining, useCountdown } from '../../hooks/useCountdown'
 import { formatFullDateTime } from '../../lib/format'
 import { OrderSummary } from './components/OrderSummary'
 import { clearOrderAccess, getOrderAccess } from './orderAccess'
@@ -49,6 +50,8 @@ function OrderResult({ order, password, onChanged }: { order: Order; password: s
   const api = useApi()
   const [busy, setBusy] = useState<'pay' | 'cancel' | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  // 결제 전 주문에 기한이 있으면 남은 시간을 보여주고, 0 이 되면 서버 결과(만료 취소)를 다시 확인한다.
+  const remaining = useCountdown(order.status === 'UNPAID' ? order.expiresAt : null, onChanged)
 
   const run = async (kind: 'pay' | 'cancel') => {
     if (busy) return
@@ -67,7 +70,7 @@ function OrderResult({ order, password, onChanged }: { order: Order; password: s
 
   return (
     <>
-      <StatusAlert order={order} />
+      <StatusAlert order={order} remaining={remaining} />
       {order.status === 'CONFIRMING' && (
         <ResultState
           type="processing"
@@ -138,7 +141,7 @@ function OrderResult({ order, password, onChanged }: { order: Order; password: s
   )
 }
 
-function StatusAlert({ order }: { order: Order }) {
+function StatusAlert({ order, remaining }: { order: Order; remaining: number | null }) {
   switch (order.status) {
     case 'PAID':
       return (
@@ -153,7 +156,11 @@ function StatusAlert({ order }: { order: Order }) {
         </Alert>
       )
     case 'CANCELED':
-      return (
+      return order.cancelReason === 'EXPIRED' ? (
+        <Alert type="warning" title="결제 기한이 지나 주문이 취소되었어요">
+          결제를 시작하지 않아 자동 취소되었고, 확보했던 재고는 복구되었습니다. 다시 구매하려면 새 주문을 만들어 주세요.
+        </Alert>
+      ) : (
         <Alert type="info" title="주문이 취소되었어요">
           확보했던 재고는 복구되었습니다.
         </Alert>
@@ -168,6 +175,12 @@ function StatusAlert({ order }: { order: Order }) {
       return (
         <Alert type="warning" title="아직 결제가 시작되지 않았어요">
           결제하기를 누르면 Mock 결제가 진행돼요. 결제 전 주문은 취소할 수 있어요.
+          {order.expiresAt && remaining !== null && (
+            <>
+              <br />
+              결제 가능 시간 <strong>{formatRemaining(remaining)}</strong> 남음 ({formatFullDateTime(order.expiresAt)}까지). 기한이 지나면 자동 취소돼요.
+            </>
+          )}
         </Alert>
       )
   }

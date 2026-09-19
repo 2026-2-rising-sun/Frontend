@@ -65,6 +65,17 @@ export function MockControlPanel() {
             />
           </label>
 
+          <label className={styles.field}>
+            <span>미결제 주문 만료</span>
+            <select value={settings.orderExpiryMs} onChange={(e) => updateMockSettings({ orderExpiryMs: Number(e.target.value) })}>
+              <option value={0}>사용 안 함 (기본)</option>
+              <option value={30000}>30초 (시연용)</option>
+              <option value={60000}>1분</option>
+              <option value={300000}>5분</option>
+              <option value={900000}>15분</option>
+            </select>
+          </label>
+
           <label className={styles.check}>
             <input
               type="checkbox"

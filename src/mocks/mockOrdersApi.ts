@@ -25,8 +25,15 @@ const restoreStock = (order: StoredOrder) => {
   order.stockRestored = true
 }
 
-/** 지연 시나리오의 확정 시각이 지났으면 결과를 반영한다. (새로고침해도 이어지도록 조회 시점에 처리) */
+/** 지연 시나리오의 확정 시각이 지났으면 결과를 반영하고, 미결제 주문은 결제 기한이 지났으면 만료 취소한다. (새로고침해도 이어지도록 조회 시점에 처리) */
 const settle = (order: StoredOrder) => {
+  // 결제를 시작하지 않은(UNPAID) 주문만 기한으로 취소한다. 확인 중·완료 주문은 시간 초과로 취소하지 않는다.
+  if (order.status === 'UNPAID' && order.expiresAt && Date.now() >= +new Date(order.expiresAt)) {
+    order.status = 'CANCELED'
+    order.cancelReason = 'EXPIRED'
+    restoreStock(order)
+    persist()
+  }
   if (order.status === 'CONFIRMING' && order.resolveAt && order.finalStatus && Date.now() >= order.resolveAt) {
     order.status = order.finalStatus
     if (order.finalStatus === 'FAILED') restoreStock(order)
@@ -82,6 +89,8 @@ export const mockOrdersApi: OrdersPort = {
       ordererPhone: input.ordererPhone.trim(),
       lookupPassword: input.lookupPassword,
       orderedAt: new Date().toISOString(),
+      expiresAt: getMockSettings().orderExpiryMs > 0 ? new Date(Date.now() + getMockSettings().orderExpiryMs).toISOString() : null,
+      cancelReason: null,
     }
     db.orders[order.orderNumber] = order
     persist()
@@ -100,6 +109,7 @@ export const mockOrdersApi: OrdersPort = {
       throw new ApiError('INVALID_STATE', '결제 전 주문만 취소할 수 있어요.')
     }
     order.status = 'CANCELED'
+    order.cancelReason = 'USER'
     restoreStock(order)
     persist()
     return toPublic(order)
