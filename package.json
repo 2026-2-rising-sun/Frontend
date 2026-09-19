@@ -6,8 +6,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint",
-    "preview": "vite preview"
+    "lint": "oxlint && node scripts/check-mock-boundary.mjs",
+    "preview": "vite preview",
+    "check:mock-boundary": "node scripts/check-mock-boundary.mjs",
+    "dev:api": "vite --mode api"
   },
   "dependencies": {
     "react": "^19.2.8",
