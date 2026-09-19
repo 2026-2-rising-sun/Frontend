@@ -18,6 +18,8 @@
 .ended .dot { background: var(--text-tertiary); }
 
 /* 상품 */
+.draft { background: var(--bg-muted); color: var(--text-secondary); }
+.draft .dot { background: var(--text-tertiary); }
 .ready { background: var(--warning-subtle-strong); color: var(--warning-text); }
 .ready .dot { background: var(--warning-default); }
 .selling { background: var(--success-subtle-strong); color: var(--success-text); }
