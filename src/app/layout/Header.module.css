@@ -1,0 +1,52 @@
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.inner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  width: 100%;
+  max-width: var(--container-max);
+  height: var(--header-height);
+  margin: 0 auto;
+  padding: 0 var(--space-4);
+}
+
+.logo { display: inline-flex; align-items: center; gap: var(--space-2); font: 700 16px/24px var(--font-sans); }
+.mark { width: 28px; height: 28px; border-radius: 50%; background: var(--brand-default); }
+
+.nav { display: none; align-items: center; gap: var(--space-2); }
+
+.link {
+  padding: var(--space-5) var(--space-3);
+  border-bottom: 3px solid transparent;
+  color: var(--text-secondary);
+  font: 400 16px/24px var(--font-sans);
+}
+
+.link:hover { color: var(--text-primary); }
+.active { color: var(--text-primary); font-weight: 500; border-bottom-color: var(--brand-default); }
+
+.spacer { flex: 1; }
+.search { display: none; width: 280px; }
+.orders { display: none; }
+
+@media (min-width: 768px) {
+  .inner { padding: 0 var(--space-6); }
+  .nav { display: flex; }
+  .orders { display: inline-flex; }
+}
+
+@media (min-width: 1024px) {
+  .search { display: flex; }
+}
+
+/* 모바일: 로고 옆에 내 주문 링크만 유지 */
+@media (max-width: 767px) {
+  .orders { display: none; }
+}
