@@ -5,6 +5,8 @@ export interface AsyncState<T> {
   data: T | undefined
   error: ApiError | undefined
   loading: boolean
+  /** 데이터를 마지막으로 성공적으로 받은 시각 */
+  updatedAt: Date | undefined
   /** 같은 요청을 다시 실행한다 (오류 화면의 "다시 시도") */
   reload: () => void
 }
@@ -16,19 +18,19 @@ const toApiError = (e: unknown) => (e instanceof ApiError ? e : new ApiError('UN
  * (데이터 라이브러리를 도입하기 전까지 쓰는 최소 구현)
  */
 export function useAsync<T>(fn: () => Promise<T>, deps: readonly unknown[]): AsyncState<T> {
-  const [state, setState] = useState<{ data?: T; error?: ApiError; loading: boolean }>({ loading: true })
+  const [state, setState] = useState<{ data?: T; error?: ApiError; loading: boolean; updatedAt?: Date }>({ loading: true })
   const [nonce, setNonce] = useState(0)
   const fnRef = useRef(fn)
   fnRef.current = fn
 
   useEffect(() => {
     let ignore = false
-    setState((prev) => ({ data: prev.data, loading: true }))
+    setState((prev) => ({ data: prev.data, updatedAt: prev.updatedAt, loading: true }))
     fnRef
       .current()
-      .then((data) => !ignore && setState({ data, loading: false }))
+      .then((data) => !ignore && setState({ data, loading: false, updatedAt: new Date() }))
       // 이전 데이터는 유지한다. (주기적 갱신이 한 번 실패해도 화면이 오류로 뒤바뀌지 않도록)
-      .catch((e: unknown) => !ignore && setState((prev) => ({ data: prev.data, error: toApiError(e), loading: false })))
+      .catch((e: unknown) => !ignore && setState((prev) => ({ data: prev.data, updatedAt: prev.updatedAt, error: toApiError(e), loading: false })))
     return () => {
       ignore = true
     }
@@ -36,5 +38,5 @@ export function useAsync<T>(fn: () => Promise<T>, deps: readonly unknown[]): Asy
   }, [...deps, nonce])
 
   const reload = useCallback(() => setNonce((n) => n + 1), [])
-  return { data: state.data, error: state.error, loading: state.loading, reload }
+  return { data: state.data, error: state.error, loading: state.loading, updatedAt: state.updatedAt, reload }
 }

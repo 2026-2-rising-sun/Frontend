@@ -27,3 +27,8 @@ export const formatDateTime = (iso: string) => shortFormatter.format(new Date(is
 
 /** 한국 시간 기준. 예: 2026. 09. 19. 20:33 */
 export const formatFullDateTime = (iso: string) => fullFormatter.format(new Date(iso))
+
+const timeFormatter = new Intl.DateTimeFormat('ko-KR', { timeZone: KST, hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false })
+
+/** 한국 시간 기준 시각. 예: 20:33:12 */
+export const formatTime = (date: Date) => timeFormatter.format(date)
