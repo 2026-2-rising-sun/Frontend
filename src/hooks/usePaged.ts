@@ -54,22 +54,33 @@ export function usePaged<T>(fetchPage: (page: number) => Promise<Paged<T>>, deps
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [...deps, nonce])
 
+  // 최신 상태를 ref 로 들고 있다가 loadMore 에서 읽는다. (setState 업데이트 함수 안에서 API 를 호출하면
+  // StrictMode 에서 두 번 실행되어 같은 페이지가 중복으로 붙는다.)
+  const stateRef = useRef(state)
+  useEffect(() => {
+    stateRef.current = state
+  })
+  const loadingMoreRef = useRef(false)
+
   const loadMore = useCallback(() => {
+    const prev = stateRef.current
+    if (prev.loading || prev.loadingMore || !prev.hasNext || loadingMoreRef.current) return
     const current = generation.current
-    setState((prev) => {
-      if (prev.loading || prev.loadingMore || !prev.hasNext) return prev
-      fetchRef
-        .current(prev.page + 1)
-        .then((res) => {
-          if (current !== generation.current) return
-          setState((p) => ({ ...p, items: [...p.items, ...res.items], totalCount: res.totalCount, page: res.page, hasNext: res.hasNext, loadingMore: false, moreError: undefined }))
-        })
-        .catch((e: unknown) => {
-          if (current !== generation.current) return
-          setState((p) => ({ ...p, loadingMore: false, moreError: toApiError(e) }))
-        })
-      return { ...prev, loadingMore: true, moreError: undefined }
-    })
+    loadingMoreRef.current = true
+    setState((p) => ({ ...p, loadingMore: true, moreError: undefined }))
+    fetchRef
+      .current(prev.page + 1)
+      .then((res) => {
+        if (current !== generation.current) return
+        setState((p) => ({ ...p, items: [...p.items, ...res.items], totalCount: res.totalCount, page: res.page, hasNext: res.hasNext, loadingMore: false, moreError: undefined }))
+      })
+      .catch((e: unknown) => {
+        if (current !== generation.current) return
+        setState((p) => ({ ...p, loadingMore: false, moreError: toApiError(e) }))
+      })
+      .finally(() => {
+        loadingMoreRef.current = false
+      })
   }, [])
 
   const reload = useCallback(() => setNonce((n) => n + 1), [])
