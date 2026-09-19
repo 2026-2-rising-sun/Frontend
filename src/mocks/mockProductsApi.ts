@@ -2,6 +2,7 @@ import { ApiError } from '../domain/errors'
 import type { ProductsPort } from '../domain/ports'
 import type { Product } from '../domain/types'
 import { db } from './db'
+import { paginate } from './paginate'
 import { simulateNetwork } from './simulate'
 
 const isPublic = (p: Product) => p.status === 'SELLING' || p.status === 'SOLD_OUT'
@@ -9,14 +10,14 @@ const isPublic = (p: Product) => p.status === 'SELLING' || p.status === 'SOLD_OU
 export const mockProductsApi: ProductsPort = {
   async list(params = {}) {
     await simulateNetwork('read')
-    const { status = 'ALL', sort = 'LATEST', query } = params
+    const { status = 'ALL', sort = 'LATEST', query, page, size } = params
     let items = db.products.filter(isPublic)
     if (status === 'SELLING') items = items.filter((p) => p.status === 'SELLING')
     if (status === 'SOLD_OUT') items = items.filter((p) => p.status === 'SOLD_OUT')
     if (query?.trim()) items = items.filter((p) => p.name.includes(query.trim()))
     if (sort === 'PRICE_ASC') items = [...items].sort((a, b) => a.price - b.price)
     if (sort === 'PRICE_DESC') items = [...items].sort((a, b) => b.price - a.price)
-    return structuredClone(items)
+    return structuredClone(paginate(items, page, size))
   },
 
   async get(productId) {

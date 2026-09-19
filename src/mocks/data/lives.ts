@@ -54,3 +54,20 @@ export const seedLives: LiveDetail[] = [
     playbackUrl: null,
   },
 ]
+
+/** 종료 방송 목록의 페이징을 시연하기 위한 추가 시드 (l-5 ~ l-10). */
+const endedTitles = ['여름 캠핑용품 특집', '봄맞이 홈트 라이브', '주방 가전 하반기 결산', '노트북 액세서리 모음전', '겨울 침구 특가', '스마트 워치 언박싱']
+seedLives.push(
+  ...endedTitles.map((title, i): LiveDetail => ({
+    id: `l-${5 + i}`,
+    title,
+    description: `${title} 다시 만나기. 방송은 종료되었지만 상품은 계속 판매 중이에요.`,
+    thumbnailUrl: null,
+    status: 'ENDED',
+    scheduledAt: iso(-(40 + i * 24) * HOUR),
+    startedAt: iso(-(39.8 + i * 24) * HOUR),
+    endedAt: iso(-(38 + i * 24) * HOUR),
+    hostName: '셀러 라이브',
+    playbackUrl: null,
+  })),
+)

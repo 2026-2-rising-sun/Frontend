@@ -24,7 +24,21 @@ export interface Product {
 export type ProductSort = 'LATEST' | 'PRICE_ASC' | 'PRICE_DESC'
 export type ProductStatusFilter = 'ALL' | 'SELLING' | 'SOLD_OUT'
 
-export interface ProductListParams {
+/** 목록 조회는 일정 개수씩(페이지 단위) 가져온다. page 는 0부터 시작. */
+export interface PageParams {
+  page?: number
+  size?: number
+}
+
+export interface Paged<T> {
+  items: T[]
+  page: number
+  size: number
+  totalCount: number
+  hasNext: boolean
+}
+
+export interface ProductListParams extends PageParams {
   status?: ProductStatusFilter
   sort?: ProductSort
   /** 상품명 검색어 */

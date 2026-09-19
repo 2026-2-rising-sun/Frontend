@@ -105,10 +105,35 @@ export const seedProducts: Product[] = [
   },
 ]
 
+/** 페이징을 시연할 수 있도록 공개 상품을 늘리기 위한 추가 시드 (p-11 ~ p-26). */
+const EXTRA_NAMES = [
+  '스탠드형 선풍기', '휴대용 손풍기', '전기 주전자', '핸드블렌더', '에어프라이어 5L', '무선 청소기', '가습기 4L', '공기청정기 미니',
+  '캠핑 랜턴', '접이식 캠핑 의자', '텀블러 500ml', '보온 도시락', '요가 매트', '폼롤러', '스마트 체중계', '블루투스 키보드',
+]
+
+const extraProducts: Product[] = EXTRA_NAMES.map((name, i) => ({
+  id: `p-${11 + i}`,
+  name,
+  description: `${name} — 페이징 시연용 mock 상품입니다.`,
+  imageUrl: null,
+  price: 15000 + i * 7000,
+  stock: (i * 7) % 5 === 0 ? 0 : 5 + i,
+  status: (i * 7) % 5 === 0 ? 'SOLD_OUT' : 'SELLING',
+  featuredLive: null,
+}))
+
+seedProducts.push(...extraProducts)
+
 /** 방송별 연결 상품 (노출 순서). */
 export const seedLiveProductIds: Record<string, string[]> = {
   'l-1': ['p-1', 'p-2', 'p-3'],
   'l-2': ['p-5', 'p-6'],
   'l-3': ['p-7', 'p-4'],
   'l-4': ['p-8', 'p-6'],
+  'l-5': ['p-6'],
+  'l-6': ['p-7'],
+  'l-7': ['p-4'],
+  'l-8': ['p-5'],
+  'l-9': ['p-6'],
+  'l-10': ['p-2'],
 }

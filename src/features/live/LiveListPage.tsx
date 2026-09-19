@@ -1,12 +1,15 @@
 import { useState } from 'react'
 import { useApi } from '../../app/apiContext'
-import { AsyncView } from '../../components/AsyncView'
+import { PagedView } from '../../components/PagedView'
 import { PageContainer } from '../../components/PageContainer'
 import { SegmentedControl, Skeleton } from '../../components/ui'
 import type { LiveStatus } from '../../domain/types'
-import { useAsync } from '../../hooks/useAsync'
+import { usePaged } from '../../hooks/usePaged'
 import { LiveCard } from './components/LiveCard'
 import styles from './LiveListPage.module.css'
+
+/** 1·2·3열 그리드에 나누어떨어지도록 6개 */
+const LIVE_PAGE_SIZE = 6
 
 const OPTIONS: { value: LiveStatus; label: string }[] = [
   { value: 'LIVE', label: '진행 중' },
@@ -23,13 +26,13 @@ const EMPTY_TEXT: Record<LiveStatus, string> = {
 export function LiveListPage() {
   const api = useApi()
   const [status, setStatus] = useState<LiveStatus>('LIVE')
-  const lives = useAsync(() => api.lives.list(status), [api, status])
+  const lives = usePaged((page) => api.lives.list({ status, page, size: LIVE_PAGE_SIZE }), [api, status])
 
   return (
     <PageContainer>
       <h1 className="t-h1">방송</h1>
       <SegmentedControl aria-label="방송 상태" value={status} options={OPTIONS} onChange={setStatus} />
-      <AsyncView
+      <PagedView
         state={lives}
         skeleton={
           <div className={styles.grid} aria-busy="true">
@@ -38,7 +41,6 @@ export function LiveListPage() {
             ))}
           </div>
         }
-        isEmpty={(list) => list.length === 0}
         emptyTitle={EMPTY_TEXT[status]}
         emptyMessage="방송이 없어도 상품은 쇼핑에서 바로 구매할 수 있어요."
       >
@@ -49,7 +51,7 @@ export function LiveListPage() {
             ))}
           </div>
         )}
-      </AsyncView>
+      </PagedView>
     </PageContainer>
   )
 }

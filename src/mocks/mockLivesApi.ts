@@ -2,6 +2,7 @@ import { ApiError } from '../domain/errors'
 import type { LivesPort } from '../domain/ports'
 import type { LiveDetail, LiveSummary } from '../domain/types'
 import { db } from './db'
+import { paginate } from './paginate'
 import { simulateNetwork } from './simulate'
 
 const toSummary = ({ description: _d, playbackUrl: _p, ...summary }: LiveDetail): LiveSummary => summary
@@ -16,12 +17,13 @@ const order = (a: LiveDetail, b: LiveDetail) => {
 }
 
 export const mockLivesApi: LivesPort = {
-  async list(status) {
+  async list({ status, page, size } = {}) {
     await simulateNetwork('read')
-    return db.lives
+    const all = db.lives
       .filter((l) => !status || l.status === status)
       .sort(order)
       .map(toSummary)
+    return paginate(all, page, size)
   },
 
   async get(liveId) {

@@ -14,12 +14,12 @@ export function createHttpApi(baseUrl: string): Api {
     products: {
       list: (params) =>
         request('/shopping/products', {
-          query: { status: params?.status, sort: params?.sort, q: params?.query },
+          query: { status: params?.status, sort: params?.sort, q: params?.query, page: params?.page, size: params?.size },
         }),
       get: (id) => request(`/shopping/products/${encodeURIComponent(id)}`),
     },
     lives: {
-      list: (status) => request('/live/broadcasts', { query: { status } }),
+      list: (params) => request('/live/broadcasts', { query: { status: params?.status, page: params?.page, size: params?.size } }),
       get: (id) => request(`/live/broadcasts/${encodeURIComponent(id)}`),
       listProducts: (id) => request(`/live/broadcasts/${encodeURIComponent(id)}/products`),
     },

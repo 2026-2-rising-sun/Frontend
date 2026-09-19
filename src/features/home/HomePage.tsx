@@ -1,14 +1,19 @@
 import { Link, useSearchParams } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
 import { AsyncView } from '../../components/AsyncView'
+import { PagedView } from '../../components/PagedView'
 import { PageContainer } from '../../components/PageContainer'
 import { SearchBox } from '../../components/SearchBox'
 import { ButtonLink, Chip, Select, Skeleton, StatusBadge } from '../../components/ui'
 import type { ProductSort, ProductStatusFilter } from '../../domain/types'
 import { useAsync } from '../../hooks/useAsync'
+import { usePaged } from '../../hooks/usePaged'
 import { LiveCard } from '../live/components/LiveCard'
 import { ProductGrid, ProductGridSkeleton } from '../shopping/components/ProductGrid'
 import styles from './HomePage.module.css'
+
+/** 한 번에 가져오는 상품 수. 2·3·4열 그리드에 모두 나누어떨어지도록 12개. */
+const PRODUCT_PAGE_SIZE = 12
 
 const STATUS_OPTIONS: { value: ProductStatusFilter; label: string }[] = [
   { value: 'ALL', label: '전체' },
@@ -41,10 +46,11 @@ export function HomePage() {
       return next
     })
 
-  const lives = useAsync(() => api.lives.list(), [api])
-  const products = useAsync(() => api.products.list({ status, sort, query }), [api, status, sort, query])
-  const featured = lives.data?.find((l) => l.status === 'LIVE')
-  const liveList = lives.data?.filter((l) => l.status !== 'ENDED').slice(0, 3)
+  // 홈 방송 영역은 진행 중 → 예정 순으로 첫 3개만 보여준다 (전체는 /lives).
+  const lives = useAsync(() => api.lives.list({ size: 6 }), [api])
+  const products = usePaged((page) => api.products.list({ status, sort, query, page, size: PRODUCT_PAGE_SIZE }), [api, status, sort, query])
+  const featured = lives.data?.items.find((l) => l.status === 'LIVE')
+  const liveList = lives.data?.items.filter((l) => l.status !== 'ENDED').slice(0, 3)
 
   return (
     <PageContainer>
@@ -105,15 +111,14 @@ export function HomePage() {
             <Select aria-label="정렬 기준" value={sort} options={SORT_OPTIONS} onChange={(v) => setParam('sort', v, 'LATEST')} />
           </div>
         </div>
-        <AsyncView
+        <PagedView
           state={products}
           skeleton={<ProductGridSkeleton />}
-          isEmpty={(list) => list.length === 0}
           emptyTitle={query ? '검색 결과가 없어요' : '상품이 아직 없어요'}
           emptyMessage={query ? '다른 검색어로 찾아보세요.' : '등록된 판매 중 상품이 없습니다.'}
         >
           {(list) => <ProductGrid products={list} />}
-        </AsyncView>
+        </PagedView>
       </section>
     </PageContainer>
   )
