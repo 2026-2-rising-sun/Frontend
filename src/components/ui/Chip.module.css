@@ -1,0 +1,19 @@
+.chip {
+  padding: 8px var(--space-4);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-full);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font: 400 14px/20px var(--font-sans);
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.chip:hover { background: var(--bg-muted); }
+
+.selected,
+.selected:hover {
+  background: var(--secondary-default);
+  border-color: var(--secondary-default);
+  font-weight: 500;
+}
