@@ -68,7 +68,8 @@ const draftSeed: StoredProduct = {
 }
 
 const initialState = (): DbState => ({
-  products: [...seedProducts.map(toStored), clone(draftSeed)],
+  // 최신 등록 순: 방금 기본정보만 등록된 상품이 가장 위에 온다.
+  products: [clone(draftSeed), ...seedProducts.map(toStored)],
   lives: seedLives.map((l) => ({ ...clone(l), version: 1, productIds: [...(seedLiveProductIds[l.id] ?? [])] })),
   orders: {},
   sequence: 0,

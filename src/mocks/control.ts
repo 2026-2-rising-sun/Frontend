@@ -19,6 +19,8 @@ export interface MockSettings {
    * 명세상 유효시간은 팀 합의 사항이라 기본값을 정하지 않고(끔) 시연용으로만 조절한다.
    */
   orderExpiryMs: number
+  /** true 면 결제 시작 요청을 실패시킨다. 주문은 만들어졌지만 결제를 시작하지 못한 "결제 전" 상태를 보여주기 위한 스위치 */
+  failPaymentStart: boolean
 }
 
 const DEFAULTS: MockSettings = {
@@ -27,6 +29,7 @@ const DEFAULTS: MockSettings = {
   latencyMs: 400,
   failReads: false,
   orderExpiryMs: 0,
+  failPaymentStart: false,
 }
 
 let settings: MockSettings = { ...DEFAULTS }

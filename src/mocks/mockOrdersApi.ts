@@ -121,6 +121,7 @@ export const mockOrdersApi: OrdersPort = {
 export const mockPaymentsApi: PaymentsPort = {
   async start(orderNumber, lookupPassword) {
     await simulateNetwork('write')
+    if (getMockSettings().failPaymentStart) throw new ApiError('NETWORK', '결제를 시작하지 못했어요. (mock: 결제 시작 실패 시뮬레이션)')
     const order = authorize(orderNumber, lookupPassword)
     // 이미 확인 중이면 새 결제를 만들지 않고 기존 결과 확인으로 이어진다.
     if (order.status === 'CONFIRMING') return toPublic(order)

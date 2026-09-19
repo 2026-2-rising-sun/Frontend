@@ -85,6 +85,15 @@ export function MockControlPanel() {
             <span>상품·방송 조회 실패시키기</span>
           </label>
 
+          <label className={styles.check}>
+            <input
+              type="checkbox"
+              checked={settings.failPaymentStart}
+              onChange={(e) => updateMockSettings({ failPaymentStart: e.target.checked })}
+            />
+            <span>결제 시작 요청 실패시키기 (주문은 &lsquo;결제 전&rsquo;으로 남음)</span>
+          </label>
+
           <button type="button" className={styles.reset} onClick={reset}>
             데이터 초기화 (재고·주문)
           </button>
