@@ -1,0 +1,28 @@
+/**
+ * API 오류 계약. 실제 어댑터와 mock 어댑터는 같은 코드로 오류를 던진다.
+ * 화면은 `ApiError.code` 만 보고 분기한다.
+ */
+export type ApiErrorCode =
+  | 'NOT_FOUND'
+  | 'UNAUTHORIZED' // 주문번호 + 조회 비밀번호 불일치
+  | 'PRICE_CHANGED' // details.currentUnitPrice 에 현재 가격
+  | 'OUT_OF_STOCK'
+  | 'NOT_ON_SALE'
+  | 'INVALID_STATE' // 허용되지 않는 주문 상태 전이
+  | 'VALIDATION'
+  | 'NETWORK'
+  | 'UNKNOWN'
+
+export class ApiError extends Error {
+  readonly code: ApiErrorCode
+  readonly details?: Record<string, unknown>
+
+  constructor(code: ApiErrorCode, message: string, details?: Record<string, unknown>) {
+    super(message)
+    this.name = 'ApiError'
+    this.code = code
+    this.details = details
+  }
+}
+
+export const isApiError = (e: unknown): e is ApiError => e instanceof ApiError
