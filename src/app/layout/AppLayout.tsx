@@ -1,4 +1,4 @@
-import { Outlet, useLocation } from 'react-router-dom'
+import { Link, Outlet, useLocation } from 'react-router-dom'
 import { BottomNav } from './BottomNav'
 import { Header } from './Header'
 import styles from './AppLayout.module.css'
@@ -16,6 +16,9 @@ export function AppLayout() {
       <main className={[styles.main, showBottomNav && styles.withBottomNav].filter(Boolean).join(' ')}>
         <Outlet />
       </main>
+      <footer className={styles.footer}>
+        <Link to="/admin/products">관리 콘솔 (개발·시연용)</Link>
+      </footer>
       {showBottomNav && <BottomNav />}
     </div>
   )

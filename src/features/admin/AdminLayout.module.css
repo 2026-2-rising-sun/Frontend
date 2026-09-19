@@ -1,0 +1,48 @@
+.shell { min-height: 100svh; display: flex; flex-direction: column; background: var(--bg-page); }
+
+.sidebar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-3) var(--space-5);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border-default);
+}
+
+.logo { display: inline-flex; align-items: center; gap: var(--space-2); font: 700 16px/24px var(--font-sans); }
+.mark { width: 24px; height: 24px; border-radius: 50%; background: var(--brand-default); }
+
+.nav { display: flex; gap: var(--space-1); }
+.link { padding: var(--space-2) var(--space-3); border-radius: var(--radius-md); color: var(--text-secondary); font: 400 14px/20px var(--font-sans); }
+.link:hover { background: var(--bg-muted); }
+.active { background: var(--brand-subtle-strong); color: var(--text-primary); font-weight: 500; }
+
+.shop { margin-left: auto; color: var(--text-brand); font: 500 13px/20px var(--font-sans); }
+.shop:hover { text-decoration: underline; }
+.notice { flex: 1 1 100%; font: 400 11px/16px var(--font-sans); color: var(--text-tertiary); }
+
+.content { flex: 1; min-width: 0; width: 100%; max-width: 1080px; margin: 0 auto; padding: var(--space-5) var(--space-4) var(--space-12); display: flex; flex-direction: column; gap: var(--space-5); }
+
+@media (min-width: 1024px) {
+  .shell { flex-direction: row; }
+  .sidebar {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: var(--space-2);
+    width: 240px;
+    flex: none;
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    padding: var(--space-6) var(--space-4);
+    border-bottom: 0;
+    border-right: 1px solid var(--border-default);
+  }
+  .logo { padding: 0 var(--space-3) var(--space-4); }
+  .nav { flex-direction: column; }
+  .shop { margin-left: 0; padding: var(--space-2) var(--space-3); }
+  .notice { flex: none; margin-top: auto; padding: 0 var(--space-3); }
+  .content { padding: var(--space-10) var(--space-8) var(--space-16); }
+}
