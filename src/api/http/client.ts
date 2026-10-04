@@ -37,7 +37,7 @@ const toErrorCode = (status: number, code?: string): ApiErrorCode => {
 }
 
 /** fetch 래퍼. 백엔드 오류 응답을 ApiError 로 통일한다. */
-export function createHttpClient(baseUrl: string, auth?: { accessToken: () => string | undefined; unauthorized: () => void }) {
+export function createHttpClient(baseUrl: string, auth?: { accessToken: () => string | undefined; unauthorized: (token: string) => void }) {
   const base = baseUrl.replace(/\/$/, '')
 
   return async function request<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -62,7 +62,7 @@ export function createHttpClient(baseUrl: string, auth?: { accessToken: () => st
     }
 
     if (!response.ok) {
-      if (response.status === 401 && token) auth?.unauthorized()
+      if (response.status === 401 && token) auth?.unauthorized(token)
       const payload = await response.json().catch(() => ({}))
       const body = (payload.error ?? payload) as ErrorBody
       throw new ApiError(

@@ -111,3 +111,26 @@ test('anonymous request and 204 do not assume a JSON response', async () => {
   assert.equal(await request('/auth/logout', { anonymous: true }), undefined)
   assert.equal(authorization, null)
 })
+
+test('late 401 from the previous account cannot clear a newly authenticated seller session', async () => {
+  let account = 'user'
+  let release: () => void = () => {}
+  const pending = new Promise<void>((resolve) => { release = resolve })
+  globalThis.fetch = async (input, init) => {
+    if (String(input).endsWith('/login')) {
+      account = JSON.parse(String(init?.body)).email.split('@')[0]
+      return envelope({ accessToken: account + '-access', refreshToken: account + '-refresh' })
+    }
+    if (String(input).endsWith('/me')) return envelope({ memberId: account, email: account + '@local.test',
+      displayName: account, roles: [account === 'seller' ? 'SELLER' : 'USER'] })
+    await pending
+    return error(401)
+  }
+  const { auth, request } = createHttpAuth('/api', true)
+  await auth.login('user', 'user')
+  const oldRequest = request('/commerce/cart/items')
+  await auth.login('seller', 'seller')
+  release()
+  await assert.rejects(oldRequest, { code: 'UNAUTHORIZED' })
+  assert.equal(auth.getSession()?.role, 'SELLER')
+})

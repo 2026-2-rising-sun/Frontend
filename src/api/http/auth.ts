@@ -10,7 +10,7 @@ export function createHttpAuth(baseUrl: string, testAccounts = false) {
   let pair: TokenPair | null = null
   let generation = 0
   const clear = () => { generation++; pair = null; store.set(null) }
-  const request = createHttpClient(baseUrl, { accessToken: () => pair?.accessToken, unauthorized: clear })
+  const request = createHttpClient(baseUrl, { accessToken: () => pair?.accessToken, unauthorized: (token) => { if (pair?.accessToken === token) clear() } })
   const auth: AuthPort = {
     testAccounts,
     getSession: store.getSession,
