@@ -99,10 +99,7 @@ export interface CreateOrderInput {
   lookupPassword: string
 }
 
-/* ───────────────────────── 관리(Admin) ─────────────────────────
- * P1 에는 회원·역할 구분이 없다. "관리 기능"은 사용자 유형이 아니라 기능을 쓰는 화면의 구분이며,
- * 개발·시연 환경에서만 사용한다. (불특정 외부에 무제한 공개하지 않는다.)
- */
+/** 관리 기능은 SELLER 역할만 이용한다. */
 
 /** 관리용 상품 상태. DRAFT = 기본정보만 등록되고 판매 설정(가격·재고)이 아직 없는 상태. */
 export type AdminProductStatus = 'DRAFT' | ProductStatus

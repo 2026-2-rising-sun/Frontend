@@ -1,4 +1,6 @@
-import { Link, NavLink, Outlet } from 'react-router-dom'
+import { useSession } from '../auth/useSession'
+import { ButtonLink, ResultState } from '../../components/ui'
+import { Link, NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
 import styles from './AdminLayout.module.css'
 
 const NAV = [
@@ -7,16 +9,21 @@ const NAV = [
 ] as const
 
 /**
- * 관리 콘솔 레이아웃. P1 에는 로그인·역할이 없으므로 개발·시연 환경에서만 쓰는 화면이다.
+ * 판매자 콘솔 레이아웃.
  * 모바일: 상단 가로 메뉴 / PC(≥1024px): 왼쪽 사이드바.
  */
 export function AdminLayout() {
+  const session = useSession()
+  const location = useLocation()
+  if (!session) return <Navigate to="/login" replace state={{ from: location.pathname }} />
+  if (session.role !== 'SELLER') return <ResultState type="error" title="판매자만 접근할 수 있어요."
+    action={<ButtonLink to="/login">다른 계정으로 로그인</ButtonLink>} />
   return (
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
         <Link to="/admin/products" className={styles.logo}>
           <span className={styles.mark} aria-hidden="true" />
-          관리 콘솔
+          판매자 콘솔
         </Link>
         <nav className={styles.nav} aria-label="관리 메뉴">
           {NAV.map((item) => (
@@ -28,7 +35,7 @@ export function AdminLayout() {
         <Link to="/" className={styles.shop}>
           ← 쇼핑몰로
         </Link>
-        <p className={styles.notice}>개발·시연용 화면이에요. 외부에 공개하지 않습니다.</p>
+        <p className={styles.notice}>판매자 계정으로 로그인되어 있어요.</p>
       </aside>
       <main className={styles.content}>
         <Outlet />

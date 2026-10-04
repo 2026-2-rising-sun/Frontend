@@ -1,3 +1,4 @@
+import type { AuthPort } from './auth'
 import type {
   AdminLive,
   AdminProduct,
@@ -86,6 +87,7 @@ export interface AdminLivesPort {
 }
 
 export interface Api {
+  auth: AuthPort
   products: ProductsPort
   lives: LivesPort
   orders: OrdersPort
