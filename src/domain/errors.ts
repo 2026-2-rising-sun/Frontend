@@ -5,6 +5,7 @@
 export type ApiErrorCode =
   | 'NOT_FOUND'
   | 'UNAUTHORIZED' // 주문번호 + 조회 비밀번호 불일치
+  | 'FORBIDDEN' // 로그인했지만 역할 권한이 없음
   | 'PRICE_CHANGED' // details.currentUnitPrice 에 현재 가격
   | 'OUT_OF_STOCK'
   | 'NOT_ON_SALE'

@@ -20,5 +20,5 @@ export async function bootstrap(): Promise<Bootstrap> {
     const mocks = await import('../mocks')
     return { api: mocks.createMockApi(), devTools: mocks.MockControlPanel }
   }
-  return { api: createHttpApi(import.meta.env.VITE_API_BASE_URL ?? '/api'), devTools: null }
+  return { api: createHttpApi(import.meta.env.VITE_API_BASE_URL ?? '/api', import.meta.env.DEV), devTools: null }
 }

@@ -1,27 +1,18 @@
+import { createSellerProducts } from './sellerProducts'
 import type { Api } from '../../domain/ports'
-import type { ProductBasicInput } from '../../domain/types'
-import { createHttpClient } from './client'
+import { createHttpAuth } from './auth'
 
 /**
  * 실제 백엔드 어댑터.
  *
- * ⚠️ 엔드포인트 경로는 아직 백엔드 OpenAPI(Backend/contracts/api)가 없어 프론트가 가정한 값이다.
- *    스펙이 나오면 이 파일의 경로/응답 매핑만 맞추면 된다. (화면 코드는 domain/ports 에만 의존)
+ * 회원 인증과 Shopping 판매자 기본정보는 현재 백엔드 계약에 맞춘다.
+ * 주문·결제·방송·판매 설정의 나머지 P1 어댑터는 기존 계약을 유지하며 P2 전환이 별도로 필요하다.
  */
-/** 기본정보(+대표 이미지 파일)는 파일 업로드가 있으므로 multipart 로 보낸다. */
-const toBasicForm = ({ name, description, image }: ProductBasicInput, version?: number) => {
-  const form = new FormData()
-  form.set('name', name)
-  form.set('description', description)
-  if (image) form.set('image', image)
-  if (version !== undefined) form.set('version', String(version))
-  return form
-}
-
-export function createHttpApi(baseUrl: string): Api {
-  const request = createHttpClient(baseUrl)
+export function createHttpApi(baseUrl: string, testAccounts = false): Api {
+  const { auth, request } = createHttpAuth(baseUrl, testAccounts)
 
   return {
+    auth,
     products: {
       list: (params) =>
         request('/shopping/products', {
@@ -46,14 +37,7 @@ export function createHttpApi(baseUrl: string): Api {
     },
     admin: {
       products: {
-        list: (params) =>
-          request('/shopping/admin/products', {
-            query: { status: params?.status, q: params?.query, page: params?.page, size: params?.size },
-          }),
-        get: (id) => request(`/shopping/admin/products/${encodeURIComponent(id)}`),
-        create: (input) => request('/shopping/admin/products', { method: 'POST', body: toBasicForm(input) }),
-        updateBasicInfo: (id, { version, ...input }) =>
-          request(`/shopping/admin/products/${encodeURIComponent(id)}`, { method: 'PATCH', body: toBasicForm(input, version) }),
+        ...createSellerProducts(request),
         setSaleInfo: (id, input) =>
           request(`/commerce/admin/products/${encodeURIComponent(id)}/sale-info`, { method: 'POST', body: input }),
         changePrice: (id, price) =>

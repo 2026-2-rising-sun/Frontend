@@ -1,3 +1,5 @@
+import { AccountPage } from '../features/auth/AccountPage'
+import { LoginPage } from '../features/auth/LoginPage'
 import { useEffect, type ComponentType } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import type { Api } from '../domain/ports'
@@ -40,6 +42,8 @@ function App({ api, devTools: DevTools }: AppProps) {
         <Routes>
           <Route element={<AppLayout />}>
             <Route index element={<HomePage />} />
+            <Route path="login" element={<LoginPage />} />
+            <Route path="account" element={<AccountPage />} />
             <Route path="products/:productId" element={<ProductDetailPage />} />
             <Route path="lives" element={<LiveListPage />} />
             <Route path="lives/:liveId" element={<LiveWatchPage />} />
@@ -48,7 +52,7 @@ function App({ api, devTools: DevTools }: AppProps) {
             <Route path="orders/:orderNumber" element={<OrderResultPage />} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
-          {/* 관리 콘솔: 로그인·역할이 없는 P1 개발·시연용 화면. 공개 내비게이션에는 노출하지 않는다. */}
+          {/* 판매자 역할을 검증한 뒤 관리 콘솔을 렌더링한다. */}
           <Route path="admin" element={<AdminLayout />}>
             <Route index element={<Navigate to="products" replace />} />
             <Route path="products" element={<AdminProductListPage />} />
