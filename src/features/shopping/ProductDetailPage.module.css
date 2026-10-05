@@ -1,0 +1,68 @@
+/* 모바일: 이미지를 화면 폭에 맞추고, 하단 고정 바(88px) 만큼 아래 여백을 둔다. */
+.page { padding-left: 0; padding-right: 0; padding-top: 0; padding-bottom: 104px; }
+
+.layout { display: flex; flex-direction: column; gap: var(--space-5); }
+
+.image { width: 100%; }
+
+.info { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); padding: 0 var(--space-4); }
+.name { margin: 0; }
+.desc { color: var(--text-secondary); }
+.stock { font: 500 12px/16px var(--font-sans); color: var(--warning-text); }
+
+.live {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: var(--space-3);
+  background: var(--bg-muted);
+  border-radius: var(--radius-md);
+  font: 400 12px/18px var(--font-sans);
+  color: var(--text-secondary);
+}
+
+.live:hover { text-decoration: underline; }
+
+/* 모바일 하단 고정 액션 바 */
+.actions {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom));
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-default);
+}
+
+.qtyRow { display: flex; align-items: center; }
+.qtyLabel, .totalRow { display: none; }
+.buy { flex: 1; }
+
+@media (min-width: 768px) {
+  .page { padding: var(--space-10) var(--space-6) var(--space-16); }
+  .layout { flex-direction: row; align-items: flex-start; gap: var(--space-10); }
+  .image { width: 46%; flex: none; border-radius: var(--radius-xl); }
+  .info { flex: 1; padding: 0; gap: var(--space-4); }
+
+  .actions {
+    position: static;
+    width: 100%;
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--space-4);
+    padding: var(--space-4) 0 0;
+    background: transparent;
+    border-top: 1px solid var(--border-default);
+  }
+
+  .qtyRow { justify-content: space-between; }
+  .qtyLabel { display: inline; font: 500 16px/24px var(--font-sans); }
+  .totalRow { display: flex; align-items: center; justify-content: space-between; color: var(--text-secondary); font: 500 16px/24px var(--font-sans); }
+  .totalRow :last-child { color: var(--text-brand); }
+  .buy { flex: none; width: 100%; }
+}

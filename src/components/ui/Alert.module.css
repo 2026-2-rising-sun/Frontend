@@ -1,0 +1,29 @@
+.root {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid;
+  border-radius: var(--radius-md);
+}
+
+.icon { flex: none; margin-top: 2px; }
+.body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.title { font: 500 14px/20px var(--font-sans); }
+.message { font: 400 12px/18px var(--font-sans); color: var(--text-secondary); }
+
+.info { background: var(--info-subtle); border-color: var(--info-border); }
+.info .title { color: var(--info-text); }
+.info .icon { color: var(--info-default); }
+
+.success { background: var(--success-subtle); border-color: var(--success-border); }
+.success .title { color: var(--success-text); }
+.success .icon { color: var(--success-text); }
+
+.warning { background: var(--warning-subtle); border-color: var(--warning-border); }
+.warning .title { color: var(--warning-text); }
+.warning .icon { color: var(--warning-default); }
+
+.danger { background: var(--danger-subtle); border-color: var(--danger-border); }
+.danger .title { color: var(--danger-text); }
+.danger .icon { color: var(--danger-default); }

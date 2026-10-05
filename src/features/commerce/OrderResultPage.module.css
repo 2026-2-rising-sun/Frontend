@@ -1,0 +1,16 @@
+.meta { display: flex; align-items: center; gap: var(--space-2); }
+.number { font: 500 14px/20px var(--font-sans); color: var(--text-secondary); }
+
+.details { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding: var(--space-4) var(--space-5); background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-lg); }
+.details > div { display: flex; justify-content: space-between; font: 400 14px/22px var(--font-sans); }
+.details dt { color: var(--text-secondary); }
+.details dd { margin: 0; font-weight: 500; }
+
+.actions { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.lookup { align-self: center; color: var(--text-brand); font: 500 14px/20px var(--font-sans); }
+.lookup:hover { text-decoration: underline; }
+
+@media (min-width: 768px) {
+  .actions { flex-direction: row; }
+}

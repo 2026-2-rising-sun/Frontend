@@ -1,0 +1,10 @@
+.root { min-height: 100svh; display: flex; flex-direction: column; }
+.main { flex: 1; }
+
+.footer { padding: var(--space-6) var(--space-4); text-align: center; font: 400 12px/18px var(--font-sans); color: var(--text-tertiary); }
+.footer a:hover { color: var(--text-brand); text-decoration: underline; }
+
+@media (max-width: 767px) {
+  .withBottomNav { padding-bottom: 0; }
+  .footer { padding-bottom: calc(var(--bottom-nav-height) + var(--space-6)); }
+}
