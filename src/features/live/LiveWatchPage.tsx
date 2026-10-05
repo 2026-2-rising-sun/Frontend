@@ -4,7 +4,7 @@ import { useApi } from '../../app/apiContext'
 import { AsyncView } from '../../components/AsyncView'
 import { PageContainer } from '../../components/PageContainer'
 import { Button, Skeleton, Tabs } from '../../components/ui'
-import { UserIcon } from '../../components/icons'
+import { LiveInteraction } from './components/LiveInteraction'
 import { useAsync } from '../../hooks/useAsync'
 import { formatDateTime, formatTime } from '../../lib/format'
 import { LivePlayer } from './components/LivePlayer'
@@ -18,11 +18,11 @@ import styles from './LiveWatchPage.module.css'
  */
 const PRODUCT_REFRESH_MS = 15_000
 
-type PanelTab = 'products' | 'about'
+type PanelTab = 'products' | 'chat'
 
 const TABS: { value: PanelTab; label: string }[] = [
   { value: 'products', label: '방송 상품' },
-  { value: 'about', label: '방송 소개' },
+  { value: 'chat', label: '채팅' },
 ]
 
 /**
@@ -38,14 +38,15 @@ export function LiveWatchPage() {
 
   // 방송 상품 영역만 주기적으로 다시 조회한다. (탭이 보일 때만, 종료된 방송은 제외)
   const liveStatus = live.data?.status
+  const reloadLive = live.reload
   const reloadProducts = products.reload
   useEffect(() => {
     if (!liveStatus || liveStatus === 'ENDED') return
     const timer = setInterval(() => {
-      if (document.visibilityState === 'visible') reloadProducts()
+      if (document.visibilityState === 'visible') { reloadProducts(); reloadLive() }
     }, PRODUCT_REFRESH_MS)
     return () => clearInterval(timer)
-  }, [liveStatus, reloadProducts])
+  }, [liveStatus, reloadProducts, reloadLive])
 
   return (
     <PageContainer className={styles.page}>
@@ -58,10 +59,7 @@ export function LiveWatchPage() {
                 <div className={styles.info}>
                   <h1 className="t-h2">{l.title}</h1>
                   <p className={styles.host}>
-                    <span className={[styles.avatar, l.status === 'LIVE' && styles.avatarLive].filter(Boolean).join(' ')} aria-hidden="true">
-                      <UserIcon size={18} />
-                    </span>
-                    {l.hostName} · {l.status === 'LIVE' ? '지금 방송 중' : l.status === 'READY' ? `${formatDateTime(l.scheduledAt)} 시작 예정` : '방송 종료'}
+{l.status === 'LIVE' ? '지금 방송 중' : l.status === 'READY' ? `${formatDateTime(l.scheduledAt)} 시작 예정` : '방송 종료'}
                   </p>
                 </div>
               </>
@@ -110,8 +108,9 @@ export function LiveWatchPage() {
               )}
             </AsyncView>
           ) : (
-            <p className={styles.about}>{live.data?.description ?? '방송 소개를 불러오는 중이에요.'}</p>
+            <p className={styles.about}>아래 채팅에서 함께 이야기해 보세요.</p>
           )}
+          {live.data && <LiveInteraction key={liveId} liveId={liveId} liveStatus={live.data.status} showChat={tab === 'chat'} onEnded={live.reload} />}
         </aside>
       </div>
     </PageContainer>

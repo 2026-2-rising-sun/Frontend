@@ -1,7 +1,5 @@
 import { strict as assert } from 'node:assert'
 import { test } from 'node:test'
-import { createMockAuth } from '../src/mocks/mockAuth'
-import { requireSeller } from '../src/domain/auth'
 import { createHttpAuth } from '../src/api/http/auth'
 import { createHttpClient } from '../src/api/http/client'
 
@@ -9,22 +7,6 @@ Object.assign(globalThis, { window: { location: { origin: 'http://localhost:5173
 const envelope = (data: unknown, status = 200) => new Response(JSON.stringify({ success: true, data, error: null }), { status })
 const error = (status: number) => new Response(JSON.stringify({ success: false, data: null,
   error: { code: status === 401 ? 'UNAUTHORIZED' : 'FORBIDDEN', message: 'denied' } }), { status })
-
-test('same two mock credentials, wrong password, role boundary and logout notifications', async () => {
-  const auth = createMockAuth()
-  let changes = 0
-  const unsubscribe = auth.subscribe(() => { changes++ })
-  assert.throws(() => requireSeller(auth.getSession()), { code: 'UNAUTHORIZED' })
-  assert.equal((await auth.login('user', 'user')).role, 'USER')
-  assert.throws(() => requireSeller(auth.getSession()), { code: 'FORBIDDEN' })
-  assert.equal((await auth.login('seller', 'seller')).role, 'SELLER')
-  requireSeller(auth.getSession())
-  await assert.rejects(auth.login('seller', 'wrong'), { code: 'UNAUTHORIZED' })
-  assert.equal(auth.getSession(), null)
-  await auth.logout()
-  assert.ok(changes >= 3)
-  unsubscribe()
-})
 
 test('local alias uses email API, authenticates /me and passes bearer; 403 retains session, 401 clears it', async () => {
   const calls: { path: string; headers: Headers; body: unknown }[] = []
@@ -41,13 +23,13 @@ test('local alias uses email API, authenticates /me and passes bearer; 403 retai
   assert.deepEqual(calls[0].body, { email: 'seller@local.test', password: 'seller' })
   assert.equal(calls[0].headers.get('Authorization'), null)
   assert.equal(calls[1].headers.get('Authorization'), 'Bearer signed-token')
-  assert.deepEqual(await request('/shopping/admin/products'), { items: [] })
+  assert.deepEqual(await request('/shopping/v1/admin/products'), { items: [] })
   assert.equal(calls[2].headers.get('Authorization'), 'Bearer signed-token')
   denied = 403
-  await assert.rejects(request('/shopping/admin/products'), { code: 'FORBIDDEN' })
+  await assert.rejects(request('/shopping/v1/admin/products'), { code: 'FORBIDDEN' })
   assert.equal(auth.getSession()?.role, 'SELLER')
   denied = 401
-  await assert.rejects(request('/shopping/admin/products'), { code: 'UNAUTHORIZED' })
+  await assert.rejects(request('/shopping/v1/admin/products'), { code: 'UNAUTHORIZED' })
   assert.equal(auth.getSession(), null)
 })
 
@@ -100,7 +82,7 @@ test('logout clears local state even when session revocation is unavailable; no 
   fail = true
   await assert.rejects(auth.logout(), { code: 'NETWORK' })
   assert.equal(auth.getSession(), null)
-  await request('/shopping/products')
+  await request('/shopping/v1/products')
   assert.equal(lastAuthorization, null)
 })
 
@@ -128,9 +110,36 @@ test('late 401 from the previous account cannot clear a newly authenticated sell
   }
   const { auth, request } = createHttpAuth('/api', true)
   await auth.login('user', 'user')
-  const oldRequest = request('/commerce/cart/items')
+  const oldRequest = request('/commerce/v1/cart/items')
   await auth.login('seller', 'seller')
   release()
   await assert.rejects(oldRequest, { code: 'UNAUTHORIZED' })
   assert.equal(auth.getSession()?.role, 'SELLER')
+})
+
+test('near-expiry access token rotates once for concurrent requests and uses the replacement bearer', async () => {
+  let refreshCalls = 0; const seen: string[] = []
+  const jwt = (exp: number) => 'header.' + Buffer.from(JSON.stringify({ exp })).toString('base64url') + '.signature'
+  const old = jwt(Math.floor(Date.now()/1000) + 10); const next = jwt(Math.floor(Date.now()/1000) + 900)
+  globalThis.fetch = async (input, init) => {
+    if (String(input).endsWith('/login')) return envelope({ accessToken: old, refreshToken: 'refresh' })
+    if (String(input).endsWith('/members/me')) return envelope({ memberId: 'id', email: 'user@local.test', displayName: 'user', roles: ['USER'] })
+    if (String(input).endsWith('/auth/refresh')) { refreshCalls++; await new Promise(resolve => setTimeout(resolve, 20)); return envelope({ accessToken: next, refreshToken: 'rotated' }) }
+    seen.push(new Headers(init?.headers).get('Authorization') ?? ''); return envelope([])
+  }
+  const { auth, request } = createHttpAuth('/api', true); await auth.login('user', 'user')
+  await Promise.all([request('/commerce/v1/cart/items'), request('/commerce/v1/orders')])
+  assert.equal(refreshCalls, 1); assert.deepEqual(seen, ['Bearer ' + next, 'Bearer ' + next])
+})
+
+test('profile edit updates the session when its request first refreshes an expiring token', async () => {
+  const jwt = (exp: number) => 'header.' + Buffer.from(JSON.stringify({ exp })).toString('base64url') + '.signature'
+  globalThis.fetch = async (input, init) => {
+    if (String(input).endsWith('/login')) return envelope({ accessToken: jwt(Math.floor(Date.now()/1000) + 10), refreshToken: 'refresh' })
+    if (String(input).endsWith('/auth/refresh')) return envelope({ accessToken: jwt(Math.floor(Date.now()/1000) + 900), refreshToken: 'rotated' })
+    return envelope({ memberId: 'id', email: 'user@local.test', displayName: init?.method === 'PATCH' ? 'edited' : 'user', roles: ['USER'] })
+  }
+  const { auth } = createHttpAuth('/api', true)
+  await auth.login('user', 'user'); await auth.updateName('edited')
+  assert.equal(auth.getSession()?.displayName, 'edited')
 })

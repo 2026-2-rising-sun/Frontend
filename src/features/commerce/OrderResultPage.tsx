@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, Navigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
 import { AsyncView } from '../../components/AsyncView'
 import { PageContainer } from '../../components/PageContainer'
@@ -10,7 +10,6 @@ import { useAsync } from '../../hooks/useAsync'
 import { formatRemaining, useCountdown } from '../../hooks/useCountdown'
 import { formatFullDateTime } from '../../lib/format'
 import { OrderSummary } from './components/OrderSummary'
-import { clearOrderAccess, getOrderAccess } from './orderAccess'
 import styles from './OrderResultPage.module.css'
 
 /** 결과가 확정되지 않은 동안(결제 확인 중) 결과를 다시 확인하는 주기 */
@@ -18,35 +17,32 @@ const POLL_INTERVAL_MS = 2000
 
 export function OrderResultPage() {
   const { orderNumber = '' } = useParams()
-  const api = useApi()
-  const password = getOrderAccess(orderNumber)
-  const order = useAsync(() => api.orders.lookup(orderNumber, password ?? ''), [api, orderNumber, password])
+  const api = useApi(); const location = useLocation()
+  const paymentId = (location.state as { paymentId?: string } | null)?.paymentId
+  const payment = useAsync(() => paymentId ? api.payments.get(orderNumber, paymentId) : Promise.resolve(null), [api, orderNumber, paymentId])
+  const order = useAsync(() => api.orders.lookup(orderNumber), [api, orderNumber])
 
-  const confirming = order.data?.status === 'CONFIRMING'
-  const reload = order.reload
+  const confirming = order.data?.status === 'CONFIRMING' || order.data?.status === 'UNPAID'
+  const reloadOrder = order.reload; const reloadPayment = payment.reload
+  const reload = () => { reloadOrder(); if (paymentId) reloadPayment() }
   useEffect(() => {
     if (!confirming) return
-    const timer = setInterval(reload, POLL_INTERVAL_MS)
+    const timer = setInterval(() => { reloadOrder(); if (paymentId) reloadPayment() }, POLL_INTERVAL_MS)
     return () => clearInterval(timer)
-  }, [confirming, reload])
-
-  if (!password) return <Navigate to={`/orders/lookup?orderNumber=${encodeURIComponent(orderNumber)}`} replace />
-  if (order.error?.code === 'UNAUTHORIZED') {
-    clearOrderAccess(orderNumber)
-    return <Navigate to={`/orders/lookup?orderNumber=${encodeURIComponent(orderNumber)}`} replace />
-  }
+  }, [confirming, reloadOrder, reloadPayment, paymentId])
 
   return (
     <PageContainer narrow>
       <h1 className="t-h1">주문 결과</h1>
+      {payment.error && <Alert type="warning" title="결제 시도 조회가 지연되고 있어요">주문 상태를 다시 확인하고 있어요.</Alert>}
       <AsyncView state={order} skeleton={<Skeleton height={320} radius={14} />}>
-        {(o) => <OrderResult order={o} password={password} onChanged={order.reload} />}
+        {(o) => <OrderResult order={o} onChanged={reload} />}
       </AsyncView>
     </PageContainer>
   )
 }
 
-function OrderResult({ order, password, onChanged }: { order: Order; password: string; onChanged: () => void }) {
+function OrderResult({ order, onChanged }: { order: Order; onChanged: () => void }) {
   const api = useApi()
   const [busy, setBusy] = useState<'pay' | 'cancel' | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
@@ -58,8 +54,8 @@ function OrderResult({ order, password, onChanged }: { order: Order; password: s
     setBusy(kind)
     setActionError(null)
     try {
-      if (kind === 'pay') await api.payments.start(order.orderNumber, password)
-      else await api.orders.cancel(order.orderNumber, password)
+      if (kind === 'pay') await api.payments.start(order.orderNumber)
+      else await api.orders.cancel(order.orderNumber)
       onChanged()
     } catch (e) {
       setActionError(e instanceof ApiError ? e.message : '요청을 처리하지 못했어요.')
@@ -119,8 +115,8 @@ function OrderResult({ order, password, onChanged }: { order: Order; password: s
           </>
         )}
         {(order.status === 'FAILED' || order.status === 'CANCELED') && (
-          <ButtonLink size="L" fullWidth to={`/products/${order.productId}`}>
-            새 주문으로 다시 구매
+          <ButtonLink size="L" fullWidth to="/">
+            상품 다시 찾기
           </ButtonLink>
         )}
         {order.status === 'PAID' && (
@@ -135,7 +131,7 @@ function OrderResult({ order, password, onChanged }: { order: Order; password: s
         )}
       </div>
       <Link to="/orders/lookup" className={styles.lookup}>
-        다른 주문 조회하기
+        내 주문 목록
       </Link>
     </>
   )
@@ -146,13 +142,13 @@ function StatusAlert({ order, remaining }: { order: Order; remaining: number | n
     case 'PAID':
       return (
         <Alert type="success" title="결제가 완료되었어요">
-          Mock 결제가 정상 처리되었습니다. 재고는 주문 시점에 이미 확보되어 추가로 차감되지 않아요.
+          주문 내역에서 결제 결과를 확인할 수 있어요.
         </Alert>
       )
     case 'FAILED':
       return (
         <Alert type="danger" title="결제에 실패했어요">
-          재고는 복구되었습니다. 이 주문은 다시 결제할 수 없으니 새 주문으로 다시 구매해 주세요.
+          재고는 복구되었습니다. 이 주문은 다시 결제할 수 없으니 상품 다시 찾기해 주세요.
         </Alert>
       )
     case 'CANCELED':
@@ -174,7 +170,7 @@ function StatusAlert({ order, remaining }: { order: Order; remaining: number | n
     default:
       return (
         <Alert type="warning" title="아직 결제가 시작되지 않았어요">
-          결제하기를 누르면 Mock 결제가 진행돼요. 결제 전 주문은 취소할 수 있어요.
+          결제하기를 누르면 결제를 요청해요. 결제 전 주문은 취소할 수 있어요.
           {order.expiresAt && remaining !== null && (
             <>
               <br />

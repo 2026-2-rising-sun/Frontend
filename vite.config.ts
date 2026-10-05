@@ -10,7 +10,8 @@ export default defineConfig(({ mode }) => {
         `/api/${service}`, {
           target: env[`${service.toUpperCase()}_URL`] ?? `http://127.0.0.1:${8081 + index}`,
           changeOrigin: true,
-          rewrite: (path: string) => path.replace(`/api/${service}`, '/v1'),
+          configure(proxy) { proxy.on('proxyReq', request => request.removeHeader('origin')) },
+          rewrite: (path: string) => path.replace(`/api/${service}`, ''),
         },
       ])),
     },

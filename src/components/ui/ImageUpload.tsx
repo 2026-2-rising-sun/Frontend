@@ -96,7 +96,7 @@ export function ImageUpload({ label, file, onChange, registered, disabled, note 
             {file ? `선택됨: ${file.name} (${Math.max(1, Math.round(file.size / 1024))}KB)` : registered ? '대표 이미지가 등록되어 있어요.' : '등록된 대표 이미지가 없어요.'}
           </p>
           <p className={styles.hint}>
-            JPG · PNG · WEBP, 최대 {IMAGE_MAX_BYTES / 1024 / 1024}MB
+            JPG · PNG, 최대 {IMAGE_MAX_BYTES / 1024 / 1024}MB
           </p>
           {note && <p className={styles.hint}>{note}</p>}
           {error && (

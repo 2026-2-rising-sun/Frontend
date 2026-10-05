@@ -12,6 +12,10 @@ export interface AuthPort {
   readonly testAccounts: boolean
   login(username: string, password: string): Promise<MemberSession>
   logout(): Promise<void>
+  signup(email: string, password: string, displayName: string): Promise<void>
+  updateName(displayName: string): Promise<void>
+  withdraw(password: string): Promise<void>
+  revokeSessions(): Promise<void>
   getSession(): MemberSession | null
   subscribe(listener: () => void): () => void
 }

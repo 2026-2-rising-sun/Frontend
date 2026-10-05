@@ -2,7 +2,7 @@ import { useState, type FormEvent } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
 import { PageContainer } from '../../components/PageContainer'
-import { Button, Input } from '../../components/ui'
+import { Button, ButtonLink, Input } from '../../components/ui'
 import styles from './LoginPage.module.css'
 
 export function LoginPage() {
@@ -29,12 +29,13 @@ export function LoginPage() {
   return <PageContainer narrow>
     <form className={styles.form} onSubmit={submit}>
       <h1>로그인</h1>
-      <Input label={auth.testAccounts ? '아이디 또는 이메일' : '이메일'} autoComplete="username" value={username}
+      <Input label={auth.testAccounts ? '아이디 또는 이메일' : '이메일'} autoComplete="username" maxLength={254} value={username}
         onChange={(e) => setUsername(e.target.value)} required disabled={busy} />
-      <Input label="비밀번호" type="password" autoComplete="current-password" value={password}
+      <Input label="비밀번호" type="password" autoComplete="current-password" maxLength={72} value={password}
         onChange={(e) => setPassword(e.target.value)} required disabled={busy} />
       {error && <p role="alert">{error}</p>}
       <Button type="submit" disabled={busy} fullWidth>{busy ? '로그인 중…' : '로그인'}</Button>
+      <ButtonLink to="/signup" variant="secondary">회원가입</ButtonLink>
       {auth.testAccounts && <div className={styles.accounts}>
         <p>테스트 계정: user / user · seller / seller</p>
         <Button variant="secondary" disabled={busy} onClick={() => { setUsername('user'); setPassword('user') }}>유저 계정 입력</Button>

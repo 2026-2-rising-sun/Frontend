@@ -1,6 +1,9 @@
+import { CartPage } from '../features/commerce/CartPage'
+import { RequireSession } from '../features/auth/RequireSession'
+import { SignupPage } from '../features/auth/SignupPage'
 import { AccountPage } from '../features/auth/AccountPage'
 import { LoginPage } from '../features/auth/LoginPage'
-import { useEffect, type ComponentType } from 'react'
+import { useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import type { Api } from '../domain/ports'
 import { AdminLayout } from '../features/admin/AdminLayout'
@@ -21,8 +24,6 @@ import { NotFoundPage } from './NotFoundPage'
 
 interface AppProps {
   api: Api
-  /** 개발·시연용 화면 도구 (mock 모드에서만 전달됨) */
-  devTools?: ComponentType | null
 }
 
 /** 화면 이동 시 항상 맨 위에서 시작한다. */
@@ -34,7 +35,7 @@ function ScrollToTop() {
   return null
 }
 
-function App({ api, devTools: DevTools }: AppProps) {
+function App({ api }: AppProps) {
   return (
     <ApiContext.Provider value={api}>
       <BrowserRouter>
@@ -42,14 +43,16 @@ function App({ api, devTools: DevTools }: AppProps) {
         <Routes>
           <Route element={<AppLayout />}>
             <Route index element={<HomePage />} />
+            <Route path="signup" element={<SignupPage />} />
             <Route path="login" element={<LoginPage />} />
             <Route path="account" element={<AccountPage />} />
             <Route path="products/:productId" element={<ProductDetailPage />} />
             <Route path="lives" element={<LiveListPage />} />
             <Route path="lives/:liveId" element={<LiveWatchPage />} />
-            <Route path="checkout" element={<CheckoutPage />} />
-            <Route path="orders/lookup" element={<OrderLookupPage />} />
-            <Route path="orders/:orderNumber" element={<OrderResultPage />} />
+            <Route path="cart" element={<RequireSession><CartPage /></RequireSession>} />
+            <Route path="checkout" element={<RequireSession><CheckoutPage /></RequireSession>} />
+            <Route path="orders/lookup" element={<RequireSession><OrderLookupPage /></RequireSession>} />
+            <Route path="orders/:orderNumber" element={<RequireSession><OrderResultPage /></RequireSession>} />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
           {/* 판매자 역할을 검증한 뒤 관리 콘솔을 렌더링한다. */}
@@ -63,7 +66,6 @@ function App({ api, devTools: DevTools }: AppProps) {
             <Route path="lives/:liveId" element={<AdminLiveEditPage key="edit" />} />
           </Route>
         </Routes>
-        {DevTools && <DevTools />}
       </BrowserRouter>
     </ApiContext.Provider>
   )

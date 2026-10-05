@@ -3,7 +3,7 @@ import { ApiError, type ApiErrorCode } from '../../domain/errors'
 interface RequestOptions {
   headers?: Record<string, string>
   anonymous?: boolean
-  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
+  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT'
   query?: Record<string, string | number | undefined | null>
   /** JSON 으로 보낼 객체, 또는 파일 업로드용 FormData */
   body?: unknown
@@ -29,6 +29,7 @@ const KNOWN_CODES: ApiErrorCode[] = [
 
 const toErrorCode = (status: number, code?: string): ApiErrorCode => {
   if (code && (KNOWN_CODES as string[]).includes(code)) return code as ApiErrorCode
+  if (status === 409) return 'CONFLICT'
   if (status === 404) return 'NOT_FOUND'
   if (status === 401) return 'UNAUTHORIZED'
   if (status === 403) return 'FORBIDDEN'

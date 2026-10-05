@@ -35,6 +35,11 @@
 .spacer { flex: 1; }
 .search { display: none; width: 280px; }
 .orders { display: none; }
+.inner .desktopAction { display: none; }
+
+@media (min-width: 1280px) {
+  .inner .desktopAction { display: inline-flex; }
+}
 
 @media (min-width: 768px) {
   .inner { padding: 0 var(--space-6); }

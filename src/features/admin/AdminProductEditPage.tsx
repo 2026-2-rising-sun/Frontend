@@ -5,6 +5,7 @@ import { AsyncView } from '../../components/AsyncView'
 import { Alert, Button, ButtonLink, ImageUpload, Input, Skeleton, StatusBadge, Textarea, adminProductBadge } from '../../components/ui'
 import { PRODUCT_DESCRIPTION_MAX, PRODUCT_NAME_MAX } from '../../domain/constraints'
 import type { AdminProduct, SaleAction } from '../../domain/types'
+import { useIdempotencyKey } from '../../hooks/useIdempotencyKey'
 import { useAsync } from '../../hooks/useAsync'
 import { formatPrice } from '../../lib/format'
 import { ActionAlert } from './components/ActionAlert'
@@ -67,6 +68,7 @@ function BasicInfoSection({ product, reload, onDone }: EditorProps & { product: 
   const { busy, error, run } = useAction()
   const [name, setName] = useState(product?.name ?? '')
   const [description, setDescription] = useState(product?.description ?? '')
+  const keyFor = useIdempotencyKey()
   const [image, setImage] = useState<File | null>(null)
   const [attempted, setAttempted] = useState(false)
 
@@ -81,7 +83,7 @@ function BasicInfoSection({ product, reload, onDone }: EditorProps & { product: 
     if (!product) {
       let createdId = ''
       const ok = await run('save', async () => {
-        const created = await api.admin.products.create({ name, description, image })
+        const created = await api.admin.products.create({ name, description, image, idempotencyKey: keyFor({ name, description, image: image ? [image.name, image.size, image.lastModified] : null }) })
         createdId = created.id
       })
       // 기본정보만 저장된 상품(DRAFT)은 공개·주문 대상이 아니다. 이어서 같은 상품의 판매 설정으로 안내한다.
@@ -107,7 +109,7 @@ function BasicInfoSection({ product, reload, onDone }: EditorProps & { product: 
           onChange={setImage}
           registered={product?.hasImage}
           disabled={busy !== null}
-          note="시연 화면: 선택한 이미지는 실제로 저장되지 않고 '등록됨' 상태만 기록돼요."
+          note="저장할 때 대표 이미지를 업로드합니다."
         />
         <div className={styles.actions}>
           <Button type="submit" disabled={busy !== null}>
@@ -125,11 +127,11 @@ function SaleInfoSection({ product, reload, onDone }: EditorProps & { product: A
   const { busy, error, run } = useAction()
   const draft = product.status === 'DRAFT'
   const [price, setPrice] = useState(product.price !== null ? String(product.price) : '')
-  const [stock, setStock] = useState(product.stock !== null ? String(product.stock) : '')
+  const [stock, setStock] = useState(product.status === 'DRAFT' && product.stock !== null ? String(product.stock) : '')
 
   const toInt = (v: string) => (v.trim() === '' ? NaN : Number(v))
   const priceError = price !== '' && !(Number.isInteger(toInt(price)) && toInt(price) > 0) ? '1원 이상의 정수로 입력해 주세요.' : undefined
-  const stockError = stock !== '' && !(Number.isInteger(toInt(stock)) && toInt(stock) >= 0) ? '0 이상의 정수로 입력해 주세요.' : undefined
+  const stockError = stock !== '' && !(Number.isSafeInteger(toInt(stock)) && (!draft || toInt(stock) >= 0)) ? draft ? '0 이상의 정수로 입력해 주세요.' : '증감 수량을 정수로 입력해 주세요.' : undefined
 
   const done = (text: string) => async (fn: () => Promise<unknown>, key: string) => {
     onDone(null)
@@ -146,6 +148,7 @@ function SaleInfoSection({ product, reload, onDone }: EditorProps & { product: A
     >
       <div className={styles.form}>
         <ActionAlert error={error} onReload={reload} />
+        {!draft && !product.salesId && <Alert type="info" title="기존 판매 설정 변경은 준비 중이에요">판매정보 ID 조회가 제공되면 가격·재고·판매 상태를 변경할 수 있어요. 현재 브라우저에서 새로 설정한 상품은 변경할 수 있어요.</Alert>}
         {draft ? (
           <>
             <div className={`${styles.formRow} ${styles.formRow2}`}>
@@ -168,7 +171,7 @@ function SaleInfoSection({ product, reload, onDone }: EditorProps & { product: A
               <div className={styles.actions}>
                 <Button
                   variant="secondary"
-                  disabled={busy !== null || !!priceError || price === '' || toInt(price) === product.price}
+                  disabled={!product.salesId || busy !== null || !!priceError || price === '' || toInt(price) === product.price}
                   onClick={() => done('가격을 변경했어요. 새 주문부터 적용돼요.')(() => api.admin.products.changePrice(product.id, toInt(price)), 'price')}
                 >
                   {busy === 'price' ? '변경 중…' : '가격 변경'}
@@ -176,12 +179,12 @@ function SaleInfoSection({ product, reload, onDone }: EditorProps & { product: A
               </div>
             </div>
             <div className={styles.formRow}>
-              <Input label={`재고(개) — 현재 ${product.stock ?? 0}`} inputMode="numeric" value={stock} onChange={(e) => setStock(e.target.value)} error={stockError} helper="주문에 이미 배정된 수량은 수정 대상에 포함되지 않아요." />
+              <Input label={`재고 증감량(개) — 현재 ${product.stock ?? 0}`} inputMode="numeric" value={stock} onChange={(e) => setStock(e.target.value)} error={stockError} helper="추가는 양수, 감소는 음수로 입력하세요. 현재 재고에 증감량을 적용합니다." />
               <div className={styles.actions}>
                 <Button
                   variant="secondary"
-                  disabled={busy !== null || !!stockError || stock === '' || toInt(stock) === product.stock}
-                  onClick={() => done('재고를 수정했어요.')(() => api.admin.products.setStock(product.id, { stock: toInt(stock), expectedStock: product.stock ?? 0 }), 'stock')}
+                  disabled={!product.salesId || busy !== null || !!stockError || stock === '' || toInt(stock) === 0}
+                  onClick={() => done('재고를 수정했어요.')(() => api.admin.products.adjustStock(product.id, toInt(stock)), 'stock')}
                 >
                   {busy === 'stock' ? '수정 중…' : '재고 수정'}
                 </Button>
@@ -227,7 +230,7 @@ function SaleStatusSection({ product, reload, onDone }: EditorProps & { product:
               <li className={styles.hint}>{(product.stock ?? 0) > 0 ? '✓' : '✗'} 판매 가능한 재고 1개 이상</li>
             </ul>
             <div className={styles.actions}>
-              <Button disabled={busy !== null} onClick={() => act('START_SALE')}>
+              <Button disabled={!product.salesId || busy !== null} onClick={() => act('START_SALE')}>
                 {busy === 'START_SALE' ? '처리 중…' : ACTION_COPY.START_SALE.label}
               </Button>
             </div>
@@ -239,7 +242,7 @@ function SaleStatusSection({ product, reload, onDone }: EditorProps & { product:
               {status === 'SELLING' ? '공개 목록에서 구매할 수 있어요.' : '재고가 0이라 품절로 표시돼요. 재고를 추가하면 판매 중으로 돌아와요.'}
             </p>
             <div className={styles.actions}>
-              <Button variant="secondary" disabled={busy !== null} onClick={() => act('HIDE')}>
+              <Button variant="secondary" disabled={!product.salesId || busy !== null} onClick={() => act('HIDE')}>
                 {busy === 'HIDE' ? '처리 중…' : ACTION_COPY.HIDE.label}
               </Button>
               <ButtonLink to={`/products/${product.id}`} variant="tonal">
@@ -252,7 +255,7 @@ function SaleStatusSection({ product, reload, onDone }: EditorProps & { product:
           <>
             <p className={styles.hint}>공개 목록과 방송 상품 영역에서 제외되고 신규 주문이 막혀 있어요. 재고를 늘려도 자동으로 공개되지 않아요.</p>
             <div className={styles.actions}>
-              <Button disabled={busy !== null} onClick={() => act('RESUME')}>
+              <Button disabled={!product.salesId || busy !== null} onClick={() => act('RESUME')}>
                 {busy === 'RESUME' ? '처리 중…' : ACTION_COPY.RESUME.label}
               </Button>
             </div>

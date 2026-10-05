@@ -32,6 +32,7 @@ export function LiveListPage() {
     <PageContainer>
       <h1 className="t-h1">방송</h1>
       <SegmentedControl aria-label="방송 상태" value={status} options={OPTIONS} onChange={setStatus} />
+      <p className="t-caption">상태는 불러온 페이지에서 구분합니다. 더 보기로 다음 방송을 확인하세요.</p>
       <PagedView
         state={lives}
         skeleton={
