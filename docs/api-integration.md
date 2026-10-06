@@ -4,11 +4,11 @@
 
 ## 진행 순서와 보고
 
-1. **리뷰 → 수정 → 검증 → Merge**: Live PR #136~#142 병합 확인. #126은 회귀 16건 확인 후 종료. #127은 기본 Application 실행 수정 PR #147이 있으나 기존 Live SSE 검증 실패로 병합 보류. #145의 SELLER 구현은 병합되어 있으나 Apidog 실제 환경·Mock·토큰 저장 적용은 대상 확인이 남았다. 단계 보고에 수정/미해결 항목과 검증 근거를 포함한다.
-2. **git pull → API 검증 → YAML/Apidog 동기화**: Backend와 Frontend를 fast-forward로 갱신했다. Member 9, Shopping 12, Commerce 20, Live 18의 총 59개 계약을 확인했다. 계약 도구 테스트 41건, YAML lint와 schema/reference/example 검증 통과. 현재 YAML은 변경하지 않았다. Apidog의 최신 Live 5개 operation 반영과 테스트 자동화 적용·재내보내기 비교는 별도 미완료 항목이다.
+1. **리뷰 → 수정 → 검증 → Merge**: Live PR #136~#142 병합 확인. #126은 회귀 16건 확인 후 종료. #127은 Live SSE 종료·검증 수정 후 PR #147의 CI가 모두 통과하여 dev 병합 및 이슈 종료를 확인했다. #145도 Apidog 59개 API·테스트 환경·조건부 Mock·토큰 자동화의 검증 완료 기록과 이슈 종료를 확인했다. 단계 보고에 수정/미해결 항목과 검증 근거를 포함한다.
+2. **git pull → API 검증 → YAML/Apidog 동기화**: Backend와 Frontend를 fast-forward로 갱신했다. Member 9, Shopping 12, Commerce 20, Live 18의 총 59개 계약을 확인했다. 계약 도구 테스트 41건, YAML lint와 schema/reference/example 검증 통과. 현재 YAML은 변경하지 않았다. 이후 #145에서 Apidog 59개 API·DTO 87개 재내보내기 및 테스트 자동화 적용 검증을 완료했다.
 3. **프론트 개발·연동 → Prism → kind → 체크리스트 → 수동 환경**: HTTP 어댑터와 UI를 기존 계약에 맞춘다. 미구현 백엔드 기능은 아래 갭에 기록한다. Prism은 형식·응답 렌더링, kind는 실제 인증·DB·Redis·서비스 간 HTTP 흐름을 검증한다. 모든 요청 형식과 화면 사용 위치를 아래에 문서화한다. 종료 보고에서 테스트 통과/실패/미실행을 구분한다.
 
-사용자가 프론트 진행을 지시했으므로 #127의 보류와 독립적으로 이미 병합된 `dev`에 연동한다. 준비되지 않은 PR을 끌어오거나 백엔드 기능을 추가하지 않는다.
+프론트는 이미 병합된 Backend `dev` API에 연동한다. 이후 병합된 #147은 로컬 실행과 SSE 종료·검증을 보완하며 API 경로·스키마를 바꾸지 않는다. 백엔드 기능 추가는 별도 범위다.
 
 ## 주요 계약 결정
 
@@ -108,8 +108,8 @@
 | 채팅 중복 전송 방지·과거 페이지·SSE replay | 전송 중 중복 클릭 차단, 실패 자동 재전송 없음, 최근 50개 REST 복구. | 서버 계약 추가가 필요한 경우 별도 설계. |
 | 실패/타임아웃 결제 상태 E2E | UI는 실제 서버 FAILED/EXPIRED/CONFIRMING을 처리한다. 일반 화면에서 결과를 조작하지 않는다. | 안전한 외부 테스트 서버 시나리오로 추가 검증. |
 | 판매자 상품 소유권 | 기존 SELLER 권한 계약을 유지한다. 회원별 소유권 모델은 아직 없다. | 신규 모델 도입 시 별도 계획·권한 검증 필요. |
-| #127 CI | 기존 SSE 이벤트 순서 검증이 서로 다른 두 실패를 보였다. PR #147에 로그를 보고하고 merge 보류. | 테스트 가정과 실제 종료 이벤트 순서를 분리 진단. |
-| Apidog | 대상 프로젝트 확인 질문이 남아 실제 쓰기를 보류했다. | 환경·조건부 Mock·token automation 적용, 최신 59 operation 재내보내기 비교 후 #145 종료. |
+| #127 CI | SSE 종료·검증 수정 후 PR #147의 CI 통과, dev 병합 및 #127 종료 확인. | 완료. |
+| Apidog | #145에 59개 API·DTO 87개 재내보내기, 환경·조건부 Mock·토큰 자동화 검증 완료가 기록되어 있고 이슈도 종료됐다. | 이후 API 계약 변경 시 동기화. |
 | 배포 | Vercel build에서 mock 강제 활성화를 제거했다. | 실제 API 도메인·동일 origin reverse proxy 연결 후 배포 검증. 현재 Vercel 배포 완료를 주장하지 않는다. |
 
 ## 검증과 수동 확인
@@ -151,7 +151,7 @@ docker start sl-p2-flow-2874994bc928-member sl-p2-flow-2874994bc928-shopping sl-
 
 테스트 결과는 `test-artifacts/prism-results.json`, `test-artifacts/kind-results.json`, 이미지(`kind-product-desktop.png`, `kind-product-mobile.png`, `kind-live-chat.png`, `kind-cart-desktop.png`, `kind-cart-mobile.png`, `account-after-mobile.png`, `account-after-desktop.png`)에 저장되어 있다. mode별 trace 폴더를 분리해 테스트 실행 간 파일 삭제 충돌을 방지했다. 이 파일들은 생성 데이터·토큰이 포함될 수 있어 Git에 올리지 않는다.
 
-실제 결제 대행 승인/실패/타임아웃, AWS IVS 실송출·HLS 재생, 모든 endpoint의 독립 E2E, 운영 배포 및 Apidog 59개 operation 동기화는 이 통과 결과에 포함되지 않는다. #127과 #145는 위 사유로 종료하지 않았다.
+실제 결제 대행 승인/실패/타임아웃, AWS IVS 실송출·HLS 재생, 모든 endpoint의 독립 E2E, 운영 배포는 이 프론트 E2E 통과 결과에 포함되지 않는다. Apidog 동기화는 별도 #145의 완료 기록으로 확인했으며 #127과 #145는 종료됐다. 좋아요 멱등 요청은 Frontend #6 / Backend #148, 장바구니 다중 선택·통합 결제는 Frontend #7 / Backend #149의 후속 작업이다.
 
 ## 좋아요 멱등성 진단 (변경 없음)
 
