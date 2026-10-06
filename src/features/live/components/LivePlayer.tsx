@@ -1,4 +1,5 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
+import type HlsType from 'hls.js'
 import { PlayIcon } from '../../../components/icons'
 import { Button, StatusBadge, liveBadge } from '../../../components/ui'
 import type { LiveDetail } from '../../../domain/types'
@@ -24,7 +25,7 @@ export function LivePlayer({ live }: { live: Pick<LiveDetail, 'status' | 'playba
         title="영상을 불러오지 못했어요"
         description="네트워크를 확인하고 다시 시도해 주세요. 상품 구매에는 영향이 없어요."
         action={
-          <Button variant="secondary" size="S" onClick={() => setAttempt((n) => n + 1)}>
+          <Button variant="secondary" size="S" onClick={() => { setFailedUrl(null); setAttempt((n) => n + 1) }}>
             다시 시도
           </Button>
         }
@@ -32,17 +33,7 @@ export function LivePlayer({ live }: { live: Pick<LiveDetail, 'status' | 'playba
     )
   } else if (live.playbackUrl) {
     body = (
-      <video
-        key={attempt}
-        className={styles.video}
-        src={live.playbackUrl}
-        controls
-        autoPlay
-        muted
-        playsInline
-        aria-label={live.title}
-        onError={() => setFailedUrl(live.playbackUrl)}
-      />
+      <StreamVideo url={live.playbackUrl} attempt={attempt} title={live.title} onError={() => setFailedUrl(live.playbackUrl)} />
     )
   } else {
     body = <Message title="라이브 영상 영역" description="재생 URL 이 연결되면 방송 영상이 이곳에 표시돼요." icon />
@@ -65,4 +56,24 @@ function Message({ title, description, action, icon }: { title: string; descript
       {action}
     </div>
   )
+}
+
+function StreamVideo({ url, title, attempt, onError }: { url: string; title: string; attempt: number; onError: () => void }) {
+  const ref = useRef<HTMLVideoElement>(null); const errorRef = useRef(onError)
+  useEffect(() => { errorRef.current = onError }, [onError])
+  useEffect(() => {
+    const video = ref.current!; let player: HlsType | undefined; let stopped = false
+    if (video.canPlayType('application/vnd.apple.mpegurl')) video.src = url
+    else {
+      void import('hls.js').then(({ default: Hls }) => {
+        if (stopped) return
+        if (Hls.isSupported()) {
+          player = new Hls(); player.loadSource(url); player.attachMedia(video)
+          player.on(Hls.Events.ERROR, (_event, data) => { if (data.fatal) errorRef.current() })
+        } else video.src = url
+      }).catch(() => { if (!stopped) errorRef.current() })
+    }
+    return () => { stopped = true; player?.destroy(); video.removeAttribute('src'); video.load() }
+  }, [url, attempt])
+  return <video ref={ref} className={styles.video} controls autoPlay muted playsInline aria-label={title} onError={() => errorRef.current()} />
 }

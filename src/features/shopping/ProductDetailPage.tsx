@@ -1,9 +1,10 @@
+import { useSession } from '../auth/useSession'
 import { useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
 import { AsyncView } from '../../components/AsyncView'
 import { PageContainer } from '../../components/PageContainer'
-import { Button, ButtonLink, QuantityStepper, Skeleton, StatusBadge, Thumbnail, productBadge } from '../../components/ui'
+import { Alert, Button, ButtonLink, QuantityStepper, Skeleton, StatusBadge, Thumbnail, productBadge } from '../../components/ui'
 import type { Product } from '../../domain/types'
 import { useAsync } from '../../hooks/useAsync'
 import { formatPrice } from '../../lib/format'
@@ -36,6 +37,16 @@ export function ProductDetailPage() {
 }
 
 function ProductDetail({ product }: { product: Product }) {
+  const api = useApi(); const navigate = useNavigate(); const session = useSession()
+  const [busy, setBusy] = useState(false); const [notice, setNotice] = useState('')
+  async function addCart() {
+    if (!session) { navigate('/login', { state: { from: `/products/${product.id}` } }); return }
+    if (busy) return
+    setBusy(true); setNotice('')
+    try { await api.cart.add(product.id, quantity); setNotice('장바구니에 담았어요.') }
+    catch (e) { setNotice(e instanceof Error ? e.message : '장바구니에 담지 못했어요.') }
+    finally { setBusy(false) }
+  }
   const [quantity, setQuantity] = useState(1)
   const buyable = product.status === 'SELLING' && product.stock > 0
 
@@ -67,6 +78,8 @@ function ProductDetail({ product }: { product: Product }) {
             <span>총 상품 금액</span>
             <span className="t-price-lg">{formatPrice(product.price * quantity)}</span>
           </div>
+          {notice && <Alert type="info" title={notice} />}
+          {buyable && <Button variant="secondary" disabled={busy} onClick={addCart}>장바구니 담기</Button>}
           {buyable ? (
             <ButtonLink size="L" className={styles.buy} to={`/checkout?productId=${product.id}&quantity=${quantity}`}>
               바로 구매

@@ -1,5 +1,5 @@
 .form { display: grid; gap: 20px; margin: 48px auto; max-width: 420px; }
 .form h1 { font-size: 26px; font-weight: 700; }
-.form > p { color: #b42318; }
+.form > p[role='alert'] { color: var(--danger-text); }
 .accounts { display: flex; flex-wrap: wrap; gap: 12px; }
 .accounts p { width: 100%; color: #667085; font-size: 14px; }

@@ -1,7 +1,7 @@
 import { createContext, useContext } from 'react'
 import type { Api } from '../domain/ports'
 
-/** 화면이 API 를 얻는 유일한 통로. 실제/mock 구현을 알지 못하고 Api 인터페이스만 본다. */
+/** 화면이 API 를 얻는 유일한 통로. HTTP 구현을 알지 못하고 Api 인터페이스만 본다. */
 export const ApiContext = createContext<Api | null>(null)
 
 export function useApi(): Api {

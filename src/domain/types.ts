@@ -1,6 +1,6 @@
 /**
- * 도메인 타입. 화면·실제 API 어댑터·mock 어댑터가 모두 공유하는 계약이다.
- * 이 파일은 어떤 구현(http / mock)도 import 하지 않는다.
+ * 도메인 타입. 화면과 HTTP API 어댑터가 모두 공유하는 계약이다.
+ * 이 파일은 어떤 구현(HTTP)도 import 하지 않는다.
  */
 
 /** 상품 판매 상태 (Commerce 기준). 공개 목록에는 SELLING / SOLD_OUT 만 노출된다. */
@@ -16,6 +16,9 @@ export interface Product {
   price: number
   /** 0 이상 정수 */
   stock: number
+  purchasable?: boolean
+  linkId?: string
+  missing?: boolean
   status: ProductStatus
   /** 이 상품을 소개한 방송 (있는 경우) */
   featuredLive?: { id: string; title: string } | null
@@ -27,6 +30,7 @@ export type ProductStatusFilter = 'ALL' | 'SELLING' | 'SOLD_OUT'
 /** 목록 조회는 일정 개수씩(페이지 단위) 가져온다. page 는 0부터 시작. */
 export interface PageParams {
   page?: number
+  cursor?: string | null
   size?: number
 }
 
@@ -35,6 +39,7 @@ export interface Paged<T> {
   page: number
   size: number
   totalCount: number
+  nextCursor?: string | null
   hasNext: boolean
 }
 
@@ -64,6 +69,8 @@ export interface LiveDetail extends LiveSummary {
   description: string
   /** 영상 재생 URL. 준비되지 않았으면 null. */
   playbackUrl: string | null
+  playbackAllowed?: boolean
+  channelArn?: string
 }
 
 export type OrderStatus = 'UNPAID' | 'CONFIRMING' | 'PAID' | 'FAILED' | 'CANCELED'
@@ -72,7 +79,7 @@ export interface Order {
   orderNumber: string
   status: OrderStatus
   /** 주문 당시 값이 보존된다. 이후 상품/가격이 바뀌어도 변하지 않는다. */
-  productId: string
+  productId?: string
   productName: string
   unitPrice: number
   quantity: number
@@ -95,8 +102,8 @@ export interface CreateOrderInput {
   expectedUnitPrice: number
   ordererName: string
   ordererPhone: string
-  /** 주문 조회·결제·취소에 쓰는 비밀번호 (계정 아님) */
-  lookupPassword: string
+  idempotencyKey: string
+  cartItemId?: string
 }
 
 /** 관리 기능은 SELLER 역할만 이용한다. */
@@ -118,6 +125,8 @@ export interface AdminProduct {
   status: AdminProductStatus
   /** 기본정보 수정 충돌 감지용. 수정할 때 화면이 본 version 을 함께 보낸다. */
   version: number
+  /** 판매 설정 응답에서 확인한 ID. 기존 상품 조회 계약에는 포함되지 않는다. */
+  salesId: string | null
 }
 
 export interface AdminProductListParams extends PageParams {
@@ -144,7 +153,7 @@ export type SaleAction = 'START_SALE' | 'HIDE' | 'RESUME'
 
 export interface LiveInput {
   title: string
-  description: string
+  channelArn: string
   /** 예정 시작 시각 (ISO 8601, 화면은 한국 시간으로 입력) */
   scheduledAt: string
   /** AWS IVS 시청(재생) 연결 정보. 송출용 비밀 정보(스트림 키 등)는 입력하지 않는다. */

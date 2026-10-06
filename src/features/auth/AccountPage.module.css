@@ -1,0 +1,26 @@
+.page {
+  display: grid;
+  gap: var(--space-6);
+  width: 100%;
+  max-width: 420px;
+  margin: var(--space-4) auto;
+}
+
+.profile {
+  display: grid;
+  gap: var(--space-2);
+  overflow-wrap: anywhere;
+}
+
+.profile p { color: var(--text-secondary); }
+
+.form {
+  display: grid;
+  gap: var(--space-4);
+  margin: 0;
+}
+
+.actions {
+  display: grid;
+  gap: var(--space-3);
+}

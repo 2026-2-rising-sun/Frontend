@@ -24,8 +24,8 @@ const toApiError = (e: unknown) => (e instanceof ApiError ? e : new ApiError('UN
  * 페이지 단위 목록 훅. deps 가 바뀌면 첫 페이지부터 다시 조회하고 이전 요청의 늦은 응답은 무시한다.
  * 명세: 목록은 일정 개수씩 조회하며, 첫 묶음만 보고 전체가 비었다고 단정하지 않는다.
  */
-export function usePaged<T>(fetchPage: (page: number) => Promise<Paged<T>>, deps: readonly unknown[]): PagedState<T> {
-  const [state, setState] = useState<{ items: T[]; totalCount: number; page: number; hasNext: boolean; loading: boolean; loadingMore: boolean; error?: ApiError; moreError?: ApiError }>({
+export function usePaged<T>(fetchPage: (page: number, cursor?: string | null) => Promise<Paged<T>>, deps: readonly unknown[]): PagedState<T> {
+  const [state, setState] = useState<{ items: T[]; totalCount: number; page: number; nextCursor?: string | null; hasNext: boolean; loading: boolean; loadingMore: boolean; error?: ApiError; moreError?: ApiError }>({
     items: [],
     totalCount: 0,
     page: -1,
@@ -45,7 +45,7 @@ export function usePaged<T>(fetchPage: (page: number) => Promise<Paged<T>>, deps
       .current(0)
       .then((res) => {
         if (current !== generation.current) return
-        setState({ items: res.items, totalCount: res.totalCount, page: 0, hasNext: res.hasNext, loading: false, loadingMore: false })
+        setState({ items: res.items, totalCount: res.totalCount, page: 0, nextCursor: res.nextCursor, hasNext: res.hasNext, loading: false, loadingMore: false })
       })
       .catch((e: unknown) => {
         if (current !== generation.current) return
@@ -69,10 +69,10 @@ export function usePaged<T>(fetchPage: (page: number) => Promise<Paged<T>>, deps
     loadingMoreRef.current = true
     setState((p) => ({ ...p, loadingMore: true, moreError: undefined }))
     fetchRef
-      .current(prev.page + 1)
+      .current(prev.page + 1, prev.nextCursor)
       .then((res) => {
         if (current !== generation.current) return
-        setState((p) => ({ ...p, items: [...p.items, ...res.items], totalCount: res.totalCount, page: res.page, hasNext: res.hasNext, loadingMore: false, moreError: undefined }))
+        setState((p) => ({ ...p, items: [...p.items, ...res.items], totalCount: res.totalCount, page: res.page, nextCursor: res.nextCursor, hasNext: res.hasNext, loadingMore: false, moreError: undefined }))
       })
       .catch((e: unknown) => {
         if (current !== generation.current) return

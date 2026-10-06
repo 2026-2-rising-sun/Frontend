@@ -48,7 +48,7 @@ export function HomePage() {
 
   // 홈 방송 영역은 진행 중 → 예정 순으로 첫 3개만 보여준다 (전체는 /lives).
   const lives = useAsync(() => api.lives.list({ size: 6 }), [api])
-  const products = usePaged((page) => api.products.list({ status, sort, query, page, size: PRODUCT_PAGE_SIZE }), [api, status, sort, query])
+  const products = usePaged((page, cursor) => api.products.list({ cursor, page, size: PRODUCT_PAGE_SIZE }), [api])
   const featured = lives.data?.items.find((l) => l.status === 'LIVE')
   const liveList = lives.data?.items.filter((l) => l.status !== 'ENDED').slice(0, 3)
 
@@ -98,7 +98,7 @@ export function HomePage() {
       <section className={styles.section} aria-labelledby="product-heading">
         <div className={styles.head}>
           <h2 id="product-heading" className="t-h2">
-            {query ? `'${query}' 검색 결과` : '전체 상품'}
+            {query ? `'${query}' 불러온 상품 검색` : '전체 상품'}
           </h2>
           <div className={styles.tools}>
             <div className={styles.chips} role="group" aria-label="판매 상태">
@@ -111,13 +111,14 @@ export function HomePage() {
             <Select aria-label="정렬 기준" value={sort} options={SORT_OPTIONS} onChange={(v) => setParam('sort', v, 'LATEST')} />
           </div>
         </div>
+        <p className="t-caption">검색·상태·가격 정렬은 불러온 상품에 적용됩니다. 더 보기로 추가 상품을 불러올 수 있어요.</p>
         <PagedView
           state={products}
           skeleton={<ProductGridSkeleton />}
           emptyTitle={query ? '검색 결과가 없어요' : '상품이 아직 없어요'}
           emptyMessage={query ? '다른 검색어로 찾아보세요.' : '등록된 판매 중 상품이 없습니다.'}
         >
-          {(list) => <ProductGrid products={list} />}
+          {(list) => <ProductGrid products={list.filter(p => (status === 'ALL' || p.status === status) && p.name.toLocaleLowerCase().includes(query.toLocaleLowerCase())).toSorted((a,b) => sort === 'PRICE_ASC' ? a.price-b.price : sort === 'PRICE_DESC' ? b.price-a.price : 0)} />}
         </PagedView>
       </section>
     </PageContainer>

@@ -1,10 +1,10 @@
 /**
- * API 오류 계약. 실제 어댑터와 mock 어댑터는 같은 코드로 오류를 던진다.
+ * API 오류 계약. HTTP 어댑터는 같은 코드로 오류를 던진다.
  * 화면은 `ApiError.code` 만 보고 분기한다.
  */
 export type ApiErrorCode =
   | 'NOT_FOUND'
-  | 'UNAUTHORIZED' // 주문번호 + 조회 비밀번호 불일치
+  | 'UNAUTHORIZED' // 로그인 필요 또는 세션 무효
   | 'FORBIDDEN' // 로그인했지만 역할 권한이 없음
   | 'PRICE_CHANGED' // details.currentUnitPrice 에 현재 가격
   | 'OUT_OF_STOCK'

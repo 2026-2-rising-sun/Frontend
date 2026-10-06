@@ -6,18 +6,25 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
-    "lint": "oxlint && node scripts/check-mock-boundary.mjs",
+    "lint": "oxlint",
     "preview": "vite preview",
-    "check:mock-boundary": "node scripts/check-mock-boundary.mjs",
     "dev:api": "vite --mode api",
-    "test": "tsx --test tests/*.test.ts"
+    "test": "tsx --test tests/*.test.ts",
+    "e2e:prism": "E2E_MODE=prism playwright test",
+    "e2e:kind": "playwright test",
+    "local:kind": "node scripts/kind-local.mjs",
+    "local:frontend": "node scripts/local-frontend.mjs",
+    "local:down": "node scripts/kind-local.mjs down"
   },
   "dependencies": {
+    "hls.js": "^1.7.3",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@stoplight/prism-cli": "^5.16.0",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",

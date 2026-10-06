@@ -9,7 +9,7 @@ import styles from './LiveProductItem.module.css'
  * 방송 상품은 P1 에서 "바로 구매"만 제공한다 (장바구니는 P2). 주문 화면은 일반 구매와 동일하다.
  */
 export function LiveProductItem({ product }: { product: Product }) {
-  const soldOut = product.status !== 'SELLING' || product.stock === 0
+  const soldOut = product.missing || product.status !== 'SELLING' || product.purchasable === false
   return (
     <div className={[styles.item, soldOut && styles.soldOut].filter(Boolean).join(' ')}>
       <Link to={`/products/${product.id}`} className={styles.link}>

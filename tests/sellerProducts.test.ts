@@ -13,13 +13,13 @@ test('seller basic information uses separate image upload, JSON create, then aut
   }) as HttpClient
   const products = createSellerProducts(request)
   const image = new File(['image'], 'image.png', { type: 'image/png' })
-  const product = await products.create({ name: '상품', description: '설명', image })
+  const product = await products.create({ name: '상품', description: '설명', image, idempotencyKey: 'create-key' })
   assert.equal(product.id, '42'); assert.equal(product.status, 'DRAFT')
-  assert.equal(calls[0].path, '/shopping/admin/product-images')
+  assert.equal(calls[0].path, '/shopping/v1/admin/product-images')
   assert.ok((calls[0].options as { body: unknown }).body instanceof FormData)
-  assert.deepEqual(calls[1].options, { method: 'POST', body: { name: '상품', description: '설명', mainImageId: 9 } })
-  assert.equal(calls[2].path, '/shopping/admin/products/42')
-  await assert.rejects(products.create({ name: '상품', description: '설명' }), { code: 'VALIDATION' })
+  assert.deepEqual(calls[1].options, { method: 'POST', headers: { 'X-Idempotency-Key': 'create-key' }, body: { name: '상품', description: '설명', mainImageId: 9 } })
+  assert.equal(calls[2].path, '/shopping/v1/admin/products/42')
+  await assert.rejects(products.create({ name: '상품', description: '설명', idempotencyKey: 'empty-image' }), { code: 'VALIDATION' })
 })
 
 test('UNKNOWN is an upstream failure, not an unregistered product', async () => {

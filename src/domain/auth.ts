@@ -10,13 +10,18 @@ export interface MemberSession {
 export interface AuthPort {
   /** 개발 환경에서만 간편 계정 입력을 제공한다. */
   readonly testAccounts: boolean
+  restore(): Promise<void>
   login(username: string, password: string): Promise<MemberSession>
   logout(): Promise<void>
+  signup(email: string, password: string, displayName: string): Promise<void>
+  updateName(displayName: string): Promise<void>
+  withdraw(password: string): Promise<void>
+  revokeSessions(): Promise<void>
   getSession(): MemberSession | null
   subscribe(listener: () => void): () => void
 }
 
-/** 토큰은 구현 내부 메모리에만 보관한다. 화면은 회원 정보만 구독한다. */
+/** 화면은 서버에서 확인된 회원 정보만 구독한다. 토큰 보관은 HTTP 인증 구현이 담당한다. */
 export function createSessionStore() {
   let session: MemberSession | null = null
   const listeners = new Set<() => void>()

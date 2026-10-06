@@ -31,7 +31,7 @@ export function PagedView<T>({ state, skeleton, emptyTitle, emptyMessage, childr
       />
     )
   }
-  if (state.items.length === 0) return <ResultState type="empty" title={emptyTitle} message={emptyMessage} />
+  if (state.items.length === 0 && !state.hasNext) return <ResultState type="empty" title={emptyTitle} message={emptyMessage} />
 
   return (
     <>
@@ -44,7 +44,7 @@ export function PagedView<T>({ state, skeleton, emptyTitle, emptyMessage, childr
       {(state.hasNext || state.moreError) && (
         <div style={{ display: 'flex', justifyContent: 'center' }}>
           <Button variant="secondary" size="L" onClick={state.loadMore} disabled={state.loadingMore}>
-            {state.loadingMore ? '불러오는 중…' : state.moreError ? '다시 시도' : `더 보기 (${state.items.length}/${state.totalCount})`}
+            {state.loadingMore ? '불러오는 중…' : state.moreError ? '다시 시도' : state.totalCount < 0 ? '더 보기' : `더 보기 (${state.items.length}/${state.totalCount})`}
           </Button>
         </div>
       )}

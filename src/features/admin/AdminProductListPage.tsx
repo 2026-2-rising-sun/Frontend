@@ -46,6 +46,7 @@ export function AdminProductListPage() {
         </div>
       </div>
 
+      <p className="t-caption">판매 상태 필터는 조회한 페이지에 적용돼요. 더 보기로 다음 페이지를 확인하세요.</p>
       <PagedView
         state={products}
         skeleton={<Skeleton height={64} radius={14} />}
