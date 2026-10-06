@@ -1,38 +1,82 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useApi } from '../../app/apiContext'
 import { PageContainer } from '../../components/PageContainer'
 import { AsyncView } from '../../components/AsyncView'
-import { Alert, Button, ButtonLink, Input, Skeleton, Thumbnail } from '../../components/ui'
+import { Alert, Button, ButtonLink, QuantityStepper, ResultState, Skeleton, Thumbnail } from '../../components/ui'
 import { useAsync } from '../../hooks/useAsync'
-import type { CartItem } from '../../domain/ports'
+import type { Api, CartItem } from '../../domain/ports'
+import type { Product } from '../../domain/types'
 import { formatPrice } from '../../lib/format'
-import styles from './OrderLookupPage.module.css'
+import styles from './CartPage.module.css'
+
+type CartEntry = { item: CartItem; product?: Product }
+async function readCart(api: Api): Promise<CartEntry[]> {
+  const items = await api.cart.list()
+  return Promise.all(items.map(async item => {
+    try { return { item, product: await api.products.get(item.productId) } }
+    catch { return { item } }
+  }))
+}
+
 export function CartPage() {
-  const api = useApi(); const data = useAsync(() => api.cart.list(), [api])
+  const api = useApi()
+  const data = useAsync(() => readCart(api), [api])
   return <PageContainer narrow><h1 className="t-h1">장바구니</h1><p>상품별로 주문할 수 있어요.</p>
-    <AsyncView state={data} skeleton={<Skeleton height={200} />} isEmpty={items => !items.length} emptyTitle="장바구니가 비어 있어요">
-      {items => items.map(item => <CartRow key={`${item.id}:${item.version}`} item={item} reload={data.reload} />)}
+    <AsyncView state={data} skeleton={<Skeleton height={200} />}>
+      {entries => <CartContents key={data.updatedAt?.getTime()} initial={entries} />}
     </AsyncView>
   </PageContainer>
 }
-function CartRow({ item, reload }: { item: CartItem; reload: () => void }) {
-  const api = useApi(); const p = useAsync(() => api.products.get(item.productId), [api, item.productId])
-  const [quantity, setQuantity] = useState(String(item.quantity)); const [busy, setBusy] = useState(false); const [error, setError] = useState('')
-  async function change(remove = false) {
-    if (busy) return
-    const value = Number(quantity)
-    if (!remove && (!Number.isSafeInteger(value) || value < 1 || value > 2147483647)) { setError('수량을 양의 정수로 입력해 주세요.'); return }
-    setBusy(true); setError('')
-    try { if (remove) await api.cart.remove(item.id); else await api.cart.update(item.id, value); reload() }
-    catch (e) { setError(e instanceof Error ? e.message : '처리하지 못했어요.') }
-    finally { setBusy(false) }
+
+function CartContents({ initial }: { initial: CartEntry[] }) {
+  const api = useApi()
+  const [entries, setEntries] = useState(initial)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  const inFlight = useRef(false)
+
+  async function change(id?: string, quantity?: number) {
+    if (inFlight.current) return
+    if (quantity !== undefined && (!Number.isSafeInteger(quantity) || quantity < 1 || quantity > 2147483647)) return
+    inFlight.current = true; setBusy(true); setError('')
+    let mutationError = ''
+    try {
+      if (id !== undefined) {
+        try {
+          if (quantity === undefined) await api.cart.remove(id)
+          else await api.cart.update(id, quantity)
+        } catch (e) { mutationError = e instanceof Error ? e.message : '처리하지 못했어요.' }
+      }
+      // 실패한 변경도 서버에 반영되었을 수 있으므로, 쓰기를 재시도하지 않고 전체를 조회한다.
+      setEntries(await readCart(api))
+      setError(mutationError)
+    } catch (e) {
+      setError([mutationError, e instanceof Error ? e.message : '장바구니를 확인하지 못했어요.'].filter(Boolean).join(' '))
+    } finally { inFlight.current = false; setBusy(false) }
   }
+
+  const total = entries.reduce((sum, { item, product }) => sum + (product?.price ?? 0) * item.quantity, 0)
+  const pricesKnown = entries.every(entry => entry.product !== undefined) && Number.isSafeInteger(total)
+  return <>
+    {error && <Alert type="danger" title="장바구니를 다시 확인해 주세요">{error}<Button variant="secondary" onClick={() => { void change() }} disabled={busy}>다시 조회</Button></Alert>}
+    {!entries.length ? <ResultState type="empty" title="장바구니가 비어 있어요" /> : <>
+      {entries.map(({ item, product }) => <CartRow key={item.id} item={item} product={product} busy={busy} canOrder={!error} change={change} />)}
+      <section className={styles.total} aria-label="장바구니 합계" aria-live="polite">
+        <span>총 상품 금액</span><strong>{pricesKnown ? formatPrice(total) : '가격 확인 필요'}</strong>
+        <small>최종 결제 금액은 주문서에서 확인해 주세요.</small>
+      </section>
+    </>}
+  </>
+}
+
+function CartRow({ item, product, busy, canOrder, change }: { item: CartItem; product?: Product; busy: boolean; canOrder: boolean; change: (id?: string, quantity?: number) => Promise<void> }) {
+  const amount = product ? product.price * item.quantity : undefined
   return <section className={styles.card}>
-    {p.data ? <><Thumbnail src={p.data.imageUrl} alt={p.data.name} /><h2>{p.data.name}</h2><p>{formatPrice(p.data.price)}</p></> : <p>{p.loading ? '상품 조회 중…' : '현재 구매할 수 없는 상품이에요.'}</p>}
-    {error && <Alert type="danger" title="처리하지 못했어요">{error}</Alert>}
-    <Input label="수량" inputMode="numeric" value={quantity} onChange={e => setQuantity(e.target.value)} disabled={busy} />
-    <Button variant="secondary" onClick={() => change()} disabled={busy}>수량 저장</Button>
-    <Button variant="secondary" onClick={() => change(true)} disabled={busy}>삭제</Button>
-    {p.data?.status === 'SELLING' && item.quantity <= p.data.stock && !busy && quantity === String(item.quantity) && <ButtonLink to={`/checkout?productId=${item.productId}&quantity=${item.quantity}&cartItemId=${item.id}`}>이 상품 주문</ButtonLink>}
+    {product ? <div className={styles.summary}><Thumbnail src={product.imageUrl} alt={product.name} /><div className={styles.details}><h2 className="t-h4">{product.name}</h2><p>개당 {formatPrice(product.price)}</p><p aria-label="상품 금액" aria-live="polite"><strong>{amount !== undefined && Number.isSafeInteger(amount) ? formatPrice(amount) : '가격 확인 필요'}</strong></p></div></div> : <p>현재 구매할 수 없는 상품이에요.</p>}
+    <div className={styles.actions}>
+      <QuantityStepper value={item.quantity} min={1} max={Math.min(Math.max(product?.stock ?? 1, 1), 2147483647)} onChange={quantity => { void change(item.id, quantity) }} disabled={busy || !product} />
+      <Button variant="secondary" onClick={() => { void change(item.id) }} disabled={busy}>삭제</Button>
+    </div>
+    {product?.status === 'SELLING' && item.quantity <= product.stock && !busy && canOrder && <ButtonLink to={`/checkout?productId=${item.productId}&quantity=${item.quantity}&cartItemId=${item.id}`}>이 상품 주문</ButtonLink>}
   </section>
 }

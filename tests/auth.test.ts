@@ -7,6 +7,13 @@ Object.assign(globalThis, { window: { location: { origin: 'http://localhost:5173
 const envelope = (data: unknown, status = 200) => new Response(JSON.stringify({ success: true, data, error: null }), { status })
 const error = (status: number) => new Response(JSON.stringify({ success: false, data: null,
   error: { code: status === 401 ? 'UNAUTHORIZED' : 'FORBIDDEN', message: 'denied' } }), { status })
+const refreshKey = 'shoppinglive:refresh:http://localhost:5173/api'
+const profile = { memberId: 'id', email: 'user@local.test', displayName: 'user', roles: ['USER'] }
+function refreshStorage(token?: string) {
+  const values = new Map<string, string>(token ? [[refreshKey, token]] : [])
+  return { values, storage: { getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => { values.set(key, value) }, removeItem: (key: string) => { values.delete(key) } } }
+}
 
 test('local alias uses email API, authenticates /me and passes bearer; 403 retains session, 401 clears it', async () => {
   const calls: { path: string; headers: Headers; body: unknown }[] = []
@@ -142,4 +149,77 @@ test('profile edit updates the session when its request first refreshes an expir
   const { auth } = createHttpAuth('/api', true)
   await auth.login('user', 'user'); await auth.updateName('edited')
   assert.equal(auth.getSession()?.displayName, 'edited')
+})
+
+test('reload rotates the stored refresh token once and restores only the server-verified profile', async () => {
+  const { storage, values } = refreshStorage(); let refreshCalls = 0; let profiles = 0
+  globalThis.fetch = async (input, init) => {
+    if (String(input).endsWith('/login')) return envelope({ accessToken: 'original-access', refreshToken: 'original-refresh' })
+    if (String(input).endsWith('/refresh')) { refreshCalls++; return envelope({ accessToken: 'restored-access', refreshToken: 'rotated-refresh' }) }
+    profiles++; if (profiles === 2) assert.equal(new Headers(init?.headers).get('Authorization'), 'Bearer restored-access')
+    return envelope(profile)
+  }
+  await createHttpAuth('/api', true, storage).auth.login('user', 'user')
+  assert.deepEqual([...values], [[refreshKey, 'original-refresh']])
+  const { auth } = createHttpAuth('/api', true, storage)
+  assert.equal(auth.getSession(), null)
+  await Promise.all([auth.restore(), auth.restore()])
+  assert.equal(refreshCalls, 1); assert.equal(profiles, 2); assert.equal(auth.getSession()?.email, profile.email)
+  assert.deepEqual([...values], [[refreshKey, 'rotated-refresh']])
+})
+
+test('revoked refresh token is removed rather than restoring a cached login', async () => {
+  const { storage, values } = refreshStorage('revoked')
+  globalThis.fetch = async () => error(401)
+  const { auth } = createHttpAuth('/api', true, storage); await auth.restore()
+  assert.equal(auth.getSession(), null); assert.equal(values.size, 0)
+})
+
+test('temporary restore failure retains the refresh token for a verified retry', async () => {
+  const { storage, values } = refreshStorage('valid'); let offline = true
+  globalThis.fetch = async input => {
+    if (offline) throw new Error('offline')
+    return String(input).endsWith('/refresh') ? envelope({ accessToken: 'access', refreshToken: 'rotated' }) : envelope(profile)
+  }
+  const { auth } = createHttpAuth('/api', true, storage)
+  await assert.rejects(auth.restore(), { code: 'NETWORK' }); assert.equal(auth.getSession(), null); assert.equal(values.get(refreshKey), 'valid')
+  offline = false; await auth.restore(); assert.equal(auth.getSession()?.memberId, profile.memberId)
+})
+
+test('logout during restoration cannot write a delayed token back into browser storage', async () => {
+  const { storage, values } = refreshStorage('valid'); let release: () => void = () => {}
+  const pending = new Promise<void>(resolve => { release = resolve })
+  globalThis.fetch = async input => {
+    if (String(input).endsWith('/refresh')) { await pending; return envelope({ accessToken: 'late-access', refreshToken: 'late-refresh' }) }
+    return new Response(null, { status: 204 })
+  }
+  const { auth } = createHttpAuth('/api', true, storage); const restore = auth.restore()
+  await auth.logout(); release(); await restore
+  assert.equal(auth.getSession(), null); assert.equal(values.size, 0)
+})
+
+test('delayed restore from the old account cannot overwrite a newly signed-in seller', async () => {
+  const { storage, values } = refreshStorage('old'); let release: () => void = () => {}
+  const pending = new Promise<void>(resolve => { release = resolve })
+  globalThis.fetch = async input => {
+    if (String(input).endsWith('/refresh')) { await pending; return envelope({ accessToken: 'old-access', refreshToken: 'old-rotated' }) }
+    if (String(input).endsWith('/login')) return envelope({ accessToken: 'seller-access', refreshToken: 'seller-refresh' })
+    return envelope({ ...profile, memberId: 'seller', roles: ['SELLER'] })
+  }
+  const { auth } = createHttpAuth('/api', true, storage); const restore = auth.restore()
+  await auth.login('seller', 'seller'); release(); await restore
+  assert.equal(auth.getSession()?.role, 'SELLER'); assert.equal(values.get(refreshKey), 'seller-refresh')
+})
+
+test('unsupported server role during restore clears tokens and leaves no authenticated profile', async () => {
+  const { storage, values } = refreshStorage('old')
+  globalThis.fetch = async input => String(input).endsWith('/refresh') ? envelope({ accessToken: 'access', refreshToken: 'rotated' }) : envelope({ ...profile, roles: ['ADMIN'] })
+  const { auth } = createHttpAuth('/api', true, storage); await auth.restore()
+  assert.equal(auth.getSession(), null); assert.equal(values.size, 0)
+})
+
+test('public startup without a saved token makes no authentication requests', async () => {
+  const { storage } = refreshStorage()
+  globalThis.fetch = async () => { throw new Error('unexpected auth request') }
+  const { auth } = createHttpAuth('/api', true, storage); await auth.restore(); assert.equal(auth.getSession(), null)
 })

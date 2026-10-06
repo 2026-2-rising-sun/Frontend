@@ -36,7 +36,7 @@ export function AdminLiveEditPage() {
       </div>
       {flash && <Alert type="success" title={flash} />}
       <AsyncView state={live} skeleton={<Skeleton height={320} radius={14} />}>
-        {(l) => <LiveEditor key={`${l?.id ?? 'new'}:${l?.version ?? 0}:${l?.status ?? ''}`} live={l} reload={live.reload} onDone={setFlash} />}
+        {(l) => <LiveEditor key={`${l?.id ?? 'new'}:${l?.status ?? ''}`} live={l} reload={live.reload} onDone={setFlash} />}
       </AsyncView>
     </>
   )
@@ -55,7 +55,7 @@ function LiveEditor({ live, reload, onDone }: EditorProps & { live: AdminLive | 
           {live.status === 'LIVE' ? '기본정보는 수정할 수 없고, 상품 연결과 노출 순서는 바꿀 수 있어요. 마지막 연결 상품은 해제할 수 없어요.' : '종료된 방송은 조회만 할 수 있어요.'}
         </Alert>
       )}
-      <BasicSection live={live} reload={reload} onDone={onDone} />
+      <BasicSection key={live?.version ?? 0} live={live} reload={reload} onDone={onDone} />
       {live && <ProductsSection live={live} reload={reload} onDone={onDone} />}
       {live && <ControlSection live={live} reload={reload} onDone={onDone} />}
     </>
