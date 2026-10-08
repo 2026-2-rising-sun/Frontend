@@ -42,3 +42,34 @@ test('contract UI: selected products, one payment, reload recovery, mobile layou
   await expect.poll(() => page.getByRole('banner').evaluate(e => e.getBoundingClientRect().top)).toBe(0)
   await page.screenshot({ path: 'test-artifacts/checkout-group-mobile.png', fullPage: true })
 })
+
+test('changing payment group route clears previous purchase actions while the new group fails', async ({ page }) => {
+  let mutations = 0
+  let release!: () => void
+  const delayed = new Promise<void>(resolve => { release = resolve })
+  const expiresAt = new Date(Date.now() + 900000).toISOString()
+  await page.route(/\/api\/(member|commerce|shopping|live)\//, async route => {
+    const request = route.request(); const path = new URL(request.url()).pathname
+    if (path.includes('/auth/')) return route.fulfill({ json: { success: true, data: { accessToken: 'test-token', refreshToken: 'test-refresh' } } })
+    if (path.endsWith('/members/me')) return route.fulfill({ json: { success: true, data: { memberId: '00000000-0000-0000-0000-000000000001', displayName: '회원', email: 'user@test.dev', roles: ['USER'] } } })
+    if (path.endsWith('/payment-groups/PG-A')) return route.fulfill({ json: { groupNumber: 'PG-A', status: 'PENDING_PAYMENT', totalAmount: 10000, expiresAt, orders: [], paymentId: null } })
+    if (path.endsWith('/payment-groups/PG-B')) { await delayed; return route.fulfill({ status: 404, json: { code: 'NOT_FOUND', message: '새 결제 묶음을 찾을 수 없어요.' } }) }
+    if (request.method() === 'POST' && (path.endsWith('/payments') || path.endsWith('/cancel'))) mutations++
+    return route.fulfill({ status: 404, json: { message: path } })
+  })
+  await page.goto('/login'); await page.getByLabel('아이디 또는 이메일').fill('user@test.dev'); await page.getByLabel('비밀번호', { exact: true }).fill('password'); await page.getByRole('button', { name: '로그인', exact: true }).click(); await expect(page.getByRole('heading', { name: '내 계정', exact: true })).toBeVisible()
+  await page.goto('/payment-groups/PG-A')
+  await expect(page.getByRole('button', { name: '통합 결제하기' })).toBeVisible()
+  await expect(page.getByRole('button', { name: '전체 주문 취소' })).toBeVisible()
+  // Change only the route, keeping the same mounted application and authenticated account.
+  await page.evaluate(() => { history.pushState({}, '', '/payment-groups/PG-B'); window.dispatchEvent(new PopStateEvent('popstate')) })
+  await expect(page).toHaveURL(/\/payment-groups\/PG-B$/)
+  await expect(page.getByRole('button', { name: '통합 결제하기' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '전체 주문 취소' })).toHaveCount(0)
+  await expect(page.getByText('결제 묶음 PG-A', { exact: true })).toHaveCount(0)
+  release()
+  await expect(page.getByText('새 결제 묶음을 찾을 수 없어요.', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '통합 결제하기' })).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '전체 주문 취소' })).toHaveCount(0)
+  expect(mutations).toBe(0)
+})

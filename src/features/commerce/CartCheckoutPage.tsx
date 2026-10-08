@@ -14,8 +14,12 @@ import { ActivePaymentGroup } from './ActivePaymentGroup'
 import { requestIdentity } from './checkoutRecovery'
 import styles from './CheckoutPage.module.css'
 export function CartCheckoutPage() {
-  const api = useApi(); const [params] = useSearchParams()
+  const [params] = useSearchParams(); const session = useSession()
   const ids = params.get('itemIds') ?? ''
+  return <CartCheckoutScope key={`${session?.memberId}:${ids}`} ids={ids} />
+}
+function CartCheckoutScope({ ids }: { ids: string }) {
+  const api = useApi()
   const quote = useAsync(async () => {
     const selected = ids.split(',')
     if (!ids || selected.some(id => !/^[1-9][0-9]*$/.test(id)) || new Set(selected).size !== selected.length) throw new ApiError('VALIDATION', '장바구니에서 상품을 다시 선택해 주세요.')

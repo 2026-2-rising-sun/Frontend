@@ -13,7 +13,11 @@ import { OrderSummary } from './components/OrderSummary'
 import { requestIdentity } from './checkoutRecovery'
 import styles from './OrderResultPage.module.css'
 export function PaymentGroupPage() {
-  const api = useApi(); const { groupNumber = '' } = useParams()
+  const { groupNumber = '' } = useParams(); const session = useSession()
+  return <PaymentGroupScope key={`${session?.memberId}:${groupNumber}`} groupNumber={groupNumber} />
+}
+function PaymentGroupScope({ groupNumber }: { groupNumber: string }) {
+  const api = useApi()
   const group = useAsync(() => api.paymentGroups.get(groupNumber), [api, groupNumber])
   const reload = group.reload
   const pending = group.data?.status === 'PENDING_PAYMENT' || group.data?.status === 'PAYMENT_CONFIRMING'
