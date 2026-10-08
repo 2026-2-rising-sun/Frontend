@@ -173,10 +173,13 @@ test('kind: frontend direct purchase creates the quoted order and completes paym
   await expect(page.getByRole('heading', { name: '주문서', exact: true })).toBeVisible()
   await page.getByLabel('연락처', { exact: true }).fill('01012345678'); await page.getByLabel('주문 내용을 확인했으며 결제에 동의합니다').check()
   await page.getByRole('button', { name: '결제하기', exact: true }).click()
-  await expect(page.getByText('결제가 완료되었어요', { exact: true })).toBeVisible({ timeout: 30000 })
+  await expect(page.getByRole('heading', { name: '통합 결제', exact: true })).toBeVisible()
+  await page.getByRole('button', { name: '통합 결제하기', exact: true }).click()
+  await expect(page.getByText('통합 결제가 완료되었어요', { exact: true })).toBeVisible({ timeout: 30000 })
   const number = new URL(page.url()).pathname.split('/').pop()!
-  const saved = await request.get(`/api/commerce/v1/orders/${number}`, { headers: await bearer(request, 'user') })
-  const order = await saved.json(); expect(order.productName).toBe(f.name); expect(order.quantity).toBe(1); expect(order.totalAmount).toBe(10000)
+  const saved = await request.get(`/api/commerce/v1/payment-groups/${number}`, { headers: await bearer(request, 'user') })
+  const group = await saved.json(); expect(group.orders).toHaveLength(1)
+  const order = group.orders[0]; expect(order.productName).toBe(f.name); expect(order.quantity).toBe(1); expect(order.totalAmount).toBe(10000)
 })
 
 test('kind: USER cannot enter seller console; seller can revoke their own sessions', async ({ page, request }) => {
