@@ -5,7 +5,8 @@ import { AsyncView } from '../../components/AsyncView'
 import { PageContainer } from '../../components/PageContainer'
 import { Alert, Button, Checkbox, Input, QuantityStepper, Skeleton } from '../../components/ui'
 import { useAsync } from '../../hooks/useAsync'
-import { useIdempotencyKey } from '../../hooks/useIdempotencyKey'
+import { requestIdentity } from './checkoutRecovery'
+import { ActivePaymentGroup } from './ActivePaymentGroup'
 import { useSession } from '../auth/useSession'
 import { formatPrice } from '../../lib/format'
 import type { Product } from '../../domain/types'
@@ -25,12 +26,12 @@ export function CheckoutPage() {
     }
     return { product: await api.products.get(id), quantity: selectedQuantity }
   }, [api, productId, cartItemId, quantity])
-  return <PageContainer><h1 className="t-h1">주문서</h1><AsyncView state={data} skeleton={<Skeleton height={320} />}>
+  return <PageContainer><h1 className="t-h1">주문서</h1><ActivePaymentGroup /><AsyncView state={data} skeleton={<Skeleton height={320} />}>
     {value => <CheckoutForm key={`${value.product.id}:${value.quantity}`} product={value.product} initialQuantity={value.quantity} cartItemId={cartItemId} />}
   </AsyncView></PageContainer>
 }
 function CheckoutForm({ product, initialQuantity, cartItemId }: { product: Product; initialQuantity: number; cartItemId?: string }) {
-  const api = useApi(); const navigate = useNavigate(); const session = useSession(); const keyFor = useIdempotencyKey()
+  const api = useApi(); const navigate = useNavigate(); const session = useSession()
   const [quantity, setQuantity] = useState(cartItemId ? initialQuantity : Math.min(initialQuantity, Math.max(product.stock, 1)))
   const [name, setName] = useState(session?.displayName ?? ''); const [phone, setPhone] = useState('')
   const [agreed, setAgreed] = useState(false); const [busy, setBusy] = useState(false); const [error, setError] = useState('')
@@ -45,12 +46,18 @@ function CheckoutForm({ product, initialQuantity, cartItemId }: { product: Produ
     try {
       const check = await api.products.check(product.id, quantity)
       if (!check.orderable) throw new Error('현재 재고로 주문할 수 없어요. 수량을 다시 확인해 주세요.')
-      const order = await api.orders.create({ ...input, idempotencyKey: keyFor(input) })
+      const identity = requestIdentity(session?.memberId ?? 'anonymous', 'direct-order', input)
+      const order = await api.orders.create({ ...input, idempotencyKey: identity.key })
+      identity.clear()
+      if (order.groupNumber) { navigate(`/payment-groups/${encodeURIComponent(order.groupNumber)}`, { replace: true }); return }
       // The saved order is the recovery point if payment start or its response is lost.
       let paymentId: string | undefined
       try { paymentId = String((await api.payments.start(order.orderNumber)).paymentId) } catch { /* result page offers a retry */ }
       navigate(`/orders/${encodeURIComponent(order.orderNumber)}`, { replace: true, state: { paymentId } })
-    } catch (cause) { setError(cause instanceof Error ? cause.message : '주문하지 못했어요.'); checkout.reload() }
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : '주문하지 못했어요.')
+      try { const active = await api.paymentGroups.active(); if (active) { requestIdentity(session?.memberId ?? 'anonymous', 'direct-order', input).clear(); navigate(`/payment-groups/${encodeURIComponent(active.groupNumber)}`, { replace: true }) } } catch { /* retry keeps original key */ }
+    }
     finally { setBusy(false) }
   }
   return <form className={styles.layout} onSubmit={submit}>

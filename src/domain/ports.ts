@@ -1,3 +1,4 @@
+import type { CartSelection, CartCheckout, PaymentGroup } from './types'
 import type { AuthPort } from './auth'
 import type { AdminLive, AdminProduct, AdminProductListParams, CreateOrderInput, LiveInput, LiveDetail, LiveStatus, LiveSummary, Order, PageParams, Paged, Product, ProductBasicInput, ProductListParams, SaleAction, SaleInfoInput } from './types'
 export interface ChatMessage { messageId: string; broadcastId: number; displayName: string; content: string; createdAt: string }
@@ -29,7 +30,16 @@ export interface PaymentsPort {
   start(number: string): Promise<{ paymentId: string; status: string }>
   get(number: string, paymentId: string): Promise<{ paymentId: string; status: string }>
 }
+export interface PaymentGroupsPort {
+  active(): Promise<PaymentGroup | null>
+  get(number: string): Promise<PaymentGroup>
+  start(number: string, key: string): Promise<{ paymentId: string; status: string }>
+  payment(number: string, paymentId: string): Promise<{ paymentId: string; status: string }>
+  cancel(number: string): Promise<void>
+}
 export interface CartPort {
+  checkout(items: CartSelection[]): Promise<CartCheckout>
+  order(input: { items: CartSelection[]; buyerName: string; buyerPhone: string; expectedTotalAmount: number; idempotencyKey: string }): Promise<PaymentGroup>
   list(): Promise<CartItem[]>
   add(productId: string, quantity: number): Promise<CartItem>
   update(id: string, quantity: number): Promise<CartItem>
@@ -57,6 +67,6 @@ export interface AdminLivesPort {
   end(id: string): Promise<AdminLive>
 }
 export interface Api {
-  auth: AuthPort; products: ProductsPort; lives: LivesPort; orders: OrdersPort; payments: PaymentsPort; cart: CartPort
+  auth: AuthPort; products: ProductsPort; lives: LivesPort; orders: OrdersPort; payments: PaymentsPort; cart: CartPort; paymentGroups: PaymentGroupsPort
   admin: { products: AdminProductsPort; lives: AdminLivesPort }
 }

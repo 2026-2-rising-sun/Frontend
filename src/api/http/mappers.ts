@@ -21,9 +21,9 @@ export function live(l: LiveDto): LiveDetail {
 }
 export type PageDto<T> = { items: T[]; page: number; size: number; totalElements: number; totalPages: number }
 export const page = <T, R>(p: PageDto<T>, map: (x: T) => R): Paged<R> => ({ items: p.items.map(map), page: p.page, size: p.size, totalCount: p.totalElements, hasNext: p.page + 1 < p.totalPages })
-export type OrderDto = { orderNumber: string; productName: string; unitPrice: number; quantity: number; totalAmount: number; buyerName: string; createdAt: string; expiresAt: string | null; status: string }
+export type OrderDto = { orderNumber: string; groupNumber?: string | null; productName: string; unitPrice: number; quantity: number; totalAmount: number; buyerName: string; createdAt: string; expiresAt: string | null; status: string }
 export function order(o: OrderDto): Order {
   const status = ({ PENDING_PAYMENT: 'UNPAID', PAYMENT_CONFIRMING: 'CONFIRMING', PAID: 'PAID', FAILED: 'FAILED', CANCELLED: 'CANCELED', EXPIRED: 'CANCELED' } as const)[o.status as 'PAID']
   if (!status) throw new ApiError('UNKNOWN', '주문 상태를 확인하지 못했어요.')
-  return { orderNumber: o.orderNumber, status, productName: o.productName, unitPrice: o.unitPrice, quantity: o.quantity, totalPrice: o.totalAmount, ordererName: o.buyerName, orderedAt: o.createdAt, expiresAt: o.expiresAt, cancelReason: o.status === 'EXPIRED' ? 'EXPIRED' : o.status === 'CANCELLED' ? 'USER' : null }
+  return { orderNumber: o.orderNumber, groupNumber: o.groupNumber, status, productName: o.productName, unitPrice: o.unitPrice, quantity: o.quantity, totalPrice: o.totalAmount, ordererName: o.buyerName, orderedAt: o.createdAt, expiresAt: o.expiresAt, cancelReason: o.status === 'EXPIRED' ? 'EXPIRED' : o.status === 'CANCELLED' ? 'USER' : null }
 }

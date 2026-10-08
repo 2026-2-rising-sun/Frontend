@@ -1,3 +1,5 @@
+import { CartCheckoutPage } from '../features/commerce/CartCheckoutPage'
+import { PaymentGroupPage } from '../features/commerce/PaymentGroupPage'
 import { CartPage } from '../features/commerce/CartPage'
 import { RequireSession } from '../features/auth/RequireSession'
 import { SignupPage } from '../features/auth/SignupPage'
@@ -50,6 +52,8 @@ function App({ api }: AppProps) {
             <Route path="lives" element={<LiveListPage />} />
             <Route path="lives/:liveId" element={<LiveWatchPage />} />
             <Route path="cart" element={<RequireSession><CartPage /></RequireSession>} />
+            <Route path="checkout/cart" element={<RequireSession><CartCheckoutPage /></RequireSession>} />
+            <Route path="payment-groups/:groupNumber" element={<RequireSession><PaymentGroupPage /></RequireSession>} />
             <Route path="checkout" element={<RequireSession><CheckoutPage /></RequireSession>} />
             <Route path="orders/lookup" element={<RequireSession><OrderLookupPage /></RequireSession>} />
             <Route path="orders/:orderNumber" element={<RequireSession><OrderResultPage /></RequireSession>} />

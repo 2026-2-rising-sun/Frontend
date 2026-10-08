@@ -1,6 +1,6 @@
 import { createSellerProducts } from './sellerProducts'
 import type { Api, CartItem, ChatMessage } from '../../domain/ports'
-import type { AdminLive } from '../../domain/types'
+import type { PaymentGroup, CartCheckout, AdminLive } from '../../domain/types'
 import { createHttpAuth } from './auth'
 import { product, live, page, order, type ProductDto, type LiveDto, type PageDto, type OrderDto } from './mappers'
 const id = encodeURIComponent
@@ -17,6 +17,9 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
   const liveMutation = async (n: string, suffix: string, options: Parameters<typeof request>[1]) => { await request(`/live/v1/admin/broadcasts/${id(n)}${suffix}`, options); return adminLive(n) }
   const getOrder = async (n: string) => order(await request<OrderDto>(`/commerce/v1/orders/${id(n)}`))
   const cartItem = (c: CartItem) => ({ ...c, id: String(c.id), productId: String(c.productId) })
+  type GroupDto = Omit<PaymentGroup, 'orders' | 'paymentId'> & { orders: OrderDto[]; paymentId: number | null }
+  const group = (g: GroupDto): PaymentGroup => ({ ...g, orders: g.orders.map(order), paymentId: g.paymentId === null ? null : String(g.paymentId) })
+  const selection = (items: { itemId: string; version: number }[]) => items.map(i => ({ itemId: Number(i.itemId), version: i.version }))
   return {
     auth,
     products: {
@@ -56,7 +59,16 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
       start: n => request(`/commerce/v1/orders/${id(n)}/payments`, { method: 'POST', body: {} }),
       get: (n, p) => request(`/commerce/v1/orders/${id(n)}/payments/${id(p)}`),
     },
+    paymentGroups: {
+      active: async () => { const g = await request<GroupDto | undefined>('/commerce/v1/payment-groups/active'); return g ? group(g) : null },
+      get: async n => group(await request<GroupDto>(`/commerce/v1/payment-groups/${id(n)}`)),
+      start: async (n, key) => { const p = await request<{ paymentId: number; status: string }>(`/commerce/v1/payment-groups/${id(n)}/payments`, { method: 'POST', headers: { 'X-Idempotency-Key': key }, body: {} }); return { ...p, paymentId: String(p.paymentId) } },
+      payment: async (n, p) => { const result = await request<{ paymentId: number; status: string }>(`/commerce/v1/payment-groups/${id(n)}/payments/${id(p)}`); return { ...result, paymentId: String(result.paymentId) } },
+      cancel: n => request(`/commerce/v1/payment-groups/${id(n)}/cancel`, { method: 'POST' }),
+    },
     cart: {
+      checkout: async items => { const result = await request<CartCheckout>('/commerce/v1/cart/checkout', { method: 'POST', body: { items: selection(items) } }); return { ...result, items: result.items.map(i => ({ ...i, itemId: String(i.itemId), productId: String(i.productId) })) } },
+      order: async ({ idempotencyKey, items, ...input }) => group(await request<GroupDto>('/commerce/v1/cart/orders', { method: 'POST', headers: { 'X-Idempotency-Key': idempotencyKey }, body: { ...input, items: selection(items) } })),
       list: async () => (await request<CartItem[]>('/commerce/v1/cart/items')).map(cartItem),
       add: async (n, quantity) => cartItem(await request('/commerce/v1/cart/items', { method: 'POST', body: { productId: Number(n), quantity } })),
       update: async (n, quantity) => cartItem(await request(`/commerce/v1/cart/items/${id(n)}`, { method: 'PATCH', body: { quantity } })),
