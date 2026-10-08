@@ -1,7 +1,8 @@
 import type { AuthPort } from './auth'
 import type { AdminLive, AdminProduct, AdminProductListParams, CreateOrderInput, LiveInput, LiveDetail, LiveStatus, LiveSummary, Order, PageParams, Paged, Product, ProductBasicInput, ProductListParams, SaleAction, SaleInfoInput } from './types'
 export interface ChatMessage { messageId: string; broadcastId: number; displayName: string; content: string; createdAt: string }
-export interface LikeTotal { broadcastId: number; total: number }
+export interface LikeTotal { broadcastId: number; total: number; version: number }
+export interface MyLike extends LikeTotal { liked: boolean; stateVersion: number }
 export interface CartItem { id: string; productId: string; quantity: number; version: number }
 export interface ProductsPort {
   list(params?: ProductListParams): Promise<Paged<Product>>
@@ -15,7 +16,8 @@ export interface LivesPort {
   chats(id: string): Promise<ChatMessage[]>
   sendChat(id: string, content: string): Promise<ChatMessage>
   likes(id: string): Promise<LikeTotal>
-  like(id: string): Promise<LikeTotal>
+  myLike(id: string): Promise<MyLike>
+  setLike(id: string, liked: boolean, idempotencyKey: string): Promise<MyLike>
   eventsUrl(id: string): string
 }
 export interface OrdersPort {
