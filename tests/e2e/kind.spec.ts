@@ -145,7 +145,7 @@ test('kind: seller Live link/reorder/unlink, SSE chat/likes and end disable part
   await viewer.getByRole('button', { name: '좋아요 보내기' }).click(); await expect(viewer.getByText('좋아요 1', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: '방송 종료', exact: true }).click(); await page.getByRole('button', { name: '종료 확정', exact: true }).click()
   await expect(viewer.getByText('방송이 종료되었어요', { exact: true })).toBeVisible()
-  await expect(viewer.getByRole('button', { name: '전송', exact: true })).toBeDisabled(); await expect(viewer.getByRole('button', { name: '좋아요 보내기' })).toBeDisabled()
+  await expect(viewer.getByRole('button', { name: '전송', exact: true })).toBeDisabled(); await expect(viewer.getByRole('button', { name: '좋아요 취소', exact: true })).toBeDisabled()
   await viewer.screenshot({ path: 'test-artifacts/kind-live-chat.png', fullPage: true }); await viewerContext.close()
 })
 test('kind: signup, profile edit and withdrawal', async ({ page }) => {

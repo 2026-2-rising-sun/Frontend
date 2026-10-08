@@ -38,7 +38,8 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
       chats: async n => (await publicRequest<ChatMessage[]>(`/live/v1/broadcasts/${id(n)}/chats`)).map(c => ({ ...c, messageId: String(c.messageId) })),
       sendChat: (n, content) => request(`/live/v1/broadcasts/${id(n)}/chats`, { method: 'POST', body: { content } }),
       likes: n => publicRequest(`/live/v1/broadcasts/${id(n)}/likes`),
-      like: n => request(`/live/v1/broadcasts/${id(n)}/likes`, { method: 'POST' }),
+      myLike: n => request(`/live/v1/broadcasts/${id(n)}/likes/mine`),
+      setLike: (n, liked, idempotencyKey) => request(`/live/v1/broadcasts/${id(n)}/likes/mine`, { method: 'PUT', headers: { 'Idempotency-Key': idempotencyKey }, body: { liked } }),
       eventsUrl: n => `${baseUrl.replace(/\/$/, '')}/live/v1/broadcasts/${id(n)}/events`,
     },
     orders: {
