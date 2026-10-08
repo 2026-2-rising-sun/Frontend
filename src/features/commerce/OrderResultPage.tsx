@@ -104,7 +104,8 @@ function OrderResult({ order, onChanged }: { order: Order; onChanged: () => void
       </dl>
 
       <div className={styles.actions}>
-        {order.status === 'UNPAID' && (
+        {order.groupNumber && <ButtonLink size="L" fullWidth to={`/payment-groups/${encodeURIComponent(order.groupNumber)}`}>통합 결제 확인</ButtonLink>}
+        {order.status === 'UNPAID' && !order.groupNumber && (
           <>
             <Button size="L" fullWidth onClick={() => run('pay')} disabled={busy !== null}>
               {busy === 'pay' ? '처리 중…' : '결제하기'}
@@ -170,7 +171,7 @@ function StatusAlert({ order, remaining }: { order: Order; remaining: number | n
     default:
       return (
         <Alert type="warning" title="아직 결제가 시작되지 않았어요">
-          결제하기를 누르면 결제를 요청해요. 결제 전 주문은 취소할 수 있어요.
+          {order.groupNumber ? '통합 결제 확인에서 결제를 요청하거나 전체 주문을 취소할 수 있어요.' : '결제하기를 누르면 결제를 요청해요. 결제 전 주문은 취소할 수 있어요.'}
           {order.expiresAt && remaining !== null && (
             <>
               <br />

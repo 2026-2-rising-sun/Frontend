@@ -11,6 +11,7 @@
     "dev:api": "vite --mode api",
     "test": "tsx --test tests/*.test.ts",
     "e2e:prism": "E2E_MODE=prism playwright test",
+    "e2e:checkout-ui": "playwright test --config playwright.checkout.config.ts",
     "e2e:kind": "playwright test",
     "local:kind": "node scripts/kind-local.mjs",
     "local:frontend": "node scripts/local-frontend.mjs",

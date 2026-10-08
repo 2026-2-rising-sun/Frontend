@@ -77,6 +77,7 @@ export type OrderStatus = 'UNPAID' | 'CONFIRMING' | 'PAID' | 'FAILED' | 'CANCELE
 
 export interface Order {
   orderNumber: string
+  groupNumber?: string | null
   status: OrderStatus
   /** 주문 당시 값이 보존된다. 이후 상품/가격이 바뀌어도 변하지 않는다. */
   productId?: string
@@ -164,4 +165,15 @@ export interface AdminLive extends LiveDetail {
   version: number
   /** 연결 상품 (노출 순서대로, 공개 상태와 무관하게 모두) */
   products: Product[]
+}
+
+export interface CartSelection { itemId: string; version: number }
+export interface CartCheckoutItem extends CartSelection {
+  productId: string; productName: string; quantity: number; unitPrice: number; totalAmount: number
+}
+export interface CartCheckout { items: CartCheckoutItem[]; totalAmount: number }
+export interface PaymentGroup {
+  groupNumber: string
+  status: 'PENDING_PAYMENT' | 'PAYMENT_CONFIRMING' | 'PAID' | 'FAILED' | 'CANCELLED' | 'EXPIRED'
+  totalAmount: number; expiresAt: string | null; orders: Order[]; paymentId: string | null
 }
