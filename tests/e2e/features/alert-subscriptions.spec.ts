@@ -41,10 +41,10 @@ async function fixture(request: APIRequestContext) {
     const visibility = await request.patch(`/api/commerce/v1/sales/${salesId}/status`, { headers: seller, data: { status } })
     expect(visibility.ok(), await visibility.text()).toBeTruthy()
   }
-  const broadcast = await request.post('/api/live/v1/admin/broadcasts', { headers: { ...seller, 'Idempotency-Key': randomUUID() }, data: { title: name, scheduledAt: new Date(Date.now() + 3600000).toISOString(), channelArn: `arn:aws:ivs:ap-northeast-2:123456789012:channel/${suffix}`, playbackUrl: `https://stub.live-video.net/${suffix}.m3u8` } })
+  const broadcast = await request.post('/api/live/v1/seller/broadcasts', { headers: { ...seller, 'Idempotency-Key': randomUUID() }, data: { title: name, scheduledAt: new Date(Date.now() + 3600000).toISOString(), channelArn: `arn:aws:ivs:ap-northeast-2:123456789012:channel/${suffix}`, playbackUrl: `https://stub.live-video.net/${suffix}.m3u8` } })
   expect(broadcast.ok(), await broadcast.text()).toBeTruthy()
   const live = (await broadcast.json()).data
-  const link = await request.post(`/api/live/v1/admin/broadcasts/${live.id}/products`, { headers: seller, data: { productId, expectedVersion: live.version } })
+  const link = await request.post(`/api/live/v1/seller/broadcasts/${live.id}/products`, { headers: seller, data: { productId, expectedVersion: live.version } })
   expect(link.ok(), await link.text()).toBeTruthy()
   return { name, productId, salesId, liveId: String(live.id), seller }
 }
@@ -85,10 +85,10 @@ test('kind: 실제 방송 시작 이벤트가 알림·배지에 반영되고 읽
     const response = await request.post('/api/notification/v1/broadcast-alerts', { headers: user.headers, data: { broadcastId: Number(f.liveId) } })
     return response.status()
   }, { timeout: 45000, intervals: [1000] }).toBe(201)
-  const broadcast = await request.get(`/api/live/v1/admin/broadcasts/${f.liveId}`, { headers: f.seller })
+  const broadcast = await request.get(`/api/live/v1/seller/broadcasts/${f.liveId}`, { headers: f.seller })
   expect(broadcast.ok(), await broadcast.text()).toBeTruthy()
   const version = (await broadcast.json()).data.version
-  const start = await request.post(`/api/live/v1/admin/broadcasts/${f.liveId}/start?expectedVersion=${version}`, { headers: f.seller })
+  const start = await request.post(`/api/live/v1/seller/broadcasts/${f.liveId}/start?expectedVersion=${version}`, { headers: f.seller })
   expect(start.ok(), await start.text()).toBeTruthy()
   await expect.poll(async () => {
     const response = await request.get('/api/notification/v1/notifications/unread-count', { headers: user.headers })
@@ -111,7 +111,7 @@ test('kind: 실제 방송 시작 이벤트가 알림·배지에 반영되고 읽
   expect(notification.eventType).toBe('LiveBroadcastStarted')
   expect(notification.linkValue).toBe(f.liveId)
   expect(notification.readAt).not.toBeNull()
-  const end = await request.post(`/api/live/v1/admin/broadcasts/${f.liveId}/end`, { headers: f.seller })
+  const end = await request.post(`/api/live/v1/seller/broadcasts/${f.liveId}/end`, { headers: f.seller })
   expect(end.ok(), await end.text()).toBeTruthy()
 })
 
