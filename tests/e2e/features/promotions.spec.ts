@@ -34,10 +34,10 @@ async function fixture(request: APIRequestContext) {
     const visibility = await request.patch(`/api/commerce/v1/sales/${salesId}/status`, { headers: seller, data: { status } })
     expect(visibility.ok(), await visibility.text()).toBeTruthy()
   }
-  const broadcast = await request.post('/api/live/v1/admin/broadcasts', { headers: { ...seller, 'Idempotency-Key': randomUUID() }, data: { title: name, scheduledAt: new Date(Date.now() + 3600000).toISOString(), channelArn: `arn:aws:ivs:ap-northeast-2:123456789012:channel/${suffix}`, playbackUrl: `https://stub.live-video.net/${suffix}.m3u8` } })
+  const broadcast = await request.post('/api/live/v1/seller/broadcasts', { headers: { ...seller, 'Idempotency-Key': randomUUID() }, data: { title: name, scheduledAt: new Date(Date.now() + 3600000).toISOString(), channelArn: `arn:aws:ivs:ap-northeast-2:123456789012:channel/${suffix}`, playbackUrl: `https://stub.live-video.net/${suffix}.m3u8` } })
   expect(broadcast.ok(), await broadcast.text()).toBeTruthy()
   const live = (await broadcast.json()).data
-  const link = await request.post(`/api/live/v1/admin/broadcasts/${live.id}/products`, { headers: seller, data: { productId, expectedVersion: live.version } })
+  const link = await request.post(`/api/live/v1/seller/broadcasts/${live.id}/products`, { headers: seller, data: { productId, expectedVersion: live.version } })
   expect(link.ok(), await link.text()).toBeTruthy()
   return { name, productId, liveId: String(live.id), seller }
 }
@@ -75,7 +75,7 @@ test('kind: 판매자 이벤트 준비·열기, 공개 시청 배너, 새로고�
     await expect(viewer.getByText(`방송 중 이벤트 · ${title}`, { exact: true })).toHaveCount(0, { timeout: 25000 })
     await expect(card.getByText('종료', { exact: true })).toBeVisible()
     await expect(card.getByRole('button', { name: '이벤트 열기', exact: true })).toHaveCount(0)
-    const saved = await request.get(`/api/live/v1/admin/broadcasts/${f.liveId}/promotions`, { headers: f.seller })
+    const saved = await request.get(`/api/live/v1/seller/broadcasts/${f.liveId}/promotions`, { headers: f.seller })
     expect(saved.ok(), await saved.text()).toBeTruthy()
     expect((await saved.json()).data.find((item: { title: string }) => item.title === title).status).toBe('CLOSED')
     await page.getByRole('button', { name: '방송 종료', exact: true }).click()

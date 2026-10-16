@@ -13,7 +13,7 @@ test('공개 프로모션과 판매자 생성·열기·닫기는 분리된 명�
   await api.create('42', input, 'stable-key'); await api.open('42', '7'); await api.close('42', '7')
   assert.equal(calls[0].anonymous, true)
   assert.deepEqual(calls[1].options, { method: 'POST', body: input, headers: { 'Idempotency-Key': 'stable-key' } })
-  assert.equal(calls[2].path, '/live/v1/admin/broadcasts/42/promotions/7/open'); assert.equal(calls[3].path, '/live/v1/admin/broadcasts/42/promotions/7/close')
+  assert.equal(calls[2].path, '/live/v1/seller/broadcasts/42/promotions/7/open'); assert.equal(calls[3].path, '/live/v1/seller/broadcasts/42/promotions/7/close')
 })
 test('자동 만료된 배너는 재조회 전에도 노출하지 않는다', () => {
   const items = [{ id: '1', closesAt: '2026-10-16T00:00:00Z' }, { id: '2', closesAt: null }, { id: '3', closesAt: '2026-10-17T00:00:00Z' }] as PublicPromotion[]
