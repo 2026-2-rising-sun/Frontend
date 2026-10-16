@@ -1,11 +1,11 @@
 import type { Product, AdminProduct, AdminProductStatus, LiveDetail, Order, Paged } from '../../domain/types'
 import { ApiError } from '../../domain/errors'
-export const states: Record<string, AdminProductStatus> = { NOT_REGISTERED: 'DRAFT', READY: 'READY', ON_SALE: 'SELLING', SOLD_OUT: 'SOLD_OUT', PRIVATE: 'HIDDEN' }
+export const states: Record<string, AdminProductStatus> = { NOT_REGISTERED: 'DRAFT', UNKNOWN: 'UNKNOWN', READY: 'READY', ON_SALE: 'SELLING', SOLD_OUT: 'SOLD_OUT', PRIVATE: 'HIDDEN' }
 export type ProductDto = { productId: number; name: string | null; description?: string; mainImageUrl: string | null; version?: number; salesStatus?: string; status?: string | null; price: number | null; available?: number | null; purchasable?: boolean; linkId?: number; missing?: boolean }
 export const imageUrl = (url: string | null) => url
 export function product(p: ProductDto): Product {
   const status = states[p.salesStatus ?? p.status ?? 'PRIVATE']
-  if (!status || status === 'DRAFT') throw new ApiError('NETWORK', '상품 판매 정보를 확인하지 못했어요.')
+  if (!status || status === 'DRAFT' || status === 'UNKNOWN') throw new ApiError('NETWORK', '상품 판매 정보를 확인하지 못했어요.')
   return { id: String(p.productId), name: p.name ?? '조회할 수 없는 상품', description: p.description ?? '', imageUrl: imageUrl(p.mainImageUrl), price: p.price ?? 0, stock: p.available ?? 0, status, purchasable: p.purchasable, linkId: p.linkId === undefined ? undefined : String(p.linkId), missing: p.missing }
 }
 export function adminProduct(p: ProductDto, salesId: string | null = null): AdminProduct {

@@ -141,6 +141,8 @@ function SaleInfoSection({ product, reload, onDone }: EditorProps & { product: A
     }
   }
 
+  if (product.status === 'UNKNOWN') return <AdminSection title="판매 설정"><Alert type="warning" title="판매정보를 확인하지 못했어요">기본정보는 수정할 수 있어요. 판매 설정은 다시 조회한 뒤 변경해 주세요.<Button variant="secondary" onClick={reload}>다시 조회</Button></Alert></AdminSection>
+
   return (
     <AdminSection
       title="판매 설정"
@@ -148,7 +150,7 @@ function SaleInfoSection({ product, reload, onDone }: EditorProps & { product: A
     >
       <div className={styles.form}>
         <ActionAlert error={error} onReload={reload} />
-        {!draft && !product.salesId && <Alert type="info" title="기존 판매 설정 변경은 준비 중이에요">판매정보 ID 조회가 제공되면 가격·재고·판매 상태를 변경할 수 있어요. 현재 브라우저에서 새로 설정한 상품은 변경할 수 있어요.</Alert>}
+        {!draft && !product.salesId && <Alert type="info" title="판매정보를 확인하지 못했어요">기본정보는 수정할 수 있어요. 다시 조회하면 가격·재고·판매 상태를 변경할 수 있어요.<Button variant="secondary" onClick={reload}>다시 조회</Button></Alert>}
         {draft ? (
           <>
             <div className={`${styles.formRow} ${styles.formRow2}`}>
@@ -166,6 +168,7 @@ function SaleInfoSection({ product, reload, onDone }: EditorProps & { product: A
           </>
         ) : (
           <>
+            <p className={styles.hint}>판매 가능 재고 {product.stock ?? '확인 필요'}개 · 결제 대기 예약 재고 {product.reservedStock ?? '확인 필요'}개</p>
             <div className={styles.formRow}>
               <Input label={`판매 가격(원) — 현재 ${formatPrice(product.price ?? 0)}`} inputMode="numeric" value={price} onChange={(e) => setPrice(e.target.value)} error={priceError} />
               <div className={styles.actions}>

@@ -78,7 +78,7 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
       remove: n => request(`/commerce/v1/cart/items/${id(n)}`, { method: 'DELETE' }),
     },
     admin: {
-      products: createSellerProducts(request, () => auth.getSession()?.memberId),
+      products: createSellerProducts(request),
       lives: {
         list: async params => livePage(await request('/live/v1/seller/broadcasts', { query: { page: params?.page, size: params?.size, status: params?.status === 'READY' ? 'PREPARING' : params?.status } })),
         get: adminLive,

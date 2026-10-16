@@ -4,22 +4,21 @@ import { ApiError } from '../../domain/errors'
 import type { HttpClient } from './client'
 import { adminProduct, page, type ProductDto, type PageDto } from './mappers'
 
-export function createSellerProducts(request: HttpClient, memberId: () => string | undefined = () => undefined): AdminProductsPort {
-  // IDs are learned only from successful sale creation, scoped to the signed-in member.
-  const knownSales = () => {
-    try { return JSON.parse(sessionStorage.getItem('shoppinglive:sales:' + memberId()) ?? '{}') as Record<string, string> } catch { return {} }
-  }
+export function createSellerProducts(request: HttpClient): AdminProductsPort {
   const uploads = new Map<string, Promise<Awaited<ReturnType<typeof body>>>>()
   const get = async (id: string) => {
+    // 판매자 본인 상품 확인 후에만 조회한 판매 ID를 사용한다.
     const dto = await request<ProductDto>(`/shopping/v1/seller/products/${encodeURIComponent(id)}`)
-    const sale = knownSales()[id] ?? null
-    if (sale) dto.available = (await request<{ available: number }>(`/commerce/v1/sales/${encodeURIComponent(sale)}/stock`)).available
-    return adminProduct(dto, sale)
-  }
-  const saleId = (id: string) => {
-    const value = knownSales()[id]
-    if (!value) throw new ApiError('INVALID_STATE', '기존 상품의 판매정보 조회 API가 필요해요. 현재 브라우저에서 등록한 판매 설정만 변경할 수 있어요.')
-    return encodeURIComponent(value)
+    if (dto.salesStatus === 'NOT_REGISTERED' || dto.salesStatus === 'UNKNOWN') return adminProduct(dto)
+    try {
+      const sale = await request<{ productId: number; salesId: number; unitPrice: number; salesStatus: string }>('/commerce/v1/orders/checkout', { query: { productId: id, quantity: 1 } })
+      if (String(sale.productId) !== id || !Number.isSafeInteger(sale.salesId) || sale.salesId <= 0) return adminProduct({ ...dto, salesStatus: 'UNKNOWN' })
+      const stock = await request<{ available: number; reserved: number }>(`/commerce/v1/sales/${sale.salesId}/stock`)
+      return { ...adminProduct({ ...dto, price: sale.unitPrice, available: stock.available, salesStatus: sale.salesStatus }, String(sale.salesId)), reservedStock: stock.reserved }
+    } catch {
+      // 판매정보 장애에도 기본정보 편집은 유지한다.
+      return adminProduct({ ...dto, salesStatus: 'UNKNOWN' })
+    }
   }
   const body = async ({ name, description, image }: ProductBasicInput) => {
     let mainImageId: number | undefined
@@ -30,13 +29,15 @@ export function createSellerProducts(request: HttpClient, memberId: () => string
     return { name, description, ...(mainImageId === undefined ? {} : { mainImageId }) }
   }
   const mutateSale = async (id: string, field: string, input: unknown) => {
-    await request(`/commerce/v1/sales/${saleId(id)}/${field}`, { method: 'PATCH', body: input })
+    const product = await get(id)
+    if (!product.salesId || product.status === 'UNKNOWN') throw new ApiError('INVALID_STATE', '판매정보를 확인하지 못했어요. 다시 조회한 뒤 변경해 주세요.')
+    await request(`/commerce/v1/sales/${encodeURIComponent(product.salesId)}/${field}`, { method: 'PATCH', body: input })
     return get(id)
   }
   return {
     async list(params) {
       const value = await request<PageDto<ProductDto>>('/shopping/v1/seller/products', { query: { page: params?.page, size: params?.size } })
-      const result = page(value, p => adminProduct(p, knownSales()[String(p.productId)] ?? null))
+      const result = page(value, p => adminProduct(p))
       if (params?.status && params.status !== 'ALL') result.items = result.items.filter(p => p.status === params.status)
       return result
     }, get,
@@ -52,8 +53,9 @@ export function createSellerProducts(request: HttpClient, memberId: () => string
       return get(id)
     },
     async setSaleInfo(id, input) {
-      const result = await request<{ id: number }>('/commerce/v1/sales', { method: 'POST', body: { productId: Number(id), price: input.price, initialStock: input.stock } })
-      try { sessionStorage.setItem('shoppinglive:sales:' + memberId(), JSON.stringify({ ...knownSales(), [id]: String(result.id) })) } catch { throw new ApiError('INVALID_STATE', '판매 설정은 저장됐지만 브라우저에 판매정보 ID를 보관하지 못했어요. 다시 조회해 주세요.') }
+      const product = await get(id)
+      if (product.status !== 'DRAFT') throw new ApiError('INVALID_STATE', '최신 판매정보를 다시 확인한 뒤 판매 설정을 변경해 주세요.')
+      await request('/commerce/v1/sales', { method: 'POST', body: { productId: Number(id), price: input.price, initialStock: input.stock } })
       return get(id)
     },
     changePrice: (id, price) => mutateSale(id, 'price', { price }),

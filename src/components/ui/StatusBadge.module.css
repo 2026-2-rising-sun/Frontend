@@ -42,3 +42,5 @@
 .canceled .dot { background: var(--text-tertiary); }
 
 .refunded { background: var(--bg-muted); color: var(--text-secondary); }
+
+.unknown { background: var(--warning-subtle-strong); color: var(--warning-text); }
