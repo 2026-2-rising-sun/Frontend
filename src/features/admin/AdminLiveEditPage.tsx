@@ -1,3 +1,4 @@
+import { ViewerCount } from '../live/ViewerCount'
 import { PromotionPanel } from './PromotionPanel'
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
@@ -56,6 +57,7 @@ function LiveEditor({ live, reload, onDone }: EditorProps & { live: AdminLive | 
           {live.status === 'LIVE' ? '기본정보는 수정할 수 없고, 상품 연결과 노출 순서는 바꿀 수 있어요. 마지막 연결 상품은 해제할 수 없어요.' : '종료된 방송은 조회만 할 수 있어요.'}
         </Alert>
       )}
+      {live && <ViewerCount liveId={live.id} status={live.status} watching={false} />}
       <BasicSection key={live?.version ?? 0} live={live} reload={reload} onDone={onDone} />
       {live && <ProductsSection live={live} reload={reload} onDone={onDone} />}
       {live && <PromotionPanel liveId={live.id} status={live.status} />}

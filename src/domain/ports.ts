@@ -7,6 +7,7 @@ import type { PromotionsPort } from './promotions'
 import type { AdminLive, AdminProduct, AdminProductListParams, CreateOrderInput, LiveInput, LiveDetail, LiveStatus, LiveSummary, Order, PageParams, Paged, Product, ProductBasicInput, ProductListParams, SaleAction, SaleInfoInput } from './types'
 export interface ChatMessage { messageId: string; broadcastId: number; displayName: string; content: string; createdAt: string }
 export interface LikeTotal { broadcastId: number; total: number; version: number }
+export interface ViewerTotal { broadcastId: number; total: number; measuredAt: string; expiresAfterSeconds: number }
 export interface MyLike extends LikeTotal { liked: boolean; stateVersion: number }
 export interface CartItem { id: string; productId: string; quantity: number; version: number }
 export interface ProductsPort {
@@ -23,6 +24,8 @@ export interface LivesPort {
   likes(id: string): Promise<LikeTotal>
   myLike(id: string): Promise<MyLike>
   setLike(id: string, liked: boolean, idempotencyKey: string): Promise<MyLike>
+  viewerCount(id: string): Promise<ViewerTotal>
+  heartbeatViewer(id: string, viewerId: string): Promise<ViewerTotal>
   eventsUrl(id: string): string
 }
 export interface OrdersPort {
