@@ -105,7 +105,7 @@ test('kind: 쿠폰 발급·구매·환불 결과가 알림함에 전달되고 �
   const items = (await list.json()).data.items
   expect(items.filter((item: { eventType: string }) => item.eventType === 'CouponIssued')).toHaveLength(1)
   expect(items.filter((item: { eventType: string }) => item.eventType === 'PaymentSucceeded')).toHaveLength(1)
-  const read = await request.patch(`/api/notification/v1/notifications/${paymentNotice.id}/read`, { headers: buyer.headers })
+  const read = await request.post(`/api/notification/v1/notifications/${paymentNotice.id}/read`, { headers: buyer.headers })
   expect(read.ok(), await read.text()).toBeTruthy()
   await page.goto('/notifications'); await page.reload()
   await page.setViewportSize({ width: 390, height: 844 })
