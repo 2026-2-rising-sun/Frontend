@@ -32,7 +32,7 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
     promotions: createPromotions(request, publicRequest),
     products: {
       async list(params) {
-        const dto = await publicRequest<{ items: ProductDto[]; nextCursor: number | null; hasNext: boolean }>('/shopping/v1/products', { query: { cursor: params?.cursor, size: params?.size } })
+        const dto = await publicRequest<{ items: ProductDto[]; nextCursor: string | null; hasNext: boolean }>('/shopping/v1/products', { query: { cursor: params?.cursor, size: params?.size, q: params?.query, sort: params?.sort, status: params?.status === 'SELLING' ? 'ON_SALE' : params?.status === 'SOLD_OUT' ? 'SOLD_OUT' : undefined } })
         return { items: dto.items.map(product), nextCursor: dto.nextCursor === null ? null : String(dto.nextCursor), hasNext: dto.hasNext, page: params?.page ?? 0, size: params?.size ?? 12, totalCount: -1 }
       },
       get: async n => product(await publicRequest<ProductDto>(`/shopping/v1/products/${id(n)}`)),
@@ -40,8 +40,7 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
     },
     lives: {
       async list(params) {
-        const result = livePage(await publicRequest<LivePage>('/live/v1/broadcasts', { query: { page: params?.page, size: params?.size } }))
-        if (params?.status) result.items = result.items.filter(l => l.status === params.status)
+        const result = livePage(await publicRequest<LivePage>('/live/v1/broadcasts', { query: { page: params?.page, size: params?.size, status: params?.status === 'READY' ? 'PREPARING' : params?.status } }))
         return result
       },
       get: async n => live(await publicRequest<LiveDto>(`/live/v1/broadcasts/${id(n)}`)),
