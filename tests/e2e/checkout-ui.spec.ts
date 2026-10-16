@@ -1,4 +1,40 @@
 import { test, expect } from '@playwright/test'
+test.beforeEach(async ({ page }) => {
+  await page.route('**/api/notification/**', route => route.fulfill({ json: { success: true, data: { unreadCount: 0 } } }))
+})
+test('바로 구매 수량 변경 중에는 이전 견적으로 주문하지 않는다', async ({ page }) => {
+  let release!: () => void
+  const delayed = new Promise<void>(resolve => { release = resolve })
+  let creates = 0
+  await page.route(/\/api\/(member|commerce|shopping|live)\//, async route => {
+    const request = route.request(); const url = new URL(request.url())
+    if (url.pathname.includes('/auth/')) return route.fulfill({ json: { success: true, data: { accessToken: 'token', refreshToken: 'refresh' } } })
+    if (url.pathname.endsWith('/members/me')) return route.fulfill({ json: { success: true, data: { memberId: 'buyer', email: 'buyer@test.dev', displayName: '회원', roles: ['USER'] } } })
+    if (url.pathname.endsWith('/payment-groups/active')) return route.fulfill({ status: 204 })
+    if (url.pathname.endsWith('/products/1')) return route.fulfill({ json: { productId: 1, name: '상품', mainImageUrl: null, salesStatus: 'ON_SALE', price: 10000, available: 5 } })
+    if (url.pathname.endsWith('/orders/checkout')) {
+      if (url.searchParams.get('quantity') === '2') {
+        await delayed
+        return route.fulfill({ status: 409, json: { code: 'CONFLICT', message: '최신 가격을 확인해 주세요.' } })
+      }
+      return route.fulfill({ json: { unitPrice: 10000, totalAmount: 10000, orderable: true, reason: null } })
+    }
+    if (url.pathname.endsWith('/orders') && request.method() === 'POST') creates++
+    return route.fulfill({ status: 404 })
+  })
+  await page.goto('/login'); await page.getByLabel('아이디 또는 이메일').fill('buyer@test.dev'); await page.getByLabel('비밀번호', { exact: true }).fill('password')
+  await page.getByRole('button', { name: '로그인', exact: true }).click(); await expect(page.getByRole('heading', { name: '내 계정', exact: true })).toBeVisible()
+  await page.goto('/checkout?productId=1&quantity=1')
+  await page.getByLabel('연락처').fill('01012345678'); await page.getByLabel('주문 내용을 확인했으며 결제에 동의합니다').check()
+  const submit = page.getByRole('button', { name: '결제하기', exact: true })
+  await expect(submit).toBeEnabled()
+  await page.getByRole('button', { name: '수량 늘리기' }).click()
+  await expect(submit).toBeDisabled()
+  release()
+  await expect(page.getByRole('alert').filter({ hasText: '최신 금액을 확인하지 못했어요' })).toBeVisible()
+  await expect(submit).toBeDisabled()
+  expect(creates).toBe(0)
+})
 test('contract UI: selected products, one payment, reload recovery, mobile layout', async ({ page }) => {
   let status = 'PENDING_PAYMENT'; let starts = 0; let quoteBodies: unknown[] = []
   const cart = [{ id: 1, productId: 1, quantity: 2, version: 0 }, { id: 2, productId: 2, quantity: 1, version: 0 }]

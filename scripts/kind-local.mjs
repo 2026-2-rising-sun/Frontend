@@ -4,13 +4,14 @@ import { resolve } from 'node:path'
 import { generateKeyPairSync, randomBytes, randomUUID } from 'node:crypto'
 const root = resolve(import.meta.dirname, '..')
 const backend = resolve(process.env.BACKEND_DIR ?? root + '/../Backend')
-const namespace = 'shoppinglive-frontend-local'
+const namespace = process.env.KIND_NAMESPACE ?? 'shoppinglive-frontend-local'
 const context = process.env.KIND_CONTEXT ?? 'kind-shoppinglive-dev'
 if (!context.startsWith('kind-')) throw new Error('A kind context is required')
 const run = (name, args, options = {}) => execFileSync(name, args, { encoding: 'utf8', ...options })
 const k = args => ['--context', context, '-n', namespace, ...args]
 const work = root + '/test-artifacts/kind'; mkdirSync(work, { recursive: true })
-const services = ['member', 'shopping', 'commerce', 'live']
+const services = ['member', 'shopping', 'commerce', 'live', 'notification']
+const kafkaEnabled = process.env.KIND_KAFKA === 'true'
 const labels = { 'app.kubernetes.io/managed-by': 'shoppinglive-frontend-local' }
 const meta = name => ({ name, namespace, labels })
 const apply = objects => run('kubectl', k(['apply', '-f', '-']), { input: JSON.stringify({ apiVersion: 'v1', kind: 'List', items: objects }) })
@@ -37,15 +38,41 @@ else {
   for (const pair of ['SHOPPING_MEMBER', 'COMMERCE_MEMBER', 'LIVE_MEMBER', 'COMMERCE_SHOPPING', 'LIVE_SHOPPING', 'SHOPPING_COMMERCE', 'LIVE_COMMERCE']) config.env[pair + '_SERVICE_TOKEN'] = randomBytes(32).toString('base64url')
   writeFileSync(credentialsFile, JSON.stringify(config), { mode: 0o600 })
 }
-const deployment = (name, image, env = [], volumes = [], mounts = [], probes = false) => ({ apiVersion: 'apps/v1', kind: 'Deployment', metadata: meta(name), spec: { replicas: 1, strategy: { type: 'Recreate' }, selector: { matchLabels: { app: name } }, template: { metadata: { labels: { app: name, ...labels } }, spec: { volumes, containers: [{ name, image, imagePullPolicy: 'IfNotPresent', env, ports: [{ containerPort: 8080 }, { containerPort: 9090 }], volumeMounts: mounts, ...(probes ? { resources: { requests: { memory: '160Mi', cpu: '50m' }, limits: { memory: '512Mi' } }, startupProbe: { httpGet: { path: '/actuator/health/readiness', port: 9090 }, failureThreshold: 90, periodSeconds: 2 }, readinessProbe: { httpGet: { path: '/actuator/health/readiness', port: 9090 }, periodSeconds: 3 } } : {}) }] } } } })
+for (const pair of ['NOTIFICATION_MEMBER']) config.env[pair + '_SERVICE_TOKEN'] ??= randomBytes(32).toString('base64url')
+writeFileSync(credentialsFile, JSON.stringify(config), { mode: 0o600 })
+const deployment = (name, image, env = [], volumes = [], mounts = [], probes = false) => ({ apiVersion: 'apps/v1', kind: 'Deployment', metadata: meta(name), spec: { replicas: 1, strategy: { type: 'Recreate' }, selector: { matchLabels: { app: name } }, template: { metadata: { labels: { app: name, ...labels } }, spec: { volumes, containers: [{ name, image, imagePullPolicy: 'IfNotPresent', env, ports: [{ containerPort: 8080 }, { containerPort: 9090 }], volumeMounts: mounts, ...(probes ? { resources: { requests: { memory: '160Mi', cpu: '50m' }, limits: { memory: '640Mi' } }, startupProbe: { httpGet: { path: '/actuator/health/readiness', port: 9090 }, failureThreshold: 90, periodSeconds: 2 }, readinessProbe: { httpGet: { path: '/actuator/health/readiness', port: 9090 }, periodSeconds: 3 } } : {}) }] } } } })
 const service = (name, port, targetPort = port) => ({ apiVersion: 'v1', kind: 'Service', metadata: meta(name), spec: { selector: { app: name }, ports: [{ port, targetPort }] } })
 const env = record => Object.entries(record).map(([name, value]) => ({ name, value: String(value) }))
+// Kafka is isolated in this namespace; existing clusters and topics are never reused.
+const kafkaDeployment = () => ({
+  apiVersion: 'apps/v1', kind: 'Deployment', metadata: meta('kafka'),
+  spec: { replicas: 1, strategy: { type: 'Recreate' }, selector: { matchLabels: { app: 'kafka' } }, template: {
+    metadata: { labels: { app: 'kafka', ...labels } },
+    spec: { securityContext: { fsGroup: 1000 }, volumes: [{ name: 'data', emptyDir: {} }], containers: [{
+      name: 'kafka', image: 'apache/kafka:4.0.0', imagePullPolicy: 'IfNotPresent',
+      env: env({
+        KAFKA_HEAP_OPTS: '-Xms256m -Xmx256m', KAFKA_NODE_ID: 1, KAFKA_PROCESS_ROLES: 'broker,controller',
+        KAFKA_CONTROLLER_QUORUM_VOTERS: '1@localhost:9093', KAFKA_LISTENERS: 'PLAINTEXT://:9092,CONTROLLER://:9093',
+        KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9092', KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT',
+        KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER', KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT',
+        KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1, KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1,
+        KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1, KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0,
+        KAFKA_AUTO_CREATE_TOPICS_ENABLE: true, KAFKA_LOG_DIRS: '/var/lib/kafka/data',
+      }),
+      ports: [{ containerPort: 9092 }], volumeMounts: [{ name: 'data', mountPath: '/var/lib/kafka/data' }],
+      resources: { requests: { memory: '384Mi', cpu: '100m' }, limits: { memory: '768Mi' } },
+      startupProbe: { tcpSocket: { port: 9092 }, failureThreshold: 60, periodSeconds: 2 },
+      readinessProbe: { tcpSocket: { port: 9092 }, periodSeconds: 3 },
+    }] },
+  } },
+})
 const initSql = services.map(s => `CREATE DATABASE ${s};`).join('\n')
 console.log(apply([
   { apiVersion: 'v1', kind: 'Secret', metadata: meta('auth'), stringData: { 'private.pem': config.private, 'public.jwks': config.public, ...config.env, POSTGRES_PASSWORD: config.password } },
   { apiVersion: 'v1', kind: 'ConfigMap', metadata: meta('db-init'), data: { 'init.sql': initSql } },
   deployment('postgres', 'postgres:16-alpine', [...env({ POSTGRES_USER: 'frontend', POSTGRES_DB: 'postgres' }), { name: 'POSTGRES_PASSWORD', valueFrom: { secretKeyRef: { name: 'auth', key: 'POSTGRES_PASSWORD' } } }], [{ name: 'init', configMap: { name: 'db-init' } }, { name: 'data', emptyDir: {} }], [{ name: 'init', mountPath: '/docker-entrypoint-initdb.d' }, { name: 'data', mountPath: '/var/lib/postgresql/data' }]), service('postgres', 5432),
-  deployment('redis', 'redis:7-alpine'), service('redis', 6379)
+  deployment('redis', 'redis:7-alpine'), service('redis', 6379),
+  ...(kafkaEnabled ? [kafkaDeployment(), service('kafka', 9092)] : [])
 ]))
 for (const s of services) {
   const jars = readdirSync(backend + `/services/${s}-service/build/libs`).filter(n => n.endsWith('.jar') && !n.endsWith('-plain.jar'))
@@ -56,10 +83,11 @@ for (const s of services) {
   const image = `shoppinglive-frontend-local/${s}:${sha.slice(0, 12)}`
   run('docker', ['build', '-t', image, dir], { stdio: 'inherit' })
   run('kind', ['load', 'docker-image', image, '--name', context.slice(5)], { stdio: 'inherit' })
-  const values = { JAVA_TOOL_OPTIONS: '-Xmx128m -XX:MaxMetaspaceSize=128m -XX:ReservedCodeCacheSize=48m -XX:MaxDirectMemorySize=32m -XX:ActiveProcessorCount=2 -Xss512k', SERVER_TOMCAT_THREADS_MAX: 24, SERVER_TOMCAT_THREADS_MIN_SPARE: 2, SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 5, SPRING_PROFILES_ACTIVE: 'local', SERVER_PORT: 8080, MANAGEMENT_SERVER_PORT: 9090, SPRING_DATASOURCE_URL: `jdbc:postgresql://postgres:5432/${s}`, SPRING_DATASOURCE_USERNAME: 'frontend', MEMBER_LOCAL_TEST_ACCOUNTS_ENABLED: true, MEMBER_JWT_PUBLIC_KEY_SET_LOCATION: 'file:/run/auth/public.jwks', MEMBER_JWT_PRIVATE_KEY_LOCATION: 'file:/run/auth/private.pem', MEMBER_JWT_KEY_ID: config.kid, MEMBER_ACCESS_TOKEN_TTL: 'PT15M', MEMBER_REFRESH_TOKEN_TTL: 'P30D', MEMBER_SESSION_BASE_URL: 'http://member:8080', SHOPPING_SALES_CLIENT_BASE_URL: 'http://commerce:8080', COMMERCE_SHOPPING_CLIENT_BASE_URL: 'http://shopping:8080', LIVE_PRODUCTS_MODE: 'http', LIVE_PRODUCTS_SHOPPING_URL: 'http://shopping:8080', LIVE_PRODUCTS_COMMERCE_URL: 'http://commerce:8080', LIVE_IVS_MODE: 'stub', LIVE_IVS_STUB_READY: true, SHOPPING_IMAGE_DIR: '/tmp/images', SHOPPING_IMAGE_PUBLIC_BASE_URL: '/api/shopping', SPRING_DATA_REDIS_HOST: 'redis', SPRING_DATA_REDIS_PORT: 6379, SPRING_KAFKA_BOOTSTRAP_SERVERS: '127.0.0.1:1', SPRING_KAFKA_ADMIN_AUTO_CREATE: false, SPRING_KAFKA_LISTENER_AUTO_STARTUP: false }
+  const values = { JAVA_TOOL_OPTIONS: '-Xmx128m -XX:MaxMetaspaceSize=192m -XX:ReservedCodeCacheSize=48m -XX:MaxDirectMemorySize=32m -XX:ActiveProcessorCount=2 -Xss512k', SERVER_TOMCAT_THREADS_MAX: 24, SERVER_TOMCAT_THREADS_MIN_SPARE: 2, SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 5, SPRING_PROFILES_ACTIVE: 'local', SERVER_PORT: 8080, MANAGEMENT_SERVER_PORT: 9090, SPRING_DATASOURCE_URL: `jdbc:postgresql://postgres:5432/${s}`, SPRING_DATASOURCE_USERNAME: 'frontend', MEMBER_LOCAL_TEST_ACCOUNTS_ENABLED: true, MEMBER_JWT_PUBLIC_KEY_SET_LOCATION: 'file:/run/auth/public.jwks', MEMBER_JWT_PRIVATE_KEY_LOCATION: 'file:/run/auth/private.pem', MEMBER_JWT_KEY_ID: config.kid, MEMBER_ACCESS_TOKEN_TTL: 'PT15M', MEMBER_REFRESH_TOKEN_TTL: 'P30D', MEMBER_SESSION_BASE_URL: 'http://member:8080', SHOPPING_SALES_CLIENT_BASE_URL: 'http://commerce:8080', COMMERCE_SHOPPING_CLIENT_BASE_URL: 'http://shopping:8080', LIVE_PRODUCTS_MODE: 'http', LIVE_PRODUCTS_SHOPPING_URL: 'http://shopping:8080', LIVE_PRODUCTS_COMMERCE_URL: 'http://commerce:8080', LIVE_IVS_MODE: 'stub', LIVE_IVS_STUB_READY: true, SHOPPING_IMAGE_DIR: '/tmp/images', SHOPPING_IMAGE_PUBLIC_BASE_URL: '/api/shopping', SPRING_DATA_REDIS_HOST: 'redis', SPRING_DATA_REDIS_PORT: 6379, SPRING_KAFKA_BOOTSTRAP_SERVERS: kafkaEnabled ? 'kafka:9092' : '127.0.0.1:1', SPRING_KAFKA_ADMIN_AUTO_CREATE: kafkaEnabled, SPRING_KAFKA_LISTENER_AUTO_STARTUP: kafkaEnabled }
   const secretEnv = Object.keys(config.env).concat('POSTGRES_PASSWORD').map(name => ({ name: name === 'POSTGRES_PASSWORD' ? 'SPRING_DATASOURCE_PASSWORD' : name, valueFrom: { secretKeyRef: { name: 'auth', key: name } } }))
   console.log(apply([deployment(s, image, [...env(values), ...secretEnv], [{ name: 'auth', secret: { secretName: 'auth' } }, { name: 'images', emptyDir: {} }], [{ name: 'auth', mountPath: '/run/auth', readOnly: true }, { name: 'images', mountPath: '/tmp/images' }], true), service(s, 8080)]))
 }
-for (const s of services) console.log(run('kubectl', k(['wait', 'pod', '-l', 'app=' + s, '--for=condition=Ready', '--timeout=180s'])))
-writeFileSync(work + '/state.json', JSON.stringify({ context, namespace, backendSha: sha, services, createdAt: new Date().toISOString() }, null, 2))
+if (kafkaEnabled) console.log(run('kubectl', k(['rollout', 'status', 'deployment/kafka', '--timeout=180s'])))
+for (const s of services) console.log(run('kubectl', k(['rollout', 'status', 'deployment/' + s, '--timeout=180s'])))
+writeFileSync(work + '/state.json', JSON.stringify({ context, namespace, backendSha: sha, services, kafkaEnabled, createdAt: new Date().toISOString() }, null, 2))
 console.log('Ready. Run npm run local:frontend to keep service forwarding and the frontend open at http://localhost:5174.')
