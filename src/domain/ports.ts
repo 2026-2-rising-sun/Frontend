@@ -1,3 +1,4 @@
+import type { RefundsPort } from './refunds'
 import type { CartSelection, CartCheckout, PaymentGroup } from './types'
 import type { CouponsPort } from './coupons'
 import type { AuthPort } from './auth'
@@ -72,6 +73,7 @@ export interface AdminLivesPort {
 }
 export interface Api {
   auth: AuthPort
+  refunds: RefundsPort
   notifications: NotificationsPort; coupons: CouponsPort; products: ProductsPort; lives: LivesPort; orders: OrdersPort; payments: PaymentsPort; cart: CartPort; paymentGroups: PaymentGroupsPort
   admin: { products: AdminProductsPort; lives: AdminLivesPort }
 }

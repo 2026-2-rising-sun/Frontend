@@ -1,5 +1,6 @@
 import { createNotifications } from './notifications'
 import { createCoupons } from './coupons'
+import { createRefunds } from './refunds'
 import { createSellerProducts } from './sellerProducts'
 import type { Api, CartItem, ChatMessage } from '../../domain/ports'
 import type { PaymentGroup, CartCheckout, AdminLive } from '../../domain/types'
@@ -26,6 +27,7 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
     auth,
     notifications: createNotifications(request),
     coupons: createCoupons(request),
+    refunds: createRefunds(request),
     products: {
       async list(params) {
         const dto = await publicRequest<{ items: ProductDto[]; nextCursor: number | null; hasNext: boolean }>('/shopping/v1/products', { query: { cursor: params?.cursor, size: params?.size } })
