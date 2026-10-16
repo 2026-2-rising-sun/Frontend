@@ -3,6 +3,7 @@ import { mkdirSync, createWriteStream } from 'node:fs'
 import { resolve } from 'node:path'
 const root = resolve(import.meta.dirname, '..')
 const prism = process.argv.includes('--prism')
+const namespace = process.env.KIND_NAMESPACE ?? 'shoppinglive-frontend-local'
 const port = prism ? 5274 : 5174
 const children = []
 const logs = root + '/test-artifacts/' + (prism ? 'prism' : 'local'); mkdirSync(logs, { recursive: true })
@@ -17,16 +18,16 @@ let stopping = false
 function stop(code = 0) { if (stopping) return; stopping = true; for (const child of children) child.kill('SIGTERM'); process.exitCode = code }
 process.on('SIGINT', () => stop()); process.on('SIGTERM', () => stop())
 if (!prism) {
-  for (const service of ['member', 'shopping', 'commerce', 'live']) {
-    execFileSync('kubectl', ['--context', process.env.KIND_CONTEXT ?? 'kind-shoppinglive-dev', '-n', 'shoppinglive-frontend-local', 'wait', 'pod', '-l', 'app=' + service, '--for=condition=Ready', '--timeout=180s'], { stdio: 'inherit' })
+  for (const service of ['member', 'shopping', 'commerce', 'live', 'notification']) {
+    execFileSync('kubectl', ['--context', process.env.KIND_CONTEXT ?? 'kind-shoppinglive-dev', '-n', namespace, 'rollout', 'status', 'deployment/' + service, '--timeout=180s'], { stdio: 'inherit' })
   }
 }
 const urls = {}
-for (const [index, service] of ['member', 'shopping', 'commerce', 'live'].entries()) {
+for (const [index, service] of ['member', 'shopping', 'commerce', 'live', 'notification'].entries()) {
   const apiPort = (prism ? 18581 : 18481) + index
   urls[service.toUpperCase() + '_URL'] = 'http://127.0.0.1:' + apiPort
   if (prism) start(root + '/node_modules/.bin/prism', ['mock', root + `/../Backend/contracts/api/${service}-service.yaml`, '--host', '127.0.0.1', '--port', String(apiPort)], service)
-  else start('kubectl', ['--context', process.env.KIND_CONTEXT ?? 'kind-shoppinglive-dev', '-n', 'shoppinglive-frontend-local', 'port-forward', 'svc/' + service, apiPort + ':8080', '--address=127.0.0.1'], service)
+  else start('kubectl', ['--context', process.env.KIND_CONTEXT ?? 'kind-shoppinglive-dev', '-n', namespace, 'port-forward', 'svc/' + service, apiPort + ':8080', '--address=127.0.0.1'], service)
 }
 // Forwarded processes can be ready a little after Vite. Tests wait for the service route too.
 start(root + '/node_modules/.bin/vite', ['--host', '127.0.0.1', '--port', String(port), '--strictPort'], 'vite', { ...process.env, ...urls })
