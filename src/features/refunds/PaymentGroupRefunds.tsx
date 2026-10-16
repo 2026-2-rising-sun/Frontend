@@ -9,6 +9,7 @@ import { useAsync } from '../../hooks/useAsync'
 import { formatPrice } from '../../lib/format'
 import { useSession } from '../auth/useSession'
 import { requestIdentity } from '../commerce/checkoutRecovery'
+import { SelectedRefundRequest } from './SelectedRefundRequest'
 import { RefundDetails } from './RefundDetails'
 import styles from './refunds.module.css'
 
@@ -50,14 +51,15 @@ export function PaymentGroupRefunds({ group, onUpdated }: { group: PaymentGroup;
   }
   return <section className={styles.section} aria-labelledby="refund-heading">
     <div className={styles.heading}><h2 id="refund-heading" className="t-h2">환불</h2><Button variant="secondary" size="S" onClick={reload} disabled={history.loading || busy}>환불 내역 새로고침</Button></div>
-    <p>결제 완료 후 168시간이 지나기 전에 전체 환불을 요청해 주세요. 환불 가능 여부와 최종 금액은 서버에서 확인합니다.</p>
+    <p>결제 완료 후 168시간이 지나기 전에 환불을 요청해 주세요. 환불 가능 여부와 최종 금액은 서버에서 확인합니다.</p>
     {message && <Alert type="info" title={message} />}
     {failure && <Alert type="warning" title="요청 결과를 확인해 주세요">{failure} 내역을 먼저 확인해 주세요. 다시 요청하면 동일한 요청 키로 확인합니다.</Alert>}
     {history.error && history.data && <Alert type="warning" title="최신 환불 내역을 확인하지 못했어요">다시 조회한 뒤 환불을 요청해 주세요.</Alert>}
     <AsyncView state={history} skeleton={<Skeleton height={150} />}>
       {(refunds) => refunds.length ? <div className={styles.section}>{refunds.map((refund) => <div key={refund.id}><RefundDetails refund={refund} /><Link to={`/payment-groups/${encodeURIComponent(group.groupNumber)}/refunds/${encodeURIComponent(refund.id)}`}>환불 {refund.id} 상세 보기</Link></div>)}</div> : <ResultState type="empty" title="환불 내역이 없어요" />}
     </AsyncView>
-    {hasSuccessfulRefund && !fullyRefunded && <Alert type="info" title="일부 상품의 환불 이력이 있어요">현재 화면에서는 남은 상품을 선택해 환불할 수 없어요. 환불 내역을 확인해 주세요.</Alert>}
+    {hasSuccessfulRefund && !fullyRefunded && <Alert type="info" title="일부 상품의 환불 이력이 있어요">아래에서 환불 가능한 남은 상품을 선택할 수 있어요.</Alert>}
+    <SelectedRefundRequest groupNumber={group.groupNumber} history={history} onUpdated={onUpdated} />
     {canRequest && !confirming && <Button variant="secondary" onClick={() => setConfirming(true)}>전체 환불 요청</Button>}
     {confirming && <div className={styles.card} role="region" aria-label="전체 환불 확인">
       <h3 className="t-h3">이 결제의 상품 전체를 환불할까요?</h3>

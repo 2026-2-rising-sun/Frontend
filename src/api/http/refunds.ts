@@ -1,4 +1,4 @@
-import type { Refund, RefundsPort, RefundTarget, RefundSummary } from '../../domain/refunds'
+import type { Refund, RefundsPort, RefundTarget, RefundSummary, RefundableTarget } from '../../domain/refunds'
 import { ApiError } from '../../domain/errors'
 import { refundPending } from '../../domain/refunds'
 import type { HttpClient } from './client'
@@ -21,6 +21,11 @@ export function createRefunds(request: HttpClient): RefundsPort {
   const list = async (number: string) => (await request<RefundDto[]>(path(number))).map(mapRefund)
   return {
     list,
+    targets: async (number) => (await request<(Omit<RefundableTarget, 'orderId' | 'cartItemId'> & { orderId: number; cartItemId: number | null })[]>(`/commerce/v1/payment-groups/${encodeURIComponent(number)}/refundable-targets`)).map(target => ({ ...target, orderId: String(target.orderId), cartItemId: target.cartItemId === null ? null : String(target.cartItemId) })),
+    async requestSelected(number, cartItemIds, key) {
+      if (!cartItemIds.length || cartItemIds.length > 100 || new Set(cartItemIds).size !== cartItemIds.length || cartItemIds.some(id => !/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id)))) throw new ApiError('VALIDATION', '환불할 상품을 선택해 주세요.')
+      return mapRefund(await request<RefundDto>(path(number), { method: 'POST', headers: { 'Idempotency-Key': key }, body: { cartItemIds: cartItemIds.map(Number) } }))
+    },
     get: async (number, id) => mapRefund(await request<RefundDto>(`${path(number)}/${encodeURIComponent(id)}`)),
     async requestFull(number, key) {
       const before = await list(number)
