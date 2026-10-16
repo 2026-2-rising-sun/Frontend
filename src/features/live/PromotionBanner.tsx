@@ -38,7 +38,7 @@ function PromotionCouponClaim({ promotion }: { promotion: PublicPromotion }) {
   async function claim() {
     if (!session || !couponId || lock.current || received) return
     lock.current = true; setBusy(true); setError('')
-    try { await api.coupons.claim(couponId); setReceived(true) }
+    try { await api.promotions.claim(promotion.broadcastId, promotion.id); setReceived(true) }
     catch (cause) { setError(cause instanceof Error ? cause.message : '쿠폰을 받지 못했어요.') }
     finally { lock.current = false; setBusy(false) }
   }

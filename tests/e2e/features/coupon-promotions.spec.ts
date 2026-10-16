@@ -82,7 +82,11 @@ test('kind: 쿠폰 이벤트 생성·공개·회원 발급·종료를 실제 API
     await viewer.getByLabel('비밀번호', { exact: true }).fill('user')
     await viewer.getByRole('button', { name: '로그인', exact: true }).click()
     await expect(viewer).toHaveURL(new RegExp(`/lives/${f.liveId}$`))
+    const claimResponse = viewer.waitForResponse(response => response.request().method() === 'POST' && response.url().includes('/promotions/') && response.url().endsWith('/claims'))
     await viewer.getByRole('button', { name: '쿠폰 받기', exact: true }).click()
+    const claimed = await claimResponse
+    expect(claimed.ok(), await claimed.text()).toBeTruthy()
+    const claimUrl = claimed.url()
     await expect(viewer.getByRole('button', { name: '쿠폰 받기 완료', exact: true })).toBeDisabled()
     const member = await token(request, 'user@local.test', 'user')
     const mine = await request.get('/api/commerce/v1/me/coupons?size=100', { headers: member })
@@ -92,6 +96,8 @@ test('kind: 쿠폰 이벤트 생성·공개·회원 발급·종료를 실제 API
     await expect(viewer.getByText(`방송 중 이벤트 · ${couponName}`, { exact: true })).toBeVisible()
     await card.getByRole('button', { name: '이벤트 종료', exact: true }).click()
     await expect(viewer.getByText(`방송 중 이벤트 · ${couponName}`, { exact: true })).toHaveCount(0, { timeout: 25000 })
+    const closedClaim = await request.post(claimUrl, { headers: member })
+    expect(closedClaim.status()).toBe(409)
   } finally {
     await viewerContext.close()
     await page.getByRole('button', { name: '방송 종료', exact: true }).click()
