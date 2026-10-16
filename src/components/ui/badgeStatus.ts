@@ -6,6 +6,7 @@ export type BadgeStatus =
   | 'scheduled'
   | 'ended'
   | 'draft'
+  | 'unknown'
   | 'ready'
   | 'selling'
   | 'soldOut'
@@ -22,6 +23,7 @@ export const BADGE_LABEL: Record<BadgeStatus, string> = {
   scheduled: '방송 예정',
   ended: '방송 종료',
   draft: '기본정보만',
+  unknown: '판매정보 확인 필요',
   ready: '판매 준비',
   selling: '판매 중',
   soldOut: '품절',
@@ -45,7 +47,7 @@ const ORDER: Record<OrderStatus, BadgeStatus> = {
   REFUNDED: 'refunded',
 }
 
-export const adminProductBadge = (status: AdminProductStatus): BadgeStatus => (status === 'DRAFT' ? 'draft' : PRODUCT[status])
+export const adminProductBadge = (status: AdminProductStatus): BadgeStatus => (status === 'DRAFT' ? 'draft' : status === 'UNKNOWN' ? 'unknown' : PRODUCT[status])
 export const liveBadge = (status: LiveStatus) => LIVE[status]
 export const productBadge = (status: ProductStatus) => PRODUCT[status]
 export const orderBadge = (status: OrderStatus) => ORDER[status]

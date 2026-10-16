@@ -112,7 +112,7 @@ export interface CreateOrderInput {
 /** 관리 기능은 SELLER 역할만 이용한다. */
 
 /** 관리용 상품 상태. DRAFT = 기본정보만 등록되고 판매 설정(가격·재고)이 아직 없는 상태. */
-export type AdminProductStatus = 'DRAFT' | ProductStatus
+export type AdminProductStatus = 'DRAFT' | 'UNKNOWN' | ProductStatus
 export type AdminProductStatusFilter = 'ALL' | AdminProductStatus
 
 export interface AdminProduct {
@@ -125,10 +125,12 @@ export interface AdminProduct {
   /** 판매 설정 전(DRAFT)에는 null */
   price: number | null
   stock: number | null
+  /** 결제 대기 주문이 예약한 수량. 판매 가능 재고와 별도다. */
+  reservedStock?: number
   status: AdminProductStatus
   /** 기본정보 수정 충돌 감지용. 수정할 때 화면이 본 version 을 함께 보낸다. */
   version: number
-  /** 판매 설정 응답에서 확인한 ID. 기존 상품 조회 계약에는 포함되지 않는다. */
+  /** 본인 상품 확인 후 주문서 조회 또는 판매 설정 응답으로 확인한 ID. */
   salesId: string | null
 }
 
