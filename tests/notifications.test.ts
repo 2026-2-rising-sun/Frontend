@@ -48,3 +48,29 @@ test('신청 조회는 본인 API를 호출하고 대상 ID와 페이지 커서�
     { path: '/notification/v1/restock-alerts', options: { query: { cursor: '84', size: 20 } } },
   ])
 })
+
+
+test('거래 알림은 식별자가 유효한 내부 화면으로만 이동한다', () => {
+  const id = '00000000-0000-4000-8000-000000000001'
+  const item = { linkType: 'PAYMENT_GROUP', linkValue: `PG-${id}` } as Notification
+  assert.equal(notificationTarget(item), `/payment-groups/PG-${id}`)
+  assert.equal(notificationTarget({ ...item, linkType: 'REFUND', linkValue: `PG-${id}/42` }), `/payment-groups/PG-${id}/refunds/42`)
+  assert.equal(notificationTarget({ ...item, linkType: 'COUPON', linkValue: id }), '/coupons')
+  assert.equal(notificationTarget({ ...item, linkType: 'COUPON', linkValue: 'coupon-opaque-id' }), '/coupons')
+  assert.equal(notificationTarget({ ...item, linkType: 'COUPON', linkValue: ' '.repeat(2) }), null)
+  for (const linkType of ['PAYMENT_GROUP', 'REFUND'] as const) {
+    for (const linkValue of ['//external', '../orders', `PG-${id}/0`, `PG-${id}/42?next=//external`]) {
+      assert.equal(notificationTarget({ ...item, linkType, linkValue }), null)
+    }
+  }
+})
+
+
+test('기존 마이그레이션 묶음의 거래·환불 알림도 상세 화면으로 이동한다', () => {
+  const item = { linkType: 'PAYMENT_GROUP', linkValue: 'PG-LEGACY-42' } as Notification
+  assert.equal(notificationTarget(item), '/payment-groups/PG-LEGACY-42')
+  assert.equal(notificationTarget({ ...item, linkType: 'REFUND', linkValue: 'PG-LEGACY-42/7' }), '/payment-groups/PG-LEGACY-42/refunds/7')
+  for (const linkValue of ['PG-LEGACY-0', 'PG-LEGACY-01', 'PG-LEGACY-42/7?redirect=//external', 'PG-LEGACY-' + '9'.repeat(20)]) {
+    assert.equal(notificationTarget({ ...item, linkValue }), null)
+  }
+})
