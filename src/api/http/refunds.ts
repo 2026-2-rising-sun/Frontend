@@ -1,4 +1,5 @@
 import type { Refund, RefundsPort, RefundTarget, RefundSummary } from '../../domain/refunds'
+import { ApiError } from '../../domain/errors'
 import { refundPending } from '../../domain/refunds'
 import type { HttpClient } from './client'
 
@@ -25,6 +26,7 @@ export function createRefunds(request: HttpClient): RefundsPort {
       const before = await list(number)
       const pending = before.find(refundPending)
       if (pending) return pending
+      if (before.some(refund => refund.status === 'SUCCESS')) throw new ApiError('INVALID_STATE', '일부 상품의 환불 이력이 있어 전체 환불을 요청할 수 없어요.')
       try {
         return mapRefund(await request<RefundDto>(path(number), {
           method: 'POST', headers: { 'Idempotency-Key': key },

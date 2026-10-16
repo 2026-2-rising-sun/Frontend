@@ -106,3 +106,14 @@ test('확정된 누적 환불액만 차감하고 실패·처리중 요청 금액
   assert.equal(remainingRefundAmount(1900, [{ ...mapped, cumulativeRefundAmount: 2000 }]), 0)
   assert.equal(refundPending({ ...mapped, status: 'FAILED' }), false)
 })
+
+
+test('부분 환불 성공 이력이 있으면 본문 없는 전체 환불을 보내지 않는다', async () => {
+  let posts = 0
+  const api = createRefunds((async (_path: string, options?: { method?: string }) => {
+    if (options?.method === 'POST') posts++
+    return [{ ...refund, status: 'SUCCESS', cumulativeRefundAmount: 500, refundAmount: 500 }]
+  }) as HttpClient)
+  await assert.rejects(api.requestFull('PG-1', 'key'), /일부 상품의 환불 이력/)
+  assert.equal(posts, 0)
+})

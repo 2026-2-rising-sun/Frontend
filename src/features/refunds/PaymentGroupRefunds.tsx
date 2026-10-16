@@ -29,7 +29,8 @@ export function PaymentGroupRefunds({ group, onUpdated }: { group: PaymentGroup;
   }, [pending, reload, onUpdated])
   const amount = remainingRefundAmount(group.payableAmount, history.data ?? [])
   const fullyRefunded = history.data?.some((refund) => refund.status === 'SUCCESS' && refund.cumulativeRefundAmount >= group.payableAmount) ?? false
-  const canRequest = !fullyRefunded && group.status === 'PAID' && !!history.data && !history.loading && !history.error && !pending
+  const hasSuccessfulRefund = history.data?.some(refund => refund.status === 'SUCCESS') ?? false
+  const canRequest = !hasSuccessfulRefund && !fullyRefunded && group.status === 'PAID' && !!history.data && !history.loading && !history.error && !pending
   async function requestRefund() {
     if (!canRequest || !session || inFlight.current) return
     inFlight.current = true
@@ -55,9 +56,10 @@ export function PaymentGroupRefunds({ group, onUpdated }: { group: PaymentGroup;
     <AsyncView state={history} skeleton={<Skeleton height={150} />}>
       {(refunds) => refunds.length ? <div className={styles.section}>{refunds.map((refund) => <RefundDetails key={refund.id} refund={refund} />)}</div> : <ResultState type="empty" title="환불 내역이 없어요" />}
     </AsyncView>
+    {hasSuccessfulRefund && !fullyRefunded && <Alert type="info" title="일부 상품의 환불 이력이 있어요">현재 화면에서는 남은 상품을 선택해 환불할 수 없어요. 환불 내역을 확인해 주세요.</Alert>}
     {canRequest && !confirming && <Button variant="secondary" onClick={() => setConfirming(true)}>전체 환불 요청</Button>}
     {confirming && <div className={styles.card} role="region" aria-label="전체 환불 확인">
-      <h3 className="t-h3">이 결제의 남은 상품 전체를 환불할까요?</h3>
+      <h3 className="t-h3">이 결제의 상품 전체를 환불할까요?</h3>
       <p>환불 예상 금액 <strong>{formatPrice(amount)}</strong></p>
       <p>대상 상품의 전체 수량을 환불하며, 일부 수량을 선택할 수 없어요. 확정된 환불은 되돌릴 수 없어요.</p>
       <div className={styles.actions}><Button variant="secondary" onClick={() => setConfirming(false)} disabled={busy}>돌아가기</Button><Button variant="danger" disabled={!canRequest || busy} onClick={() => { void requestRefund() }}>{busy ? '접수 확인 중…' : '확인하고 전체 환불 요청'}</Button></div>
