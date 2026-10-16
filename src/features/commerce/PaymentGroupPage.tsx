@@ -11,6 +11,7 @@ import { useSession } from '../auth/useSession'
 import { formatPrice } from '../../lib/format'
 import { OrderSummary } from './components/OrderSummary'
 import { requestIdentity } from './checkoutRecovery'
+import { PaymentGroupRefunds } from '../refunds/PaymentGroupRefunds'
 import styles from './OrderResultPage.module.css'
 export function PaymentGroupPage() {
   const { groupNumber = '' } = useParams(); const session = useSession()
@@ -55,5 +56,5 @@ function GroupResult({ group, reload }: { group: PaymentGroup; reload: () => voi
     {group.orders.map(order => <section key={order.orderNumber}><div className={styles.meta}><StatusBadge status={orderBadge(order.status)} /><Link to={`/orders/${encodeURIComponent(order.orderNumber)}`}>주문 {order.orderNumber}</Link></div><OrderSummary productName={order.productName} unitPrice={order.unitPrice} quantity={order.quantity} discountAmount={order.discountAmount} payableAmount={order.payableAmount} /></section>)}
     <div className={styles.actions}>{group.status === 'PENDING_PAYMENT' && <><Button fullWidth size="L" onClick={() => { void run('pay') }} disabled={busy || remaining === 0}>{busy ? '처리 중…' : '통합 결제하기'}</Button><Button fullWidth variant="secondary" onClick={() => { void run('cancel') }} disabled={busy}>전체 주문 취소</Button></>}
       {paying && <Button variant="secondary" onClick={reload}>결과 다시 확인</Button>}<ButtonLink variant="secondary" to="/cart">장바구니</ButtonLink><ButtonLink to="/orders/lookup">내 주문 목록</ButtonLink>
-    </div></>
+    </div>{(group.status === 'PAID' || group.status === 'REFUNDED') && <PaymentGroupRefunds group={group} onUpdated={reload} />}</>
 }
