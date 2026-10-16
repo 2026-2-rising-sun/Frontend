@@ -69,6 +69,7 @@ export interface LiveDetail extends LiveSummary {
   description: string
   /** 영상 재생 URL. 준비되지 않았으면 null. */
   playbackUrl: string | null
+  thumbnailId?: string | null
   videoStatus?: 'READY' | 'NOT_READY' | 'UNAVAILABLE' | null
   playbackAllowed?: boolean
   channelArn?: string
@@ -159,6 +160,10 @@ export interface SaleInfoInput {
 export type SaleAction = 'START_SALE' | 'HIDE' | 'RESUME'
 
 export interface LiveInput {
+  hostName?: string
+  description?: string
+  thumbnailId?: string
+  thumbnail?: File | null
   title: string
   channelArn: string
   /** 예정 시작 시각 (ISO 8601, 화면은 한국 시간으로 입력) */
