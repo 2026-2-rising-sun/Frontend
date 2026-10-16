@@ -11,7 +11,7 @@ export function createSellerProducts(request: HttpClient, memberId: () => string
   }
   const uploads = new Map<string, Promise<Awaited<ReturnType<typeof body>>>>()
   const get = async (id: string) => {
-    const dto = await request<ProductDto>(`/shopping/v1/admin/products/${encodeURIComponent(id)}`)
+    const dto = await request<ProductDto>(`/shopping/v1/seller/products/${encodeURIComponent(id)}`)
     const sale = knownSales()[id] ?? null
     if (sale) dto.available = (await request<{ available: number }>(`/commerce/v1/sales/${encodeURIComponent(sale)}/stock`)).available
     return adminProduct(dto, sale)
@@ -25,7 +25,7 @@ export function createSellerProducts(request: HttpClient, memberId: () => string
     let mainImageId: number | undefined
     if (image) {
       const data = new FormData(); data.set('file', image)
-      mainImageId = (await request<{ imageId: number }>('/shopping/v1/admin/product-images', { method: 'POST', body: data })).imageId
+      mainImageId = (await request<{ imageId: number }>('/shopping/v1/seller/product-images', { method: 'POST', body: data })).imageId
     }
     return { name, description, ...(mainImageId === undefined ? {} : { mainImageId }) }
   }
@@ -35,7 +35,7 @@ export function createSellerProducts(request: HttpClient, memberId: () => string
   }
   return {
     async list(params) {
-      const value = await request<PageDto<ProductDto>>('/shopping/v1/admin/products', { query: { page: params?.page, size: params?.size } })
+      const value = await request<PageDto<ProductDto>>('/shopping/v1/seller/products', { query: { page: params?.page, size: params?.size } })
       const result = page(value, p => adminProduct(p, knownSales()[String(p.productId)] ?? null))
       if (params?.status && params.status !== 'ALL') result.items = result.items.filter(p => p.status === params.status)
       return result
@@ -44,11 +44,11 @@ export function createSellerProducts(request: HttpClient, memberId: () => string
       if (!input.image) throw new ApiError('VALIDATION', '대표 이미지를 선택해 주세요.')
       if (!uploads.has(input.idempotencyKey)) uploads.set(input.idempotencyKey, body(input).catch(error => { uploads.delete(input.idempotencyKey); throw error }))
       const payload = await uploads.get(input.idempotencyKey)!
-      const result = await request<{ productId: number }>('/shopping/v1/admin/products', { method: 'POST', headers: { 'X-Idempotency-Key': input.idempotencyKey }, body: payload })
+      const result = await request<{ productId: number }>('/shopping/v1/seller/products', { method: 'POST', headers: { 'X-Idempotency-Key': input.idempotencyKey }, body: payload })
       return get(String(result.productId))
     },
     async updateBasicInfo(id, input) {
-      await request(`/shopping/v1/admin/products/${encodeURIComponent(id)}`, { method: 'PATCH', body: { ...await body(input), version: input.version } })
+      await request(`/shopping/v1/seller/products/${encodeURIComponent(id)}`, { method: 'PATCH', body: { ...await body(input), version: input.version } })
       return get(id)
     },
     async setSaleInfo(id, input) {

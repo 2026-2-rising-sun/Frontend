@@ -102,7 +102,7 @@ export function createHttpAuth(baseUrl: string, testAccounts = false, storage: R
     async revokeSessions() {
       const member = store.getSession()
       if (!member) throw new ApiError('UNAUTHORIZED', '로그인이 필요해요.')
-      await request(`/member/v1/admin/members/${encodeURIComponent(member.memberId)}/sessions/revoke`, { method: 'POST' }); clear()
+      await request(`/member/v1/seller/members/${encodeURIComponent(member.memberId)}/sessions/revoke`, { method: 'POST' }); clear()
     },
     async logout() {
       const refreshToken = pair?.refreshToken ?? savedRefresh()
