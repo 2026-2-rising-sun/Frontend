@@ -14,6 +14,7 @@
     "e2e:checkout-ui": "playwright test --config playwright.checkout.config.ts",
     "e2e:notifications-ui": "playwright test --config playwright.notifications.config.ts",
     "e2e:kind": "playwright test",
+    "e2e:features": "E2E_MODE=features playwright test",
     "local:kind": "node scripts/kind-local.mjs",
     "local:frontend": "node scripts/local-frontend.mjs",
     "local:down": "node scripts/kind-local.mjs down"

@@ -46,7 +46,7 @@ async function fixture(request: APIRequestContext) {
   const live = (await broadcast.json()).data
   const link = await request.post(`/api/live/v1/admin/broadcasts/${live.id}/products`, { headers: seller, data: { productId, expectedVersion: live.version } })
   expect(link.ok(), await link.text()).toBeTruthy()
-  return { name, productId, liveId: String(live.id), seller }
+  return { name, productId, salesId, liveId: String(live.id), seller }
 }
 
 test('kind: 방송·재입고 알림 로그인 안내, 신청 응답과 해제의 실제 API 계약을 확인한다', async ({ page, request }) => {
@@ -113,4 +113,48 @@ test('kind: 실제 방송 시작 이벤트가 알림·배지에 반영되고 읽
   expect(notification.readAt).not.toBeNull()
   const end = await request.post(`/api/live/v1/admin/broadcasts/${f.liveId}/end`, { headers: f.seller })
   expect(end.ok(), await end.text()).toBeTruthy()
+})
+
+
+test('kind: 재입고 신청 후 실제 재고 복구 이벤트가 모바일 알림함과 읽음 상태에 반영된다', async ({ page, request }) => {
+  test.setTimeout(150000)
+  const f = await fixture(request); const user = await member(request)
+  await signIn(page, user.email, password)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto(`/products/${f.productId}`)
+  const region = page.getByRole('region', { name: '재입고 알림', exact: true })
+  await expect(region).toBeVisible()
+  // Kafka의 상품 복제 완료를 기다린다. 신청 API는 같은 회원·상품에 멱등적이다.
+  await expect.poll(async () => {
+    const response = await request.post('/api/notification/v1/restock-alerts', { headers: user.headers, data: { productId: f.productId } })
+    return response.status()
+  }, { timeout: 45000, intervals: [1000] }).toBe(201)
+  const registration = page.waitForResponse(response => response.url().endsWith('/api/notification/v1/restock-alerts') && response.request().method() === 'POST')
+  await region.getByRole('button', { name: '알림 신청', exact: true }).click()
+  expect((await registration).status()).toBe(201)
+  await expect(region.getByText('재입고 알림을 신청했어요.', { exact: true })).toBeVisible()
+  const stock = await request.patch(`/api/commerce/v1/sales/${f.salesId}/stock`, { headers: f.seller, data: { delta: 2 } })
+  expect(stock.ok(), await stock.text()).toBeTruthy()
+  await expect.poll(async () => {
+    const response = await request.get('/api/notification/v1/notifications/unread-count', { headers: user.headers })
+    expect(response.ok(), await response.text()).toBeTruthy()
+    return (await response.json()).data.unreadCount
+  }, { timeout: 45000, intervals: [1000] }).toBe(1)
+  await page.goto('/notifications')
+  await expect(page.getByRole('link', { name: '알림함, 안 읽은 알림 1개', exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: '자세히 보기', exact: true })).toHaveAttribute('href', `/products/${f.productId}`)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+  const read = page.waitForResponse(response => /\/api\/notification\/v1\/notifications\/[^/]+\/read$/.test(response.url()) && response.request().method() === 'POST')
+  await page.getByRole('button', { name: '읽음 처리', exact: true }).click()
+  expect((await read).status()).toBe(204)
+  await expect(page.getByRole('link', { name: '알림함, 안 읽은 알림 0개', exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '읽음 처리', exact: true })).toHaveCount(0)
+  const list = await request.get('/api/notification/v1/notifications', { headers: user.headers })
+  expect(list.ok(), await list.text()).toBeTruthy()
+  const notifications = (await list.json()).data.items
+  expect(notifications).toHaveLength(1)
+  expect(notifications[0].eventType).toBe('Restocked')
+  expect(notifications[0].linkValue).toBe(String(f.productId))
+  expect(notifications[0].readAt).not.toBeNull()
+  await page.screenshot({ path: 'test-artifacts/restock-notification-mobile.png', fullPage: true })
 })
