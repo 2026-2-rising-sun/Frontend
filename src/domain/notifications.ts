@@ -13,6 +13,10 @@ export interface NotificationsPort {
   list(cursor?: string | null): Promise<NotificationPage>
   unreadCount(): Promise<number>
   read(id: string): Promise<void>
+  registerBroadcast(id: string): Promise<void>
+  unregisterBroadcast(id: string): Promise<void>
+  registerRestock(id: string): Promise<void>
+  unregisterRestock(id: string): Promise<void>
 }
 export function notificationTarget(item: Notification): string | null {
   if (!item.linkValue || !/^[1-9]\d*$/.test(item.linkValue)) return null
