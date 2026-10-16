@@ -1,3 +1,4 @@
+import { PromotionPanel } from './PromotionPanel'
 import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
@@ -57,6 +58,7 @@ function LiveEditor({ live, reload, onDone }: EditorProps & { live: AdminLive | 
       )}
       <BasicSection key={live?.version ?? 0} live={live} reload={reload} onDone={onDone} />
       {live && <ProductsSection live={live} reload={reload} onDone={onDone} />}
+      {live && <PromotionPanel liveId={live.id} status={live.status} />}
       {live && <ControlSection live={live} reload={reload} onDone={onDone} />}
     </>
   )
