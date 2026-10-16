@@ -18,8 +18,8 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
   const liveMutation = async (n: string, suffix: string, options: Parameters<typeof request>[1]) => { await request(`/live/v1/seller/broadcasts/${id(n)}${suffix}`, options); return adminLive(n) }
   const getOrder = async (n: string) => order(await request<OrderDto>(`/commerce/v1/orders/${id(n)}`))
   const cartItem = (c: CartItem) => ({ ...c, id: String(c.id), productId: String(c.productId) })
-  type GroupDto = Omit<PaymentGroup, 'orders' | 'paymentId'> & { orders: OrderDto[]; paymentId: number | null }
-  const group = (g: GroupDto): PaymentGroup => ({ ...g, orders: g.orders.map(order), paymentId: g.paymentId === null ? null : String(g.paymentId) })
+  type GroupDto = Omit<PaymentGroup, 'orders' | 'paymentId' | 'discountAmount' | 'payableAmount' | 'couponId'> & { discountAmount?: number; payableAmount?: number; couponId?: string | null; orders: OrderDto[]; paymentId: number | null }
+  const group = (g: GroupDto): PaymentGroup => ({ ...g, discountAmount: g.discountAmount ?? 0, payableAmount: g.payableAmount ?? g.totalAmount, couponId: g.couponId ?? null, orders: g.orders.map(order), paymentId: g.paymentId === null ? null : String(g.paymentId) })
   const selection = (items: { itemId: string; version: number }[]) => items.map(i => ({ itemId: Number(i.itemId), version: i.version }))
   return {
     auth,
