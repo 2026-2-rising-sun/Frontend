@@ -50,9 +50,9 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
       eventsUrl: n => `${baseUrl.replace(/\/$/, '')}/live/v1/broadcasts/${id(n)}/events`,
     },
     orders: {
-      checkout: (n, quantity) => request('/commerce/v1/orders/checkout', { query: { productId: n, quantity } }),
+      checkout: (n, quantity, couponId) => request('/commerce/v1/orders/checkout', { query: { productId: n, quantity, couponId } }),
       async create(input) {
-        const body = { buyerName: input.ordererName, buyerPhone: input.ordererPhone, expectedTotalAmount: input.expectedUnitPrice * input.quantity }
+        const body = { buyerName: input.ordererName, buyerPhone: input.ordererPhone, expectedTotalAmount: input.expectedUnitPrice * input.quantity, ...(input.couponId && !input.cartItemId ? { couponId: input.couponId } : {}) }
         const path = input.cartItemId ? `/commerce/v1/cart/items/${id(input.cartItemId)}/orders` : '/commerce/v1/orders'
         return order(await request<OrderDto>(path, { method: 'POST', headers: { 'X-Idempotency-Key': input.idempotencyKey }, body: input.cartItemId ? body : { ...body, productId: Number(input.productId), quantity: input.quantity } }))
       },
@@ -72,7 +72,7 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
       cancel: n => request(`/commerce/v1/payment-groups/${id(n)}/cancel`, { method: 'POST' }),
     },
     cart: {
-      checkout: async items => { const result = await request<CartCheckout>('/commerce/v1/cart/checkout', { method: 'POST', body: { items: selection(items) } }); return { ...result, items: result.items.map(i => ({ ...i, itemId: String(i.itemId), productId: String(i.productId) })) } },
+      checkout: async (items, couponId) => { const result = await request<CartCheckout>('/commerce/v1/cart/checkout', { method: 'POST', body: { items: selection(items), ...(couponId ? { couponId } : {}) } }); return { ...result, items: result.items.map(i => ({ ...i, itemId: String(i.itemId), productId: String(i.productId) })) } },
       order: async ({ idempotencyKey, items, ...input }) => group(await request<GroupDto>('/commerce/v1/cart/orders', { method: 'POST', headers: { 'X-Idempotency-Key': idempotencyKey }, body: { ...input, items: selection(items) } })),
       list: async () => (await request<CartItem[]>('/commerce/v1/cart/items')).map(cartItem),
       add: async (n, quantity) => cartItem(await request('/commerce/v1/cart/items', { method: 'POST', body: { productId: Number(n), quantity } })),
