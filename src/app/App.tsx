@@ -1,5 +1,7 @@
 import { NotificationsPage } from '../features/notifications/NotificationsPage'
 import { CouponsPage } from '../features/coupons/CouponsPage'
+import { SellerRefundListPage } from '../features/refunds/SellerRefundListPage'
+import { SellerRefundDetailPage } from '../features/refunds/SellerRefundDetailPage'
 import { CartCheckoutPage } from '../features/commerce/CartCheckoutPage'
 import { PaymentGroupPage } from '../features/commerce/PaymentGroupPage'
 import { CartPage } from '../features/commerce/CartPage'
@@ -69,6 +71,8 @@ function App({ api }: AppProps) {
             <Route path="products" element={<AdminProductListPage />} />
             <Route path="products/new" element={<AdminProductEditPage key="new" />} />
             <Route path="products/:productId" element={<AdminProductEditPage key="edit" />} />
+            <Route path="refunds" element={<SellerRefundListPage />} />
+            <Route path="refunds/:refundId" element={<SellerRefundDetailPage />} />
             <Route path="lives" element={<AdminLiveListPage />} />
             <Route path="lives/new" element={<AdminLiveEditPage key="new" />} />
             <Route path="lives/:liveId" element={<AdminLiveEditPage key="edit" />} />

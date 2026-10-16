@@ -6,6 +6,7 @@ import styles from './AdminLayout.module.css'
 const NAV = [
   { to: '/admin/products', label: '상품 관리' },
   { to: '/admin/lives', label: '방송 관리' },
+  { to: '/admin/refunds', label: '환불 관리' },
 ] as const
 
 /**

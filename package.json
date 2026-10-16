@@ -13,6 +13,7 @@
     "e2e:prism": "E2E_MODE=prism playwright test",
     "e2e:checkout-ui": "playwright test --config playwright.checkout.config.ts",
     "e2e:coupons-ui": "playwright test --config playwright.coupons.config.ts",
+    "e2e:refunds-ui": "playwright test --config playwright.refunds.config.ts",
     "e2e:notifications-ui": "playwright test --config playwright.notifications.config.ts",
     "e2e:kind": "playwright test",
     "e2e:features": "E2E_MODE=features playwright test",

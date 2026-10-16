@@ -23,10 +23,10 @@ export function PaymentGroupRefunds({ group, onUpdated }: { group: PaymentGroup;
   const pending = history.data?.some(refundPending) ?? false
   const reload = history.reload
   useEffect(() => {
-    if (!pending) return
-    const timer = setInterval(() => { reload(); onUpdated() }, 3000)
-    return () => clearInterval(timer)
-  }, [pending, reload, onUpdated])
+    if (!pending || history.loading) return
+    const timer = setTimeout(() => { reload(); onUpdated() }, 3000)
+    return () => clearTimeout(timer)
+  }, [pending, history.loading, reload, onUpdated])
   const amount = remainingRefundAmount(group.payableAmount, history.data ?? [])
   const fullyRefunded = history.data?.some((refund) => refund.status === 'SUCCESS' && refund.cumulativeRefundAmount >= group.payableAmount) ?? false
   const hasSuccessfulRefund = history.data?.some(refund => refund.status === 'SUCCESS') ?? false

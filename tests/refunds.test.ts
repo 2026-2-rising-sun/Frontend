@@ -117,3 +117,21 @@ test('부분 환불 성공 이력이 있으면 본문 없는 전체 환불을 �
   await assert.rejects(api.requestFull('PG-1', 'key'), /일부 상품의 환불 이력/)
   assert.equal(posts, 0)
 })
+
+test('판매자 목록·상세는 판매자 전용 계약과 페이지를 사용한다', async () => {
+  const calls: { path: string; options: unknown }[] = []
+  const { paymentGroupNumber: _number, ...sellerRefund } = refund
+  const api = createRefunds((async (path: string, options: unknown) => {
+    calls.push({ path, options })
+    return path.endsWith('/refunds') ? [sellerRefund] : sellerRefund
+  }) as HttpClient)
+  const list = await api.listSeller({ page: 2, size: 20 })
+  const detail = await api.getSeller('51')
+  assert.equal(list[0].id, '51')
+  assert.equal(detail.targets[0].orderId, '301')
+  assert.ok(!('paymentGroupNumber' in detail))
+  assert.deepEqual(calls, [
+    { path: '/commerce/v1/seller/refunds', options: { query: { page: 2, size: 20 } } },
+    { path: '/commerce/v1/seller/refunds/51', options: undefined },
+  ])
+})
