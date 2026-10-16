@@ -27,10 +27,11 @@ export function notificationTarget(item: Notification): string | null {
   const value = item.linkValue
   if (!value) return null
   const uuid = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+  const group = `PG-(?:${uuid}|LEGACY-[1-9][0-9]{0,18})`
   if (item.linkType === 'COUPON' && value.trim().length > 0 && value.length <= 36) return '/coupons'
-  if (item.linkType === 'PAYMENT_GROUP' && new RegExp(`^PG-${uuid}$`).test(value)) return `/payment-groups/${value}`
+  if (item.linkType === 'PAYMENT_GROUP' && new RegExp(`^${group}$`).test(value)) return `/payment-groups/${value}`
   if (item.linkType === 'REFUND') {
-    const match = new RegExp(`^(PG-${uuid})/([1-9]\\d*)$`).exec(value)
+    const match = new RegExp(`^(${group})/([1-9]\\d*)$`).exec(value)
     return match ? `/payment-groups/${match[1]}/refunds/${match[2]}` : null
   }
   if (!/^[1-9]\d*$/.test(value)) return null

@@ -64,3 +64,13 @@ test('거래 알림은 식별자가 유효한 내부 화면으로만 이동한�
     }
   }
 })
+
+
+test('기존 마이그레이션 묶음의 거래·환불 알림도 상세 화면으로 이동한다', () => {
+  const item = { linkType: 'PAYMENT_GROUP', linkValue: 'PG-LEGACY-42' } as Notification
+  assert.equal(notificationTarget(item), '/payment-groups/PG-LEGACY-42')
+  assert.equal(notificationTarget({ ...item, linkType: 'REFUND', linkValue: 'PG-LEGACY-42/7' }), '/payment-groups/PG-LEGACY-42/refunds/7')
+  for (const linkValue of ['PG-LEGACY-0', 'PG-LEGACY-01', 'PG-LEGACY-42/7?redirect=//external', 'PG-LEGACY-' + '9'.repeat(20)]) {
+    assert.equal(notificationTarget({ ...item, linkValue }), null)
+  }
+})
