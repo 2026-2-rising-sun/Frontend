@@ -11,3 +11,9 @@ export interface PromotionsPort {
 export function visiblePromotions(items: PublicPromotion[], now = Date.now()) {
   return items.filter(item => !item.closesAt || Date.parse(item.closesAt) > now)
 }
+
+/** 프로모션 attributes는 서버가 해석하지 않으므로 쿠폰 참조를 화면에서 검증한다. */
+export function promotionCouponId(promotion: Pick<PublicPromotion, 'type' | 'attributes'>): string | null {
+  const id = promotion.attributes?.couponPolicyId
+  return promotion.type === 'COUPON_DROP' && typeof id === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id) ? id : null
+}
