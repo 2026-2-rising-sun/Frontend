@@ -76,11 +76,11 @@ console.log(apply([
 ]))
 // 초기화 SQL은 기존 PostgreSQL에 다시 적용되지 않으므로 없는 DB만 추가한다.
 console.log(run('kubectl', k(['rollout', 'status', 'deployment/postgres', '--timeout=180s'])))
-run('kubectl', k(['exec', 'deployment/postgres', '--', 'sh', '-c', 'for i in $(seq 1 60); do pg_isready -U frontend -d postgres && exit 0; sleep 1; done; exit 1']))
+run('kubectl', k(['exec', 'deployment/postgres', '--', 'sh', '-c', 'for i in $(seq 1 60); do pg_isready -h 127.0.0.1 -U frontend -d postgres && exit 0; sleep 1; done; exit 1']))
 const missingDatabasesSql = `SELECT format('CREATE DATABASE %I', name) FROM (VALUES ${services.map(s => `('${s}')`).join(', ')}) AS required(name) WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = required.name)
 \\gexec
 `
-run('kubectl', k(['exec', '-i', 'deployment/postgres', '--', 'psql', '-U', 'frontend', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1']), { input: missingDatabasesSql })
+run('kubectl', k(['exec', '-i', 'deployment/postgres', '--', 'sh', '-c', 'PGPASSWORD="$POSTGRES_PASSWORD" exec psql -h 127.0.0.1 -U frontend -d postgres -v ON_ERROR_STOP=1']), { input: missingDatabasesSql })
 for (const s of services) {
   const jars = readdirSync(backend + `/services/${s}-service/build/libs`).filter(n => n.endsWith('.jar') && !n.endsWith('-plain.jar'))
   if (jars.length !== 1) throw new Error('Expected one boot jar for ' + s)
