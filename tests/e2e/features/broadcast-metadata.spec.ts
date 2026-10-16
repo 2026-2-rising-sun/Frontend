@@ -31,13 +31,20 @@ test('kind: 판매자 썸네일·진행자명·소개 저장 후 재접속과 �
   await expect(page.getByText('메타 진행자', { exact: true })).toBeVisible()
   await expect(page.getByText('새 상품을 소개하는 방송입니다.', { exact: true })).toBeVisible()
   await page.goto('/lives')
+  const firstPage = page.waitForResponse(response => new URL(response.url()).pathname === '/api/live/v1/broadcasts' && new URL(response.url()).searchParams.get('status') === 'PREPARING')
   await page.getByRole('tab', { name: '예정', exact: true }).click()
+  const firstData = (await (await firstPage).json()).data
+  await expect(page.locator('a[href^="/lives/"]')).toHaveCount(firstData.content.length)
   const card = page.getByRole('link').filter({ hasText: title })
   // 예정 방송은 시각순이므로 새로 만든 방송이 있는 페이지까지 이동한다.
   for (let attempt = 0; await card.count() === 0 && attempt < 30; attempt++) {
     const more = page.getByRole('button', { name: /더 보기/ })
     if (!await more.count()) break
+    const count = await page.locator('a[href^="/lives/"]').count()
+    const next = page.waitForResponse(response => new URL(response.url()).pathname === '/api/live/v1/broadcasts')
     await more.click()
+    const result = (await (await next).json()).data
+    await expect(page.locator('a[href^="/lives/"]')).toHaveCount(count + result.content.length)
   }
   await expect(card.locator('img')).toHaveAttribute('src', data.thumbnailUrl)
   await page.setViewportSize({ width: 390, height: 844 })
