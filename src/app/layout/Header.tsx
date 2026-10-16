@@ -1,3 +1,4 @@
+import { NotificationBadge } from '../../features/notifications/NotificationBadge'
 import { useSession } from '../../features/auth/useSession'
 import { useApi } from '../apiContext'
 import { useNavigate } from 'react-router-dom'
@@ -45,6 +46,7 @@ export function Header() {
         <div className={styles.spacer} />
         <SearchBox className={styles.search} />
         {session && <ButtonLink to="/account" variant="secondary" size="S">내 계정</ButtonLink>}
+        {session && <NotificationBadge />}
         {session?.role === 'SELLER' && <ButtonLink className={styles.desktopAction} to="/admin/products" variant="secondary" size="S">판매자 콘솔</ButtonLink>}
         {session ? <Button className={styles.desktopAction} variant="secondary" size="S" onClick={() => { void logout().catch(() => {}) }}>로그아웃</Button>
           : <ButtonLink to="/login" variant="secondary" size="M">로그인</ButtonLink>}

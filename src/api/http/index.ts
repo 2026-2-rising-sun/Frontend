@@ -1,3 +1,4 @@
+import { createNotifications } from './notifications'
 import { createSellerProducts } from './sellerProducts'
 import type { Api, CartItem, ChatMessage } from '../../domain/ports'
 import type { PaymentGroup, CartCheckout, AdminLive } from '../../domain/types'
@@ -22,6 +23,7 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
   const selection = (items: { itemId: string; version: number }[]) => items.map(i => ({ itemId: Number(i.itemId), version: i.version }))
   return {
     auth,
+    notifications: createNotifications(request),
     products: {
       async list(params) {
         const dto = await publicRequest<{ items: ProductDto[]; nextCursor: number | null; hasNext: boolean }>('/shopping/v1/products', { query: { cursor: params?.cursor, size: params?.size } })
