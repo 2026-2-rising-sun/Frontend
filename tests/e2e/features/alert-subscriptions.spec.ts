@@ -189,6 +189,8 @@ test('kind: 신청 상태를 재접속해 복원하고 본인 관리 화면에�
   const restocks = page.getByRole('region', { name: '재입고 신청 목록', exact: true })
   await expect(broadcasts.getByText(`방송 #${f.liveId}`, { exact: true })).toBeVisible()
   await expect(restocks.getByText(`상품 #${f.productId}`, { exact: true })).toBeVisible()
+  await expect(broadcasts.getByText(f.name, { exact: true })).toBeVisible()
+  await expect(restocks.getByText(f.name, { exact: true })).toBeVisible()
   await broadcasts.getByRole('button', { name: '알림 해제', exact: true }).click()
   await restocks.getByRole('button', { name: '알림 해제', exact: true }).click()
   await page.reload()

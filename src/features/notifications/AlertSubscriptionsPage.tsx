@@ -4,6 +4,7 @@ import { useApi } from '../../app/apiContext'
 import { Alert, Button } from '../../components/ui'
 import type { AlertKind, AlertSubscription } from '../../domain/notifications'
 import { useSession } from '../auth/useSession'
+import { SubscriptionItem } from './SubscriptionItem'
 import styles from './notifications.module.css'
 
 export function AlertSubscriptionsPage() {
@@ -56,11 +57,7 @@ function SubscriptionList({ kind }: { kind: AlertKind }) {
     {error && <Alert type="danger" title={error}><Button size="S" variant="secondary" disabled={busy} onClick={() => void load(null)}>다시 시도</Button></Alert>}
     {busy && <p role="status">처리하고 있어요.</p>}
     {!busy && !error && !items.length && <p>신청한 {label} 알림이 없어요.</p>}
-    <ul className={styles.list}>{items.map(item => <li className={styles.card} key={item.targetId}>
-      <strong>{kind === 'broadcast' ? '방송' : '상품'} #{item.targetId}</strong>
-      <time className={styles.meta} dateTime={item.createdAt}>신청일 {new Date(item.createdAt).toLocaleString('ko-KR')}</time>
-      <div className={styles.row}><Link to={`/${kind === 'broadcast' ? 'lives' : 'products'}/${encodeURIComponent(item.targetId)}`}>상세 보기</Link><Button size="S" variant="secondary" disabled={busy} onClick={() => void remove(item.targetId)}>알림 해제</Button></div>
-    </li>)}</ul>
+    <ul className={styles.list}>{items.map(item => <SubscriptionItem key={`${kind}:${item.targetId}`} kind={kind} item={item} busy={busy} onRemove={() => void remove(item.targetId)} />)}</ul>
     {hasNext && <Button variant="secondary" disabled={busy} onClick={() => void load(cursor)}>신청 더 보기</Button>}
   </section>
 }
