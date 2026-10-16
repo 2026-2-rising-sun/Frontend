@@ -36,9 +36,8 @@ export function createSellerProducts(request: HttpClient): AdminProductsPort {
   }
   return {
     async list(params) {
-      const value = await request<PageDto<ProductDto>>('/shopping/v1/seller/products', { query: { page: params?.page, size: params?.size } })
+      const value = await request<PageDto<ProductDto>>('/shopping/v1/seller/products', { query: { page: params?.page, size: params?.size, status: params?.status ? { ALL: undefined, DRAFT: 'NOT_REGISTERED', READY: 'READY', SELLING: 'ON_SALE', SOLD_OUT: 'SOLD_OUT', HIDDEN: 'PRIVATE', UNKNOWN: 'UNKNOWN' }[params.status] : undefined } })
       const result = page(value, p => adminProduct(p))
-      if (params?.status && params.status !== 'ALL') result.items = result.items.filter(p => p.status === params.status)
       return result
     }, get,
     async create(input) {

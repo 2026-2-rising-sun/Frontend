@@ -40,6 +40,7 @@ export function usePaged<T>(fetchPage: (page: number, cursor?: string | null) =>
 
   useEffect(() => {
     const current = ++generation.current
+    loadingMoreRef.current = false
     setState({ items: [], totalCount: 0, page: -1, hasNext: false, loading: true, loadingMore: false })
     fetchRef
       .current(0)
@@ -79,7 +80,7 @@ export function usePaged<T>(fetchPage: (page: number, cursor?: string | null) =>
         setState((p) => ({ ...p, loadingMore: false, moreError: toApiError(e) }))
       })
       .finally(() => {
-        loadingMoreRef.current = false
+        if (current === generation.current) loadingMoreRef.current = false
       })
   }, [])
 
