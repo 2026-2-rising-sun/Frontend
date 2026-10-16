@@ -20,8 +20,8 @@ export function LivePlayer({ live, onRefresh, refreshing = false, refreshFailed 
   const [attempt, setAttempt] = useState(0)
   const failed = live.playbackUrl !== null && failedUrl === live.playbackUrl
 
-  const refresh = () => { setFailedUrl(null); setAttempt(value => value + 1); onRefresh?.() }
-  const recheck = onRefresh ? <Button variant="secondary" size="S" disabled={refreshing} onClick={refresh}>{refreshing ? '확인 중…' : '영상 상태 다시 확인'}</Button> : undefined
+  const retryPlayback = () => { setFailedUrl(null); setAttempt(value => value + 1); onRefresh?.() }
+  const recheck = onRefresh ? <Button variant="secondary" size="S" disabled={refreshing} onClick={onRefresh}>{refreshing ? '확인 중…' : '영상 상태 다시 확인'}</Button> : undefined
 
   let body
   if (live.status === 'READY') {
@@ -36,7 +36,7 @@ export function LivePlayer({ live, onRefresh, refreshing = false, refreshFailed 
         title="영상을 불러오지 못했어요"
         description="네트워크를 확인하고 다시 시도해 주세요. 상품 구매에는 영향이 없어요."
         action={
-          <Button variant="secondary" size="S" onClick={refresh}>
+          <Button variant="secondary" size="S" onClick={retryPlayback}>
             다시 시도
           </Button>
         }
