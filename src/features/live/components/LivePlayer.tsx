@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type HlsType from 'hls.js'
 import { PlayIcon } from '../../../components/icons'
-import { Button, StatusBadge, liveBadge } from '../../../components/ui'
+import { Alert, Button, StatusBadge, liveBadge } from '../../../components/ui'
 import type { LiveDetail } from '../../../domain/types'
 import styles from './LivePlayer.module.css'
 
@@ -9,23 +9,34 @@ import styles from './LivePlayer.module.css'
  * 방송 영상 영역. 영상 오류는 상품 영역 오류와 분리해서 이 안에서만 처리한다.
  * 재생은 브라우저 <video> 로 하며, AWS IVS 플레이어 SDK 를 붙일 때는 이 컴포넌트 내부만 바꾼다.
  */
-export function LivePlayer({ live }: { live: Pick<LiveDetail, 'status' | 'playbackUrl' | 'title'> }) {
+interface LivePlayerProps {
+  live: Pick<LiveDetail, 'status' | 'playbackUrl' | 'title' | 'videoStatus'>
+  onRefresh?: () => void
+  refreshing?: boolean
+  refreshFailed?: boolean
+}
+export function LivePlayer({ live, onRefresh, refreshing = false, refreshFailed = false }: LivePlayerProps) {
   const [failedUrl, setFailedUrl] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
   const failed = live.playbackUrl !== null && failedUrl === live.playbackUrl
+
+  const refresh = () => { setFailedUrl(null); setAttempt(value => value + 1); onRefresh?.() }
+  const recheck = onRefresh ? <Button variant="secondary" size="S" disabled={refreshing} onClick={refresh}>{refreshing ? '확인 중…' : '영상 상태 다시 확인'}</Button> : undefined
 
   let body
   if (live.status === 'READY') {
     body = <Message title="방송 준비 중이에요" description="예정된 시각에 시작하면 이곳에서 시청할 수 있어요." />
   } else if (live.status === 'ENDED') {
     body = <Message title="방송이 종료되었어요" description="방송은 끝났지만 소개된 상품은 계속 구매할 수 있어요." />
+  } else if (live.videoStatus === 'NOT_READY') {
+    body = <Message title="영상 송출을 기다리고 있어요" description="방송은 진행 중이지만 영상 신호가 아직 없어요. 상품 구매와 채팅은 계속 이용할 수 있어요." action={recheck} />
   } else if (failed) {
     body = (
       <Message
         title="영상을 불러오지 못했어요"
         description="네트워크를 확인하고 다시 시도해 주세요. 상품 구매에는 영향이 없어요."
         action={
-          <Button variant="secondary" size="S" onClick={() => { setFailedUrl(null); setAttempt((n) => n + 1) }}>
+          <Button variant="secondary" size="S" onClick={refresh}>
             다시 시도
           </Button>
         }
@@ -40,10 +51,18 @@ export function LivePlayer({ live }: { live: Pick<LiveDetail, 'status' | 'playba
   }
 
   return (
-    <div className={styles.player}>
-      {body}
-      <StatusBadge status={liveBadge(live.status)} className={styles.badge} />
-    </div>
+    <>
+      {live.status === 'LIVE' && (live.videoStatus === 'UNAVAILABLE' || refreshFailed) && (
+        <Alert type="warning" title={refreshFailed ? '최신 영상 상태를 확인하지 못했어요' : '영상 신호 상태를 확인할 수 없어요'}>
+          상태 조회가 지연되고 있어요. 재생 중인 영상과 상품 구매는 계속 이용할 수 있어요.
+          {live.videoStatus !== 'NOT_READY' && recheck}
+        </Alert>
+      )}
+      <div className={styles.player}>
+        {body}
+        <StatusBadge status={liveBadge(live.status)} className={styles.badge} />
+      </div>
+    </>
   )
 }
 

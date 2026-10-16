@@ -60,7 +60,7 @@ export function LiveWatchPage() {
           <AsyncView state={live} skeleton={<Skeleton height={0} style={{ aspectRatio: '16 / 9', height: 'auto' }} radius={20} />}>
             {(l) => (
               <>
-                <LivePlayer live={l} />
+                <LivePlayer live={l} onRefresh={live.reload} refreshing={live.loading} refreshFailed={!!live.error} />
                 {l.status === 'READY' && <AlertSubscription kind="broadcast" targetId={liveId} />}
                 <PromotionBanner liveId={liveId} status={l.status} refreshKey={promotionRevision} />
                 <div className={styles.info}>
