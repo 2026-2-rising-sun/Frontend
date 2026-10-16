@@ -9,6 +9,7 @@ import { Alert, Button, ButtonLink, QuantityStepper, Skeleton, StatusBadge, Thum
 import type { Product } from '../../domain/types'
 import { useAsync } from '../../hooks/useAsync'
 import { formatPrice } from '../../lib/format'
+import { ProductCoupons } from '../coupons/ProductCoupons'
 import styles from './ProductDetailPage.module.css'
 
 export function ProductDetailPage() {
@@ -62,6 +63,7 @@ function ProductDetail({ product }: { product: Product }) {
         <p className={`t-body-lg ${styles.desc}`}>{product.description}</p>
         {buyable && product.stock <= 10 && <p className={styles.stock}>재고 {product.stock}개 남음</p>}
 
+        <ProductCoupons productId={product.id} price={product.price} />
         {product.featuredLive && (
           <Link to={`/lives/${product.featuredLive.id}`} className={styles.live}>
             <StatusBadge status="live" />

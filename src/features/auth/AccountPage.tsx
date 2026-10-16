@@ -15,7 +15,7 @@ export function AccountPage() {
     try { await fn(); setNotice(message) } catch (e) { setNotice(e instanceof Error ? e.message : '처리하지 못했어요.') } finally { setBusy(false) }
   }
   return <PageContainer narrow><section className={styles.page}>
-    <h1 className="t-h1">내 계정</h1>
+    <h1 className="t-h1">내 계정</h1><ButtonLink to="/coupons">쿠폰함</ButtonLink>
     <div className={styles.profile}><p>{session.displayName}</p><p>{session.email}</p><p>{session.role === 'SELLER' ? '판매자 계정' : '유저 계정'}</p></div>
     {notice && <Alert type="info" title={notice} />}
     <form className={styles.form} onSubmit={(e: FormEvent) => { e.preventDefault(); if (name.trim()) void action(() => auth.updateName(name.trim()), '이름을 변경했어요.') }}>
