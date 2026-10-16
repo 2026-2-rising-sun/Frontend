@@ -15,10 +15,10 @@ function browserViewerId() {
     return id
   } catch { return fallbackId ??= crypto.randomUUID() }
 }
-export function ViewerCount({ liveId, status, watching = true }: { liveId: string; status: LiveStatus; watching?: boolean }) {
-  return status === 'LIVE' ? <ViewerCountScope key={`${liveId}:${watching}`} liveId={liveId} watching={watching} /> : null
+export function ViewerCount({ liveId, status, watching = true, compact = false }: { liveId: string; status: LiveStatus; watching?: boolean; compact?: boolean }) {
+  return status === 'LIVE' ? <ViewerCountScope key={`${liveId}:${watching}`} liveId={liveId} watching={watching} compact={compact} /> : null
 }
-function ViewerCountScope({ liveId, watching }: { liveId: string; watching: boolean }) {
+function ViewerCountScope({ liveId, watching, compact }: { liveId: string; watching: boolean; compact: boolean }) {
   const api = useApi()
   const [data, setData] = useState<ViewerTotal>()
   const [failed, setFailed] = useState(false)
@@ -43,6 +43,7 @@ function ViewerCountScope({ liveId, watching }: { liveId: string; watching: bool
     document.addEventListener('visibilitychange', onVisible)
     return () => { active = false; clearTimeout(timer); document.removeEventListener('visibilitychange', onVisible) }
   }, [api, liveId, watching, revision])
+  if (compact && failed) return <span>시청자 수 조회 불가</span>
   return <div aria-label="현재 시청 규모">
     {failed ? <><span>시청자 수를 확인하지 못했어요.</span><Button size="S" variant="secondary" onClick={() => setRevision(value => value + 1)}>시청자 수 다시 확인</Button></>
       : <span title="최근 60초 내 시청 화면을 연 브라우저 기준 추정치입니다. 같은 브라우저의 여러 탭은 하나로 집계해요." aria-live="polite">{data ? `현재 시청 약 ${data.total.toLocaleString()}명` : '시청자 수 확인 중…'}</span>}
