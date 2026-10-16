@@ -73,7 +73,7 @@ export interface LiveDetail extends LiveSummary {
   channelArn?: string
 }
 
-export type OrderStatus = 'UNPAID' | 'CONFIRMING' | 'PAID' | 'FAILED' | 'CANCELED'
+export type OrderStatus = 'UNPAID' | 'CONFIRMING' | 'PAID' | 'FAILED' | 'CANCELED' | 'REFUNDED'
 
 export interface Order {
   orderNumber: string
@@ -85,6 +85,8 @@ export interface Order {
   unitPrice: number
   quantity: number
   totalPrice: number
+  discountAmount: number
+  payableAmount: number
   ordererName: string
   orderedAt: string
   /**
@@ -174,6 +176,7 @@ export interface CartCheckoutItem extends CartSelection {
 export interface CartCheckout { items: CartCheckoutItem[]; totalAmount: number }
 export interface PaymentGroup {
   groupNumber: string
-  status: 'PENDING_PAYMENT' | 'PAYMENT_CONFIRMING' | 'PAID' | 'FAILED' | 'CANCELLED' | 'EXPIRED'
+  status: 'PENDING_PAYMENT' | 'PAYMENT_CONFIRMING' | 'PAID' | 'FAILED' | 'CANCELLED' | 'EXPIRED' | 'REFUNDED'
+  discountAmount: number; payableAmount: number; couponId: string | null
   totalAmount: number; expiresAt: string | null; orders: Order[]; paymentId: string | null
 }

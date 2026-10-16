@@ -90,7 +90,7 @@ function OrderResult({ order, onChanged }: { order: Order; onChanged: () => void
         <span className={styles.number}>주문번호 {order.orderNumber}</span>
       </div>
 
-      <OrderSummary productName={order.productName} unitPrice={order.unitPrice} quantity={order.quantity} />
+      <OrderSummary productName={order.productName} unitPrice={order.unitPrice} quantity={order.quantity} discountAmount={order.discountAmount} payableAmount={order.payableAmount} />
 
       <dl className={styles.details}>
         <div>
@@ -146,6 +146,8 @@ function StatusAlert({ order, remaining }: { order: Order; remaining: number | n
           주문 내역에서 결제 결과를 확인할 수 있어요.
         </Alert>
       )
+    case 'REFUNDED':
+      return <Alert type="info" title="환불이 완료되었어요">이 주문의 환불이 완료되었습니다.</Alert>
     case 'FAILED':
       return (
         <Alert type="danger" title="결제에 실패했어요">

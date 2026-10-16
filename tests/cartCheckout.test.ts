@@ -29,6 +29,20 @@ test('active group supports 204 and owner recovery restores known payment ID', a
   globalThis.fetch = async () => Response.json({ ...group, status: 'PAYMENT_CONFIRMING', paymentId: 7 })
   assert.equal((await api.paymentGroups.active())?.paymentId, '7')
 })
+test('현재 계약의 할인액·0원 실결제액과 환불 완료 상태를 그대로 유지한다', async () => {
+  globalThis.fetch = async () => Response.json({
+    ...group, status: 'PAID', couponId: 'coupon-1', discountAmount: 25000, payableAmount: 0,
+    orders: [{ ...savedOrder, status: 'REFUNDED', discountAmount: 20000, payableAmount: 0 }],
+  })
+  const result = await createHttpApi('/api').paymentGroups.get('PG-1')
+  assert.equal(result.totalAmount, 25000)
+  assert.equal(result.discountAmount, 25000)
+  assert.equal(result.payableAmount, 0)
+  assert.equal(result.couponId, 'coupon-1')
+  assert.equal(result.orders[0].status, 'REFUNDED')
+  assert.equal(result.orders[0].discountAmount, 20000)
+  assert.equal(result.orders[0].payableAmount, 0)
+})
 test('creation identity survives repeated calls and reload storage, changes with input or member, clears for new checkout', () => {
   const values = new Map<string, string>(); Object.assign(globalThis, { sessionStorage: { getItem: (key: string) => values.get(key) ?? null, setItem: (key: string, value: string) => values.set(key, value), removeItem: (key: string) => values.delete(key) } })
   const input = { items: [{ itemId: '1', version: 0 }], expectedTotalAmount: 10000 }

@@ -15,6 +15,7 @@ export type BadgeStatus =
   | 'paid'
   | 'failed'
   | 'canceled'
+  | 'refunded'
 
 export const BADGE_LABEL: Record<BadgeStatus, string> = {
   live: 'LIVE',
@@ -30,6 +31,7 @@ export const BADGE_LABEL: Record<BadgeStatus, string> = {
   paid: '결제 완료',
   failed: '결제 실패',
   canceled: '취소',
+  refunded: '환불 완료',
 }
 
 const LIVE: Record<LiveStatus, BadgeStatus> = { LIVE: 'live', READY: 'scheduled', ENDED: 'ended' }
@@ -40,6 +42,7 @@ const ORDER: Record<OrderStatus, BadgeStatus> = {
   PAID: 'paid',
   FAILED: 'failed',
   CANCELED: 'canceled',
+  REFUNDED: 'refunded',
 }
 
 export const adminProductBadge = (status: AdminProductStatus): BadgeStatus => (status === 'DRAFT' ? 'draft' : PRODUCT[status])

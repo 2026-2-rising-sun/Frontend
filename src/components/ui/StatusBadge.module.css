@@ -40,3 +40,5 @@
 .failed .dot { background: var(--danger-default); }
 .canceled { background: var(--bg-muted); color: var(--text-secondary); }
 .canceled .dot { background: var(--text-tertiary); }
+
+.refunded { background: var(--bg-muted); color: var(--text-secondary); }
