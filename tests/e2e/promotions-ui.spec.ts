@@ -13,7 +13,7 @@ async function fixture(page: Page, options: { seller?: boolean; claim?: () => Pr
     if (path.includes('/auth/')) data = { accessToken: 'token', refreshToken: 'refresh' }
     else if (path.endsWith('/members/me')) data = { memberId: '00000000-0000-0000-0000-000000000001', displayName: '회원', email: 'user@test.dev', roles: [options.seller ? 'SELLER' : 'USER'] }
     else if (path.endsWith('/unread-count')) data = { unreadCount: 0 }
-    else if (path.endsWith(`/coupons/${firstCoupon}/claims`)) {
+    else if (path.endsWith('/broadcasts/42/promotions/8/claims')) {
       const code = await options.claim?.() ?? 200
       if (code !== 200) return route.fulfill({ status: code, json: { success: false, error: { code: 'INVALID_STATE', message: '쿠폰 발급 수량이 소진됐어요.' } } })
       data = { id: 10, couponId: firstCoupon }

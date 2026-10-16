@@ -28,3 +28,16 @@ test('쿠폰 이벤트 참조는 Commerce 쿠폰 계약의 UUID를 사용한다'
   }
   assert.equal(promotionCouponId({ type: 'ANNOUNCEMENT', attributes: { couponPolicyId } }), null)
 })
+
+
+test('방송 쿠폰 발급은 쿠폰 직접 발급 대신 로그인한 이벤트 전용 경로를 사용한다', async () => {
+  let calls = 0
+  const api = createPromotions((async (path: string, options: unknown) => {
+    calls++
+    assert.equal(path, '/live/v1/broadcasts/42/promotions/8/claims')
+    assert.deepEqual(options, { method: 'POST' })
+    return { id: 'member-coupon', couponId: 'coupon-id' }
+  }) as HttpClient, (async () => { throw new Error('비회원 경로 호출 금지') }) as HttpClient)
+  assert.equal((await api.claim('42', '8')).id, 'member-coupon')
+  assert.equal(calls, 1)
+})
