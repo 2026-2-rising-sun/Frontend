@@ -28,7 +28,8 @@ function SellerCouponForm({ coupon, refresh }: { coupon: SellerCoupon | null; re
     event.preventDefault(); if (inFlight.current || locked) return; setError('')
     const fixedDiscount = Number(discount); const issuanceLimit = Number(limit)
     if (!name.trim() || !Number.isSafeInteger(fixedDiscount) || fixedDiscount < 1 || !Number.isSafeInteger(issuanceLimit) || issuanceLimit < 1 || issuanceLimit > 10000 || !selected.length || !start || !end || !expiry) { setError('쿠폰명·양의 정수 할인액·1~10,000장 수량·기간·대상 상품을 확인해 주세요.'); return }
-    const startsAt = fromKstInputValue(start); const endsAt = fromKstInputValue(end); const expiresAt = fromKstInputValue(expiry)
+    const time = (value: string, original?: string) => original && toKstInputValue(original) === value ? original : fromKstInputValue(value)
+    const startsAt = time(start, coupon?.startsAt); const endsAt = time(end, coupon?.endsAt); const expiresAt = time(expiry, coupon?.expiresAt)
     if (Date.parse(endsAt) <= Date.parse(startsAt) || Date.parse(endsAt) - Date.parse(startsAt) > 720 * 3600000 || Date.parse(expiresAt) < Date.parse(endsAt)) { setError('발급 기간은 시작 후 최대 720시간이며 사용 기한은 발급 종료 이후여야 해요.'); return }
     const settings: CouponSettings = { name: name.trim(), fixedDiscount, issuanceLimit, startsAt, endsAt, expiresAt, productIds: selected }
     inFlight.current = true; setBusy(true)
