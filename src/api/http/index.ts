@@ -50,6 +50,8 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
       likes: n => publicRequest(`/live/v1/broadcasts/${id(n)}/likes`),
       myLike: n => request(`/live/v1/broadcasts/${id(n)}/likes/mine`),
       setLike: (n, liked, idempotencyKey) => request(`/live/v1/broadcasts/${id(n)}/likes/mine`, { method: 'PUT', headers: { 'Idempotency-Key': idempotencyKey }, body: { liked } }),
+      viewerCount: n => publicRequest(`/live/v1/broadcasts/${id(n)}/viewers`),
+      heartbeatViewer: (n, viewerId) => publicRequest(`/live/v1/broadcasts/${id(n)}/viewers/heartbeat`, { method: 'POST', body: { viewerId } }),
       eventsUrl: n => `${baseUrl.replace(/\/$/, '')}/live/v1/broadcasts/${id(n)}/events`,
     },
     orders: {

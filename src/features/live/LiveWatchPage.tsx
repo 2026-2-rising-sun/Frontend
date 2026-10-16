@@ -1,3 +1,4 @@
+import { ViewerCount } from './ViewerCount'
 import { AlertSubscription } from '../notifications/AlertSubscription'
 import { PromotionBanner } from './PromotionBanner'
 import { useCallback, useEffect, useState } from 'react'
@@ -64,6 +65,7 @@ export function LiveWatchPage() {
                 <PromotionBanner liveId={liveId} status={l.status} refreshKey={promotionRevision} />
                 <div className={styles.info}>
                   <h1 className="t-h2">{l.title}</h1>
+                  <ViewerCount liveId={liveId} status={l.status} />
                   <p className={styles.host}>
 {l.status === 'LIVE' ? '지금 방송 중' : l.status === 'READY' ? `${formatDateTime(l.scheduledAt)} 시작 예정` : '방송 종료'}
                   </p>

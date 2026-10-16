@@ -3,6 +3,7 @@ import { StatusBadge, Thumbnail, liveBadge } from '../../../components/ui'
 import { UserIcon } from '../../../components/icons'
 import type { LiveSummary } from '../../../domain/types'
 import { formatDateTime } from '../../../lib/format'
+import { ViewerCount } from '../ViewerCount'
 import styles from './LiveCard.module.css'
 
 const metaOf = (live: LiveSummary) => {
@@ -28,6 +29,9 @@ export function LiveCard({ live }: { live: LiveSummary }) {
           <p className={styles.meta}>
             {live.hostName} · {metaOf(live)}
           </p>
+          <div className={styles.meta}>
+            <ViewerCount liveId={live.id} status={live.status} watching={false} compact />
+          </div>
         </div>
       </div>
     </Link>
