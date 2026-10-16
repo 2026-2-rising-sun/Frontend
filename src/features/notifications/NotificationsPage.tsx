@@ -36,7 +36,7 @@ export function NotificationsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [api, session])
   const markRead = async (id: string) => {
-    if (reading) return
+    if (busy.current || reading) return
     const run = generation.current
     setReading(id); setError('')
     try {
@@ -50,8 +50,8 @@ export function NotificationsPage() {
   }
   if (!session) return <div className={styles.page}><h1 className="t-h1">알림함</h1><Link to="/login" state={{ from: '/notifications' }}>로그인하고 알림 확인하기</Link></div>
   return <main className={styles.page}>
-    <div className={styles.row}><h1 className="t-h1">알림함</h1><Button variant="secondary" size="S" disabled={loading} onClick={() => void load(null)}>새로고침</Button></div>
-    {error && <Alert type="danger" title={error}><Button variant="secondary" size="S" disabled={loading} onClick={() => void load(null)}>다시 시도</Button></Alert>}
+    <div className={styles.row}><h1 className="t-h1">알림함</h1><Button variant="secondary" size="S" disabled={loading || reading !== null} onClick={() => void load(null)}>새로고침</Button></div>
+    {error && <Alert type="danger" title={error}><Button variant="secondary" size="S" disabled={loading || reading !== null} onClick={() => void load(null)}>다시 시도</Button></Alert>}
     {loading && <p role="status">알림을 불러오는 중이에요.</p>}
     {!loading && !error && !items.length && <div className={styles.card}><h2 className="t-h4">아직 받은 알림이 없어요</h2><p>관심 있는 방송과 품절 상품의 알림을 신청해 보세요.</p><Link to="/lives">방송 둘러보기</Link></div>}
     <ul className={styles.list}>{items.map(item => {
@@ -62,6 +62,6 @@ export function NotificationsPage() {
         <div className={styles.row}>{target && <Link to={target}>자세히 보기</Link>}{!item.readAt && <Button size="S" variant="secondary" disabled={reading !== null || loading} onClick={() => void markRead(item.id)}>{reading === item.id ? '처리 중…' : '읽음 처리'}</Button>}</div>
       </li>
     })}</ul>
-    {hasNext && <Button variant="secondary" disabled={loading} onClick={() => void load(cursor)}>알림 더 보기</Button>}
+    {hasNext && <Button variant="secondary" disabled={loading || reading !== null} onClick={() => void load(cursor)}>알림 더 보기</Button>}
   </main>
 }
