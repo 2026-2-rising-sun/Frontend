@@ -1,3 +1,4 @@
+import { BuyerRefundDetailPage } from '../features/refunds/BuyerRefundDetailPage'
 import { NotificationsPage } from '../features/notifications/NotificationsPage'
 import { SellerCouponsPage, SellerCouponEditPage } from '../features/coupons/SellerCouponsPage'
 import { CouponsPage } from '../features/coupons/CouponsPage'
@@ -60,6 +61,7 @@ function App({ api }: AppProps) {
             <Route path="coupons" element={<RequireSession><CouponsPage /></RequireSession>} />
             <Route path="cart" element={<RequireSession><CartPage /></RequireSession>} />
             <Route path="checkout/cart" element={<RequireSession><CartCheckoutPage /></RequireSession>} />
+            <Route path="payment-groups/:groupNumber/refunds/:refundId" element={<RequireSession><BuyerRefundDetailPage /></RequireSession>} />
             <Route path="payment-groups/:groupNumber" element={<RequireSession><PaymentGroupPage /></RequireSession>} />
             <Route path="checkout" element={<RequireSession><CheckoutPage /></RequireSession>} />
             <Route path="orders/lookup" element={<RequireSession><OrderLookupPage /></RequireSession>} />
