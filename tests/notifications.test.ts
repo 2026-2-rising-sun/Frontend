@@ -25,3 +25,11 @@ test('알림 개수와 읽음 처리는 회원 본인의 API를 사용한다', a
   await api.read('42')
   assert.deepEqual(calls[1], { path: '/notification/v1/notifications/42/read', options: { method: 'POST', responseType: 'empty' } })
 })
+
+test('알림 신청은 201 빈 본문으로 처리하고 신청·해제·읽음 계약을 지킨다', async () => {
+  const calls: { path: string; options: unknown }[] = []
+  const api = createNotifications((async (path: string, options: unknown) => { calls.push({ path, options }) }) as HttpClient)
+  await api.registerBroadcast('42'); await api.unregisterBroadcast('42'); await api.registerRestock('8'); await api.unregisterRestock('8'); await api.read('9')
+  assert.deepEqual(calls.map(call => call.path), ['/notification/v1/broadcast-alerts', '/notification/v1/broadcast-alerts/42', '/notification/v1/restock-alerts', '/notification/v1/restock-alerts/8', '/notification/v1/notifications/9/read'])
+  assert.deepEqual(calls[0].options, { method: 'POST', body: { broadcastId: 42 }, responseType: 'empty' })
+})

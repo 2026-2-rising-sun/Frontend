@@ -9,5 +9,9 @@ export function createNotifications(request: HttpClient): NotificationsPort {
     },
     async unreadCount() { return (await request<{ unreadCount: number }>('/notification/v1/notifications/unread-count')).unreadCount },
     read: id => request(`/notification/v1/notifications/${encodeURIComponent(id)}/read`, { method: 'POST', responseType: 'empty' }),
+    registerBroadcast: id => request('/notification/v1/broadcast-alerts', { method: 'POST', body: { broadcastId: Number(id) }, responseType: 'empty' }),
+    unregisterBroadcast: id => request(`/notification/v1/broadcast-alerts/${encodeURIComponent(id)}`, { method: 'DELETE', responseType: 'empty' }),
+    registerRestock: id => request('/notification/v1/restock-alerts', { method: 'POST', body: { productId: Number(id) }, responseType: 'empty' }),
+    unregisterRestock: id => request(`/notification/v1/restock-alerts/${encodeURIComponent(id)}`, { method: 'DELETE', responseType: 'empty' }),
   }
 }

@@ -1,3 +1,4 @@
+import { AlertSubscription } from '../notifications/AlertSubscription'
 import { useSession } from '../auth/useSession'
 import { useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
@@ -67,6 +68,8 @@ function ProductDetail({ product }: { product: Product }) {
             <span>{product.featuredLive.title}에서 소개된 상품이에요</span>
           </Link>
         )}
+
+        {product.status === 'SOLD_OUT' && <AlertSubscription kind="restock" targetId={product.id} />}
 
         {/* 모바일: 하단 고정 바 / 데스크톱: 정보 영역 안의 구매 블록 */}
         <div className={styles.actions}>

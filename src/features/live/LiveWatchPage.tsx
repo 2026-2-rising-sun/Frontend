@@ -1,3 +1,4 @@
+import { AlertSubscription } from '../notifications/AlertSubscription'
 import { useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
@@ -56,6 +57,7 @@ export function LiveWatchPage() {
             {(l) => (
               <>
                 <LivePlayer live={l} />
+                {l.status === 'READY' && <AlertSubscription kind="broadcast" targetId={liveId} />}
                 <div className={styles.info}>
                   <h1 className="t-h2">{l.title}</h1>
                   <p className={styles.host}>
