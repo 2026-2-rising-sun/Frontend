@@ -39,5 +39,9 @@ export function createRefunds(request: HttpClient): RefundsPort {
         throw error
       }
     },
+    listSeller: async (params) => (await request<RefundSummaryDto[]>('/commerce/v1/seller/refunds', {
+      query: { page: params?.page ?? 0, size: params?.size ?? 20 },
+    })).map(mapRefundSummary),
+    getSeller: async (id) => mapRefundSummary(await request<RefundSummaryDto>(`/commerce/v1/seller/refunds/${encodeURIComponent(id)}`)),
   }
 }

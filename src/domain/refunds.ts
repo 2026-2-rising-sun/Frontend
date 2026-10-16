@@ -22,6 +22,8 @@ export interface RefundsPort {
   list(groupNumber: string): Promise<Refund[]>
   get(groupNumber: string, id: string): Promise<Refund>
   requestFull(groupNumber: string, idempotencyKey: string): Promise<Refund>
+  listSeller(params?: { page?: number; size?: number }): Promise<RefundSummary[]>
+  getSeller(id: string): Promise<RefundSummary>
 }
 export const refundPending = (refund: RefundSummary) => refund.status === 'PROCESSING' || refund.status === 'UNKNOWN'
 export const remainingRefundAmount = (paid: number, refunds: Refund[]) =>
