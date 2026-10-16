@@ -18,7 +18,18 @@ export interface RefundSummary {
   recovery: { retryCount: number; retryExhausted: boolean; nextActionAt: string } | null
 }
 export interface Refund extends RefundSummary { paymentGroupNumber: string }
+export interface RefundableTarget {
+  orderId: string
+  cartItemId: string | null
+  productName: string
+  quantity: number
+  refundAmount: number
+  refundable: boolean
+  unavailableReason: 'PAYMENT_NOT_COMPLETED' | 'REFUND_WINDOW_EXPIRED' | 'ALREADY_REQUESTED' | 'CART_ITEM_UNAVAILABLE' | 'CART_ITEM_AMBIGUOUS' | null
+}
 export interface RefundsPort {
+  targets(groupNumber: string): Promise<RefundableTarget[]>
+  requestSelected(groupNumber: string, cartItemIds: string[], idempotencyKey: string): Promise<Refund>
   list(groupNumber: string): Promise<Refund[]>
   get(groupNumber: string, id: string): Promise<Refund>
   requestFull(groupNumber: string, idempotencyKey: string): Promise<Refund>

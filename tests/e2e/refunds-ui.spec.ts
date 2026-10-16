@@ -73,3 +73,71 @@ for (const seller of [false, true]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
   })
 }
+
+test('장바구니 삭제·재접속 뒤에도 선택 환불하고 남은 상품을 환불한다', async ({ page }) => {
+  let completed = false; const bodies: unknown[] = []
+  await page.route(/\/api\/(member|commerce|shopping|notification|live)\//, async route => {
+    const path = new URL(route.request().url()).pathname
+    let data: unknown
+    if (path.includes('/auth/')) data = { accessToken: 'token', refreshToken: 'refresh' }
+    else if (path.endsWith('/members/me')) data = { memberId: '00000000-0000-0000-0000-000000000001', displayName: '회원', email: 'user@test.dev', roles: ['USER'] }
+    else if (path.endsWith('/unread-count')) data = { unreadCount: 0 }
+    else if (path.endsWith('/payment-groups/PG-SELECT')) data = { groupNumber: 'PG-SELECT', status: 'PAID', totalAmount: 3000, payableAmount: 3000, expiresAt: null, orders: [] }
+    else if (path.endsWith('/refundable-targets')) data = [
+      { orderId: 1, cartItemId: 101, productName: '첫 상품', quantity: 2, refundAmount: 1000, refundable: !completed, unavailableReason: completed ? 'ALREADY_REQUESTED' : null },
+      { orderId: 2, cartItemId: 102, productName: '남은 상품', quantity: 1, refundAmount: 1500, refundable: true, unavailableReason: null },
+      { orderId: 3, cartItemId: null, productName: '직접 주문', quantity: 1, refundAmount: 500, refundable: false, unavailableReason: 'CART_ITEM_UNAVAILABLE' },
+    ]
+    else if (path.endsWith('/refunds')) {
+      const refund = { id: 42, paymentGroupNumber: 'PG-SELECT', status: 'SUCCESS', refundAmount: 1000, cumulativeRefundAmount: 1000, requestedAt: '2026-10-17T00:00:00Z', resolvedAt: '2026-10-17T00:01:00Z', targets: [], recovery: null }
+      if (route.request().method() === 'POST') { bodies.push(route.request().postDataJSON()); completed = true; data = refund }
+      else data = completed ? [refund] : []
+    } else return route.fulfill({ status: 404 })
+    return route.fulfill({ json: { success: true, data } })
+  })
+  await page.goto('/login'); await page.getByLabel('아이디 또는 이메일').fill('user@test.dev'); await page.getByLabel('비밀번호', { exact: true }).fill('password'); await page.getByRole('button', { name: '로그인', exact: true }).click()
+  await expect(page).not.toHaveURL(/\/login$/)
+  await page.goto('/payment-groups/PG-SELECT')
+  await expect(page.getByRole('checkbox', { name: '첫 상품 · 2개' })).toBeEnabled()
+  await expect(page.getByRole('checkbox', { name: '직접 주문 · 1개' })).toBeDisabled()
+  await page.reload()
+  await page.getByRole('checkbox', { name: '첫 상품 · 2개' }).check()
+  await page.getByRole('button', { name: '선택 상품 환불 요청', exact: true }).click()
+  await expect(page.getByRole('region', { name: '선택 상품 환불 확인' })).toContainText('1개 상품의 전체 수량')
+  await page.getByRole('button', { name: '확인하고 선택 상품 환불 요청', exact: true }).click()
+  await expect(page.getByRole('checkbox', { name: '첫 상품 · 2개' })).toBeDisabled()
+  await expect(page.getByRole('checkbox', { name: '남은 상품 · 1개' })).toBeEnabled()
+  expect(bodies).toEqual([{ cartItemIds: [101] }])
+  await page.getByRole('checkbox', { name: '남은 상품 · 1개' }).check()
+  await page.getByRole('button', { name: '선택 상품 환불 요청', exact: true }).click()
+  await page.getByRole('button', { name: '확인하고 선택 상품 환불 요청', exact: true }).click()
+  await expect.poll(() => bodies.length).toBe(2)
+  expect(bodies[1]).toEqual({ cartItemIds: [102] })
+  await page.setViewportSize({ width: 390, height: 844 })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+})
+
+test('대상 조회 실패 시 선택 환불을 막고 새로고침으로 복구한다', async ({ page }) => {
+  let available = false
+  await page.route(/\/api\/(member|commerce|shopping|notification|live)\//, async route => {
+    const path = new URL(route.request().url()).pathname
+    let data: unknown
+    if (path.includes('/auth/')) data = { accessToken: 'token', refreshToken: 'refresh' }
+    else if (path.endsWith('/members/me')) data = { memberId: '00000000-0000-0000-0000-000000000001', displayName: '회원', email: 'user@test.dev', roles: ['USER'] }
+    else if (path.endsWith('/unread-count')) data = { unreadCount: 0 }
+    else if (path.endsWith('/payment-groups/PG-FAIL')) data = { groupNumber: 'PG-FAIL', status: 'PAID', totalAmount: 1000, payableAmount: 1000, expiresAt: null, orders: [] }
+    else if (path.endsWith('/refundable-targets')) {
+      if (!available) return route.fulfill({ status: 503, json: { success: false, data: null, error: { code: 'UNAVAILABLE', message: '조회 실패' } } })
+      data = [{ orderId: 1, cartItemId: 101, productName: '복구 상품', quantity: 1, refundAmount: 1000, refundable: true, unavailableReason: null }]
+    } else if (path.endsWith('/refunds')) data = []
+    else return route.fulfill({ status: 404 })
+    return route.fulfill({ json: { success: true, data } })
+  })
+  await page.goto('/login'); await page.getByLabel('아이디 또는 이메일').fill('user@test.dev'); await page.getByLabel('비밀번호', { exact: true }).fill('password'); await page.getByRole('button', { name: '로그인', exact: true }).click()
+  await expect(page).not.toHaveURL(/\/login$/)
+  await page.goto('/payment-groups/PG-FAIL')
+  await expect(page.getByText('환불 대상을 확인하지 못했어요', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '선택 상품 환불 요청', exact: true })).toBeDisabled()
+  available = true; await page.getByRole('button', { name: '환불 대상 새로고침', exact: true }).click()
+  await expect(page.getByRole('checkbox', { name: '복구 상품 · 1개' })).toBeEnabled()
+})
