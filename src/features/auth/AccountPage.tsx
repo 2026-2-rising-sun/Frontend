@@ -22,7 +22,7 @@ export function AccountPage() {
       <Input label="변경할 이름" value={name} onChange={e => setName(e.target.value)} maxLength={80} required disabled={busy} /><Button type="submit" disabled={busy}>이름 저장</Button>
     </form>
     <div className={styles.actions}>
-    <ButtonLink to="/notifications" variant="secondary">알림함</ButtonLink><ButtonLink to="/orders/lookup">내 주문</ButtonLink><ButtonLink to="/cart" variant="secondary">장바구니</ButtonLink><ButtonLink to="/coupons" variant="secondary">쿠폰함</ButtonLink>
+    <ButtonLink to="/notifications/subscriptions" variant="secondary">내 알림 신청</ButtonLink><ButtonLink to="/notifications" variant="secondary">알림함</ButtonLink><ButtonLink to="/orders/lookup">내 주문</ButtonLink><ButtonLink to="/cart" variant="secondary">장바구니</ButtonLink><ButtonLink to="/coupons" variant="secondary">쿠폰함</ButtonLink>
     <Button variant="secondary" disabled={busy} onClick={() => action(async () => { await auth.logout(); navigate('/login') }, '')}>로그아웃</Button>
     {session.role === 'SELLER' && <><ButtonLink to="/admin/products">판매자 콘솔</ButtonLink><Button variant="secondary" disabled={busy} onClick={() => action(async () => { await auth.revokeSessions(); navigate('/login') }, '')}>내 모든 세션 종료</Button></>}
     <Button variant="secondary" disabled={busy} onClick={() => setConfirm(v => !v)}>회원 탈퇴</Button>

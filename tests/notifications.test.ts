@@ -33,3 +33,18 @@ test('알림 신청은 201 빈 본문으로 처리하고 신청·해제·읽음 
   assert.deepEqual(calls.map(call => call.path), ['/notification/v1/broadcast-alerts', '/notification/v1/broadcast-alerts/42', '/notification/v1/restock-alerts', '/notification/v1/restock-alerts/8', '/notification/v1/notifications/9/read'])
   assert.deepEqual(calls[0].options, { method: 'POST', body: { broadcastId: 42 }, responseType: 'empty' })
 })
+
+test('신청 조회는 본인 API를 호출하고 대상 ID와 페이지 커서를 보존한다', async () => {
+  const calls: { path: string; options: unknown }[] = []
+  const api = createNotifications((async (path: string, options: unknown) => {
+    calls.push({ path, options })
+    return path.endsWith('/42') ? { subscribed: true } : { items: [{ targetId: 42, createdAt: '2026-10-17T00:00:00Z' }], nextCursor: '42', hasNext: true }
+  }) as HttpClient)
+  assert.equal(await api.subscriptionState('broadcast', '42'), true)
+  const page = await api.subscriptions('restock', '84')
+  assert.equal(page.items[0].targetId, '42')
+  assert.deepEqual(calls, [
+    { path: '/notification/v1/broadcast-alerts/42', options: undefined },
+    { path: '/notification/v1/restock-alerts', options: { query: { cursor: '84', size: 20 } } },
+  ])
+})
