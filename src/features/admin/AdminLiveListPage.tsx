@@ -6,6 +6,7 @@ import { ButtonLink, Chip, Skeleton, StatusBadge, liveBadge } from '../../compon
 import type { LiveStatus, LiveSummary } from '../../domain/types'
 import { usePaged } from '../../hooks/usePaged'
 import { formatDateTime } from '../../lib/format'
+import { ViewerCount } from '../live/ViewerCount'
 import styles from './admin.module.css'
 
 type Filter = 'ALL' | LiveStatus
@@ -62,6 +63,7 @@ export function AdminLiveListPage() {
                     <span className={styles.rowMeta}>
                       {live.hostName} · {timeText(live)}
                     </span>
+                    <div className={styles.rowMeta}><ViewerCount liveId={live.id} status={live.status} watching={false} compact /></div>
                   </div>
                 </div>
                 <span className={styles.colStatus}>

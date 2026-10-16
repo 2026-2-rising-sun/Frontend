@@ -90,3 +90,36 @@ test('홈 방송 카드에도 현재 시청 규모를 표시한다', async ({ pa
   await expect(section.getByText('현재 시청 약 2명', { exact: true })).toBeVisible()
   expect(methods.every(method => method === 'GET')).toBeTruthy()
 })
+
+async function sellerList(page: Page) {
+  await page.goto('/admin/lives')
+  await page.getByLabel('아이디 또는 이메일').fill('seller@test.dev')
+  await page.getByLabel('비밀번호', { exact: true }).fill('password')
+  await page.getByRole('button', { name: '로그인', exact: true }).click()
+  await expect(page).toHaveURL(/\/admin\/lives$/)
+}
+test('판매자 방송 목록은 LIVE만 조회하며 시청 인원에 포함되지 않는다', async ({ page }) => {
+  const requests: { path: string; method: string }[] = []
+  await fixture(page, (path, method) => requests.push({ path, method }))
+  await sellerList(page)
+  await expect(page.getByText('현재 시청 약 2명', { exact: true })).toBeVisible()
+  expect(requests.length).toBeGreaterThan(0)
+  expect(requests.every(item => item.method === 'GET' && item.path.endsWith('/42/viewers'))).toBeTruthy()
+  await page.setViewportSize({ width: 390, height: 844 })
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+  const before = requests.length
+  await page.getByRole('button', { name: '준비 중', exact: true }).click()
+  await expect(page.getByText('현재 시청 약 2명', { exact: true })).toHaveCount(0)
+  await expect(page.getByRole('link', { name: '시청자 검증 방송', exact: true })).toHaveCount(1)
+  expect(requests).toHaveLength(before)
+})
+test('판매자 목록의 집계 실패를 0명으로 표시하지 않고 정기 조회로 복구한다', async ({ page }) => {
+  await page.clock.install()
+  await fixture(page, () => {}, true)
+  await sellerList(page)
+  await expect(page.getByText('시청자 수 조회 불가', { exact: true })).toBeVisible()
+  await expect(page.getByText('현재 시청 약 0명', { exact: true })).toHaveCount(0)
+  await page.route('**/broadcasts/42/viewers', route => route.fulfill({ json: { success: true, data: { broadcastId: 42, total: 0, measuredAt: new Date().toISOString(), expiresAfterSeconds: 60 } } }))
+  await page.clock.fastForward(15000)
+  await expect(page.getByText('현재 시청 약 0명', { exact: true })).toBeVisible()
+})
