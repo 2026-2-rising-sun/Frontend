@@ -69,6 +69,7 @@ export interface LiveDetail extends LiveSummary {
   description: string
   /** 영상 재생 URL. 준비되지 않았으면 null. */
   playbackUrl: string | null
+  videoStatus?: 'READY' | 'NOT_READY' | 'UNAVAILABLE' | null
   playbackAllowed?: boolean
   channelArn?: string
 }

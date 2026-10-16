@@ -13,11 +13,11 @@ export function adminProduct(p: ProductDto, salesId: string | null = null): Admi
   if (!status) throw new ApiError('NETWORK', '판매 정보를 조회하지 못했어요. 잠시 후 다시 시도해 주세요.')
   return { id: String(p.productId), name: p.name ?? '', description: p.description ?? '', imageUrl: imageUrl(p.mainImageUrl), hasImage: !!p.mainImageUrl, version: p.version ?? 0, status, price: p.price, stock: p.available ?? null, salesId }
 }
-export type LiveDto = { id: number; title: string; status: string; scheduledAt: string; startedAt?: string | null; endedAt?: string | null; playbackUrl: string | null; playbackAllowed?: boolean; channelArn?: string; version?: number }
+export type LiveDto = { id: number; title: string; status: string; scheduledAt: string; startedAt?: string | null; endedAt?: string | null; playbackUrl: string | null; playbackAllowed?: boolean; videoStatus?: LiveDetail['videoStatus']; channelArn?: string; version?: number }
 export function live(l: LiveDto): LiveDetail {
   const status = ({ 예정: 'READY', 진행: 'LIVE', 종료: 'ENDED', PREPARING: 'READY', READY: 'READY', LIVE: 'LIVE', ENDED: 'ENDED' } as const)[l.status as 'LIVE']
   if (!status) throw new ApiError('UNKNOWN', '방송 상태를 확인하지 못했어요.')
-  return { id: String(l.id), title: l.title, status, scheduledAt: l.scheduledAt, startedAt: l.startedAt ?? null, endedAt: l.endedAt ?? null, thumbnailUrl: null, hostName: '', description: '', playbackUrl: l.playbackUrl, playbackAllowed: l.playbackAllowed, channelArn: l.channelArn }
+  return { id: String(l.id), title: l.title, status, scheduledAt: l.scheduledAt, startedAt: l.startedAt ?? null, endedAt: l.endedAt ?? null, thumbnailUrl: null, hostName: '', description: '', playbackUrl: l.playbackUrl, playbackAllowed: l.playbackAllowed, videoStatus: status === 'LIVE' ? l.videoStatus ?? null : null, channelArn: l.channelArn }
 }
 export type PageDto<T> = { items: T[]; page: number; size: number; totalElements: number; totalPages: number }
 export const page = <T, R>(p: PageDto<T>, map: (x: T) => R): Paged<R> => ({ items: p.items.map(map), page: p.page, size: p.size, totalCount: p.totalElements, hasNext: p.page + 1 < p.totalPages })
