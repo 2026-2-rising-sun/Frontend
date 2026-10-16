@@ -69,6 +69,8 @@ test('kind: 복수 브라우저 시청 집계·같은 브라우저 탭 중복 �
     await expect(two.getByText('현재 시청 약 2명', { exact: true })).toBeVisible()
     await expect.poll(total).toBe(2)
     await page.getByRole('button', { name: '방송 종료', exact: true }).click()
+    await page.getByRole('button', { name: '종료 확정', exact: true }).click()
+    await expect(page.getByText('방송을 종료했어요. 소개된 상품은 계속 구매할 수 있어요.', { exact: true })).toBeVisible()
     await expect.poll(total).toBe(0)
     const invalid = await request.post(`/api/live/v1/broadcasts/${f.liveId}/viewers/heartbeat`, { data: { viewerId: 'invalid' } })
     expect(invalid.status()).toBe(400)
