@@ -19,10 +19,10 @@ function SellerRefundDetail({ refundId }: { refundId: string }) {
   const pending = refund.data ? refundPending(refund.data) : false
   const reload = refund.reload
   useEffect(() => {
-    if (!pending) return
-    const timer = setInterval(reload, 3000)
-    return () => clearInterval(timer)
-  }, [pending, reload])
+    if (!pending || refund.loading) return
+    const timer = setTimeout(reload, 3000)
+    return () => clearTimeout(timer)
+  }, [pending, refund.loading, reload])
   return <section className={styles.section}>
     <Link to="/admin/refunds">← 환불 목록</Link><h1 className="t-h1">환불 상세</h1>
     {refund.error && refund.data && <Alert type="warning" title="최신 환불 상태를 확인하지 못했어요" />}
