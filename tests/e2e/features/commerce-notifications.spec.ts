@@ -81,10 +81,13 @@ test('kind: 쿠폰 발급·구매·환불 결과가 알림함에 전달되고 �
   await signIn(page, buyer.email, buyerPassword)
   await openNotification(page, '쿠폰이 발급되었습니다')
   await expect(page).toHaveURL(/\/coupons$/)
-  await page.goto(`/checkout?productId=${product.productId}&quantity=1`)
+  const added = await request.post('/api/commerce/v1/cart/items', { headers: buyer.headers, data: { productId: product.productId, quantity: 1 } })
+  expect(added.ok(), await added.text()).toBeTruthy()
+  const itemId = (await added.json()).id
+  await page.goto(`/checkout/cart?itemIds=${itemId}`)
   await page.getByLabel('연락처', { exact: true }).fill('01012345678')
-  await page.getByLabel('주문 내용을 확인했으며 결제에 동의합니다').check()
-  await page.getByRole('button', { name: '결제하기', exact: true }).click()
+  await page.getByLabel('상품별 주문과 통합 결제 금액을 확인했습니다').check()
+  await page.getByRole('button', { name: '통합 주문 만들기', exact: true }).click()
   await expect(page).toHaveURL(/\/payment-groups\/PG-/)
   const groupNumber = new URL(page.url()).pathname.split('/').pop()!
   await page.getByRole('button', { name: '통합 결제하기', exact: true }).click()
@@ -135,4 +138,26 @@ test('kind: 결제 전 전체 주문 취소는 취소 알림 한 건과 주문 �
   expect(notice.linkValue).toBe(groupNumber); expect(notice.body).toContain(product.name)
   await openNotification(page, '주문이 취소되었습니다')
   await expect(page).toHaveURL(new RegExp(`/payment-groups/${groupNumber}$`))
+})
+
+test('kind: 재입고 알림은 상품 이름을 표시하고 상품 상세로 연결된다', async ({ page, request }) => {
+  const product = await newProduct(request)
+  const buyer = await newBuyer(request)
+  const started = await request.patch(`/api/commerce/v1/sales/${product.salesId}/status`, { headers: product.seller, data: { status: 'ON_SALE' } })
+  expect(started.ok()).toBeTruthy()
+  const empty = await request.patch(`/api/commerce/v1/sales/${product.salesId}/stock`, { headers: product.seller, data: { delta: -7 } })
+  expect(empty.ok()).toBeTruthy()
+  for (const status of ['PRIVATE', 'ON_SALE']) {
+    const changed = await request.patch(`/api/commerce/v1/sales/${product.salesId}/status`, { headers: product.seller, data: { status } })
+    expect(changed.ok(), await changed.text()).toBeTruthy()
+  }
+  await expect.poll(async () => (await request.post('/api/notification/v1/restock-alerts', { headers: buyer.headers, data: { productId: product.productId } })).status(), { timeout: 45000 }).toBe(201)
+  const refill = await request.patch(`/api/commerce/v1/sales/${product.salesId}/stock`, { headers: product.seller, data: { delta: 2 } })
+  expect(refill.ok()).toBeTruthy()
+  const notice = await notification(request, buyer.headers, 'Restocked')
+  expect(notice.body).toContain(product.name)
+  expect(notice.linkValue).toBe(String(product.productId))
+  await signIn(page, buyer.email, buyerPassword)
+  await openNotification(page, '재입고되었습니다')
+  await expect(page).toHaveURL(new RegExp(`/products/${product.productId}$`))
 })
