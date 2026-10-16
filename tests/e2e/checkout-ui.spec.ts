@@ -109,3 +109,21 @@ test('changing payment group route clears previous purchase actions while the ne
   await expect(page.getByRole('button', { name: '전체 주문 취소' })).toHaveCount(0)
   expect(mutations).toBe(0)
 })
+
+test('부분 환불 성공 이력이 있으면 잔여 상품 전체 환불 대신 제한을 안내한다', async ({ page }) => {
+  await page.route(/\/api\/(member|commerce|notification)\//, async route => {
+    const path = new URL(route.request().url()).pathname
+    if (path.includes('/auth/')) return route.fulfill({ json: { success: true, data: { accessToken: 'test-token', refreshToken: 'test-refresh' } } })
+    if (path.endsWith('/members/me')) return route.fulfill({ json: { success: true, data: { memberId: '00000000-0000-0000-0000-000000000001', displayName: '회원', email: 'user@test.dev', roles: ['USER'] } } })
+    if (path.endsWith('/unread-count')) return route.fulfill({ json: { success: true, data: { unreadCount: 0 } } })
+    if (path.endsWith('/refunds')) return route.fulfill({ json: [{ id: 1, paymentGroupNumber: 'PG-PARTIAL', refundAmount: 5000, cumulativeRefundAmount: 5000, status: 'SUCCESS', requestedAt: '2026-10-17T00:00:00Z', resolvedAt: '2026-10-17T00:00:01Z', targets: [], recovery: null }] })
+    if (path.endsWith('/payment-groups/PG-PARTIAL')) return route.fulfill({ json: { groupNumber: 'PG-PARTIAL', status: 'PAID', totalAmount: 10000, payableAmount: 10000, discountAmount: 0, paymentId: 7, expiresAt: null, orders: [] } })
+    return route.fulfill({ status: 404 })
+  })
+  await page.goto('/login'); await page.getByLabel('아이디 또는 이메일').fill('user@test.dev'); await page.getByLabel('비밀번호', { exact: true }).fill('password'); await page.getByRole('button', { name: '로그인', exact: true }).click()
+  await expect(page.getByRole('heading', { name: '내 계정', exact: true })).toBeVisible()
+  await page.goto('/payment-groups/PG-PARTIAL')
+  await expect(page.getByText('일부 상품의 환불 이력이 있어요', { exact: true })).toBeVisible()
+  await expect(page.getByRole('button', { name: '전체 환불 요청', exact: true })).toHaveCount(0)
+  await expect(page.getByText('현재 화면에서는 남은 상품을 선택해 환불할 수 없어요. 환불 내역을 확인해 주세요.', { exact: true })).toBeVisible()
+})
