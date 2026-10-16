@@ -1,3 +1,4 @@
+import { AlertSubscriptionsPage } from '../features/notifications/AlertSubscriptionsPage'
 import { BuyerRefundDetailPage } from '../features/refunds/BuyerRefundDetailPage'
 import { NotificationsPage } from '../features/notifications/NotificationsPage'
 import { SellerCouponsPage, SellerCouponEditPage } from '../features/coupons/SellerCouponsPage'
@@ -54,6 +55,7 @@ function App({ api }: AppProps) {
             <Route path="signup" element={<SignupPage />} />
             <Route path="login" element={<LoginPage />} />
             <Route path="account" element={<AccountPage />} />
+            <Route path="notifications/subscriptions" element={<RequireSession><AlertSubscriptionsPage /></RequireSession>} />
             <Route path="notifications" element={<RequireSession><NotificationsPage /></RequireSession>} />
             <Route path="products/:productId" element={<ProductDetailPage />} />
             <Route path="lives" element={<LiveListPage />} />

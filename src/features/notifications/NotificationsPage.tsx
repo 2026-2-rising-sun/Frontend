@@ -50,6 +50,7 @@ export function NotificationsPage() {
   }
   if (!session) return <div className={styles.page}><h1 className="t-h1">알림함</h1><Link to="/login" state={{ from: '/notifications' }}>로그인하고 알림 확인하기</Link></div>
   return <main className={styles.page}>
+    <Link to="/notifications/subscriptions">내 알림 신청 관리</Link>
     <div className={styles.row}><h1 className="t-h1">알림함</h1><Button variant="secondary" size="S" disabled={loading || reading !== null} onClick={() => void load(null)}>새로고침</Button></div>
     {error && <Alert type="danger" title={error}><Button variant="secondary" size="S" disabled={loading || reading !== null} onClick={() => void load(null)}>다시 시도</Button></Alert>}
     {loading && <p role="status">알림을 불러오는 중이에요.</p>}

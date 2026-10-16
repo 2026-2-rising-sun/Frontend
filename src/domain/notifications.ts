@@ -9,7 +9,12 @@ export interface Notification {
   readAt: string | null
 }
 export interface NotificationPage { items: Notification[]; nextCursor: string | null; hasNext: boolean }
+export type AlertKind = 'broadcast' | 'restock'
+export interface AlertSubscription { targetId: string; createdAt: string }
+export interface AlertSubscriptionPage { items: AlertSubscription[]; nextCursor: string | null; hasNext: boolean }
 export interface NotificationsPort {
+  subscriptionState(kind: AlertKind, id: string): Promise<boolean>
+  subscriptions(kind: AlertKind, cursor?: string | null): Promise<AlertSubscriptionPage>
   list(cursor?: string | null): Promise<NotificationPage>
   unreadCount(): Promise<number>
   read(id: string): Promise<void>

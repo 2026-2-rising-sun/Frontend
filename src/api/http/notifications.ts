@@ -1,8 +1,15 @@
-import type { Notification, NotificationPage, NotificationsPort } from '../../domain/notifications'
+import type { Notification, NotificationPage, NotificationsPort, AlertSubscriptionPage } from '../../domain/notifications'
 import type { HttpClient } from './client'
 type NotificationDto = Omit<Notification, 'id'> & { id: string | number }
 export function createNotifications(request: HttpClient): NotificationsPort {
   return {
+    async subscriptionState(kind, id) {
+      return (await request<{ subscribed: boolean }>(`/notification/v1/${kind === 'broadcast' ? 'broadcast' : 'restock'}-alerts/${encodeURIComponent(id)}`)).subscribed
+    },
+    async subscriptions(kind, cursor) {
+      const page = await request<Omit<AlertSubscriptionPage, 'items'> & { items: { targetId: string | number; createdAt: string }[] }>(`/notification/v1/${kind === 'broadcast' ? 'broadcast' : 'restock'}-alerts`, { query: { cursor, size: 20 } })
+      return { ...page, items: page.items.map(item => ({ ...item, targetId: String(item.targetId) })) }
+    },
     async list(cursor) {
       const page = await request<Omit<NotificationPage, 'items'> & { items: NotificationDto[] }>('/notification/v1/notifications', { query: { cursor, size: 20 } })
       return { ...page, items: page.items.map(item => ({ ...item, id: String(item.id) })) }
