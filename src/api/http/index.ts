@@ -4,7 +4,7 @@ import { createPromotions } from './promotions'
 import { createCoupons, createSellerCoupons } from './coupons'
 import { createSellerProducts } from './sellerProducts'
 import type { Api, CartItem, ChatMessage } from '../../domain/ports'
-import type { PaymentGroup, CartCheckout, AdminLive } from '../../domain/types'
+import type { PaymentGroup, CartCheckout, AdminLive, LiveInput } from '../../domain/types'
 import { createHttpAuth } from './auth'
 import { product, live, page, order, type ProductDto, type LiveDto, type PageDto, type OrderDto } from './mappers'
 const id = encodeURIComponent
@@ -19,6 +19,17 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
     return { ...live(dto), version: dto.version ?? 0, products: await liveProducts(n, true) }
   }
   const liveMutation = async (n: string, suffix: string, options: Parameters<typeof request>[1]) => { await request(`/live/v1/seller/broadcasts/${id(n)}${suffix}`, options); return adminLive(n) }
+  const thumbnailUploads = new WeakMap<File, Promise<string>>()
+  const broadcastBody = async ({ thumbnail, ...input }: LiveInput) => {
+    if (!thumbnail) return input
+    let upload = thumbnailUploads.get(thumbnail)
+    if (!upload) {
+      const data = new FormData(); data.set('file', thumbnail)
+      upload = request<{ thumbnailId: string }>('/live/v1/seller/broadcast-thumbnails', { method: 'POST', body: data }).then(result => result.thumbnailId).catch(error => { thumbnailUploads.delete(thumbnail); throw error })
+      thumbnailUploads.set(thumbnail, upload)
+    }
+    return { ...input, thumbnailId: await upload }
+  }
   const getOrder = async (n: string) => order(await request<OrderDto>(`/commerce/v1/orders/${id(n)}`))
   const cartItem = (c: CartItem) => ({ ...c, id: String(c.id), productId: String(c.productId) })
   type GroupDto = Omit<PaymentGroup, 'orders' | 'paymentId' | 'discountAmount' | 'payableAmount' | 'couponId'> & { discountAmount?: number; payableAmount?: number; couponId?: string | null; orders: OrderDto[]; paymentId: number | null }
@@ -90,8 +101,8 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
       lives: {
         list: async params => livePage(await request('/live/v1/seller/broadcasts', { query: { page: params?.page, size: params?.size, status: params?.status === 'READY' ? 'PREPARING' : params?.status } })),
         get: adminLive,
-        async create({ idempotencyKey, ...input }) { const result = await request<LiveDto>('/live/v1/seller/broadcasts', { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: input }); return adminLive(String(result.id)) },
-        update: (n, { version, ...input }) => liveMutation(n, '', { method: 'PATCH', query: { version }, body: input }),
+        async create({ idempotencyKey, ...input }) { const result = await request<LiveDto>('/live/v1/seller/broadcasts', { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: await broadcastBody(input) }); return adminLive(String(result.id)) },
+        update: async (n, { version, ...input }) => liveMutation(n, '', { method: 'PATCH', query: { version }, body: await broadcastBody(input) }),
         linkProduct: (n, p, version) => liveMutation(n, '/products', { method: 'POST', body: { productId: Number(p), expectedVersion: version } }),
         unlinkProduct: (n, p, version) => liveMutation(n, `/products/${id(p)}`, { method: 'DELETE', query: { expectedVersion: version } }),
         reorderProducts: (n, links, version) => liveMutation(n, '/products/order', { method: 'PUT', body: { linkIds: links.map(Number), expectedVersion: version } }),

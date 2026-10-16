@@ -5,6 +5,8 @@ import { Button } from './Button'
 import styles from './ImageUpload.module.css'
 
 interface ImageUploadProps {
+  validateFile?: (file: File) => string | null | undefined
+  accept?: string
   label: string
   /** 선택된 새 이미지 파일 */
   file: File | null
@@ -21,7 +23,7 @@ interface ImageUploadProps {
  * 허용 기준은 domain/constraints 를 쓰므로 처리(서버) 검증과 항상 같다.
  * 잘못된 파일은 선택을 거절하고 이유를 안내한다. (브라우저 미리보기만 보이는 상태를 "저장 성공"으로 오해하지 않도록 안내 문구를 둔다.)
  */
-export function ImageUpload({ label, file, onChange, registered, disabled, note }: ImageUploadProps) {
+export function ImageUpload({ label, file, onChange, registered, disabled, note, validateFile = validateImageFile, accept = IMAGE_ACCEPTED_TYPES.join(',') }: ImageUploadProps) {
   const inputId = useId()
   const inputRef = useRef<HTMLInputElement>(null)
   const [error, setError] = useState<string | null>(null)
@@ -47,7 +49,7 @@ export function ImageUpload({ label, file, onChange, registered, disabled, note 
     const picked = e.target.files?.[0]
     e.target.value = '' // 같은 파일을 다시 골라도 change 가 발생하도록
     if (!picked) return
-    const problem = validateImageFile(picked)
+    const problem = validateFile(picked)
     if (problem) {
       setError(problem)
       return
@@ -77,7 +79,7 @@ export function ImageUpload({ label, file, onChange, registered, disabled, note 
             ref={inputRef}
             id={inputId}
             type="file"
-            accept={IMAGE_ACCEPTED_TYPES.join(',')}
+            accept={accept}
             className={styles.input}
             onChange={pick}
             disabled={disabled}

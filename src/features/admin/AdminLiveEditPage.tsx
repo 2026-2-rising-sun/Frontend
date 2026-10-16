@@ -5,7 +5,7 @@ import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
 import { AsyncView } from '../../components/AsyncView'
 import { ChevronDownIcon } from '../../components/icons'
-import { Alert, Button, ButtonLink, Input, Select, Skeleton, StatusBadge, liveBadge, productBadge } from '../../components/ui'
+import { Alert, Button, ButtonLink, ImageUpload, Input, Textarea, Thumbnail, Select, Skeleton, StatusBadge, liveBadge, productBadge } from '../../components/ui'
 import { LIVE_TITLE_MAX } from '../../domain/constraints'
 import type { AdminLive } from '../../domain/types'
 import { useIdempotencyKey } from '../../hooks/useIdempotencyKey'
@@ -72,6 +72,10 @@ function BasicSection({ live, reload, onDone }: EditorProps & { live: AdminLive 
   const { busy, error, run } = useAction()
   const editable = !live || live.status === 'READY'
   const [title, setTitle] = useState(live?.title ?? '')
+  const [hostName, setHostName] = useState(live?.hostName ?? '')
+  const [description, setDescription] = useState(live?.description ?? '')
+  const [thumbnail, setThumbnail] = useState<File | null>(null)
+  const [thumbnailId, setThumbnailId] = useState(live?.thumbnailId ?? '')
   const [channelArn, setChannelArn] = useState(live?.channelArn ?? '')
   const keyFor = useIdempotencyKey()
   const [scheduled, setScheduled] = useState(live ? toKstInputValue(live.scheduledAt) : '')
@@ -91,11 +95,11 @@ function BasicSection({ live, reload, onDone }: EditorProps & { live: AdminLive 
     setAttempted(true)
     onDone(null)
     if (Object.values(errors).some(Boolean)) return
-    const input = { title, channelArn, scheduledAt: fromKstInputValue(scheduled), playbackUrl }
+    const input = { title, channelArn, scheduledAt: fromKstInputValue(scheduled), playbackUrl, hostName, description, thumbnailId, thumbnail }
     if (!live) {
       let createdId = ''
       const ok = await run('save', async () => {
-        createdId = (await api.admin.lives.create({ ...input, idempotencyKey: keyFor(input) })).id
+        createdId = (await api.admin.lives.create({ ...input, idempotencyKey: keyFor({ ...input, thumbnail: thumbnail ? [thumbnail.name, thumbnail.size, thumbnail.lastModified] : null }) })).id
       })
       // 상품 연결 없이도 준비 중 방송은 저장할 수 있다. 이어서 같은 방송에서 상품을 연결한다.
       if (ok) navigate(`/admin/lives/${createdId}`, { replace: true, state: { notice: '방송을 등록했어요(준비 중). 이어서 상품을 연결해 주세요.' } })
@@ -110,6 +114,11 @@ function BasicSection({ live, reload, onDone }: EditorProps & { live: AdminLive 
       <form className={styles.form} onSubmit={submit} noValidate>
         <ActionAlert error={error} onReload={reload} />
         <Input label="방송 제목" value={title} onChange={(e) => setTitle(e.target.value)} disabled={!editable} error={show('title')} placeholder="예: 가을 신상 이어폰 특가 라이브" />
+        <Input label="공개 진행자 이름" value={hostName} onChange={event => setHostName(event.target.value)} maxLength={80} disabled={!editable || busy !== null} helper="시청 화면에 공개할 이름을 입력해 주세요." />
+        <Textarea label="방송 소개" value={description} onChange={event => setDescription(event.target.value)} maxLength={2000} disabled={!editable || busy !== null} />
+        <ImageUpload label="방송 썸네일" file={thumbnail} onChange={setThumbnail} registered={!!thumbnailId} disabled={!editable || busy !== null} accept="image/png,image/jpeg" validateFile={file => !['image/png', 'image/jpeg'].includes(file.type) || file.size > 2 * 1024 * 1024 || file.size === 0 ? '2MB 이하 PNG·JPEG 이미지를 선택해 주세요.' : undefined} note="최대 2MB, 4096×4096 픽셀. 선택한 이미지는 저장할 때 업로드돼요." />
+        {live?.thumbnailUrl && thumbnailId && !thumbnail && <Thumbnail src={live.thumbnailUrl} alt="등록된 방송 썸네일" ratio="16 / 9" />}
+        {thumbnailId && editable && <Button type="button" variant="secondary" disabled={busy !== null} onClick={() => { setThumbnailId(''); setThumbnail(null) }}>등록된 썸네일 제거</Button>}
         <Input label="AWS IVS 채널 ARN" value={channelArn} onChange={(e) => setChannelArn(e.target.value)} maxLength={255} disabled={!editable} error={show('channelArn')} />
         <Input
           label="예정 시작 시각"
