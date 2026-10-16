@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
 import { AsyncView } from '../../components/AsyncView'
 import { Alert, Button, ResultState, Skeleton } from '../../components/ui'
@@ -54,7 +55,7 @@ export function PaymentGroupRefunds({ group, onUpdated }: { group: PaymentGroup;
     {failure && <Alert type="warning" title="요청 결과를 확인해 주세요">{failure} 내역을 먼저 확인해 주세요. 다시 요청하면 동일한 요청 키로 확인합니다.</Alert>}
     {history.error && history.data && <Alert type="warning" title="최신 환불 내역을 확인하지 못했어요">다시 조회한 뒤 환불을 요청해 주세요.</Alert>}
     <AsyncView state={history} skeleton={<Skeleton height={150} />}>
-      {(refunds) => refunds.length ? <div className={styles.section}>{refunds.map((refund) => <RefundDetails key={refund.id} refund={refund} />)}</div> : <ResultState type="empty" title="환불 내역이 없어요" />}
+      {(refunds) => refunds.length ? <div className={styles.section}>{refunds.map((refund) => <div key={refund.id}><RefundDetails refund={refund} /><Link to={`/payment-groups/${encodeURIComponent(group.groupNumber)}/refunds/${encodeURIComponent(refund.id)}`}>환불 {refund.id} 상세 보기</Link></div>)}</div> : <ResultState type="empty" title="환불 내역이 없어요" />}
     </AsyncView>
     {hasSuccessfulRefund && !fullyRefunded && <Alert type="info" title="일부 상품의 환불 이력이 있어요">현재 화면에서는 남은 상품을 선택해 환불할 수 없어요. 환불 내역을 확인해 주세요.</Alert>}
     {canRequest && !confirming && <Button variant="secondary" onClick={() => setConfirming(true)}>전체 환불 요청</Button>}
