@@ -1,3 +1,4 @@
+import { NotificationsPage } from '../features/notifications/NotificationsPage'
 import { CartCheckoutPage } from '../features/commerce/CartCheckoutPage'
 import { PaymentGroupPage } from '../features/commerce/PaymentGroupPage'
 import { CartPage } from '../features/commerce/CartPage'
@@ -48,6 +49,7 @@ function App({ api }: AppProps) {
             <Route path="signup" element={<SignupPage />} />
             <Route path="login" element={<LoginPage />} />
             <Route path="account" element={<AccountPage />} />
+            <Route path="notifications" element={<RequireSession><NotificationsPage /></RequireSession>} />
             <Route path="products/:productId" element={<ProductDetailPage />} />
             <Route path="lives" element={<LiveListPage />} />
             <Route path="lives/:liveId" element={<LiveWatchPage />} />

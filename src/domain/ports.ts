@@ -1,5 +1,6 @@
 import type { CartSelection, CartCheckout, PaymentGroup } from './types'
 import type { AuthPort } from './auth'
+import type { NotificationsPort } from './notifications'
 import type { AdminLive, AdminProduct, AdminProductListParams, CreateOrderInput, LiveInput, LiveDetail, LiveStatus, LiveSummary, Order, PageParams, Paged, Product, ProductBasicInput, ProductListParams, SaleAction, SaleInfoInput } from './types'
 export interface ChatMessage { messageId: string; broadcastId: number; displayName: string; content: string; createdAt: string }
 export interface LikeTotal { broadcastId: number; total: number; version: number }
@@ -69,6 +70,7 @@ export interface AdminLivesPort {
   end(id: string): Promise<AdminLive>
 }
 export interface Api {
-  auth: AuthPort; products: ProductsPort; lives: LivesPort; orders: OrdersPort; payments: PaymentsPort; cart: CartPort; paymentGroups: PaymentGroupsPort
+  auth: AuthPort
+  notifications: NotificationsPort; products: ProductsPort; lives: LivesPort; orders: OrdersPort; payments: PaymentsPort; cart: CartPort; paymentGroups: PaymentGroupsPort
   admin: { products: AdminProductsPort; lives: AdminLivesPort }
 }

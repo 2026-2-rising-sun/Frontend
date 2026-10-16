@@ -3,6 +3,7 @@ import { ApiError, type ApiErrorCode } from '../../domain/errors'
 interface RequestOptions {
   headers?: Record<string, string>
   anonymous?: boolean
+  responseType?: 'empty'
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT'
   query?: Record<string, string | number | undefined | null>
   /** JSON 으로 보낼 객체, 또는 파일 업로드용 FormData */
@@ -73,7 +74,7 @@ export function createHttpClient(baseUrl: string, auth?: { accessToken: () => st
       )
     }
 
-    if (response.status === 204) return undefined as T
+    if (response.status === 204 || options.responseType === 'empty') return undefined as T
     const payload = await response.json()
     return (payload.success === true ? payload.data : payload) as T
   }
