@@ -1,7 +1,7 @@
 import { createNotifications } from './notifications'
-import { createCoupons } from './coupons'
 import { createRefunds } from './refunds'
 import { createPromotions } from './promotions'
+import { createCoupons, createSellerCoupons } from './coupons'
 import { createSellerProducts } from './sellerProducts'
 import type { Api, CartItem, ChatMessage } from '../../domain/ports'
 import type { PaymentGroup, CartCheckout, AdminLive } from '../../domain/types'
@@ -84,6 +84,7 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
       remove: n => request(`/commerce/v1/cart/items/${id(n)}`, { method: 'DELETE' }),
     },
     admin: {
+      coupons: createSellerCoupons(request),
       products: createSellerProducts(request),
       lives: {
         list: async params => livePage(await request('/live/v1/seller/broadcasts', { query: { page: params?.page, size: params?.size, status: params?.status === 'READY' ? 'PREPARING' : params?.status } })),

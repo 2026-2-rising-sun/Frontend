@@ -1,4 +1,5 @@
 import { NotificationsPage } from '../features/notifications/NotificationsPage'
+import { SellerCouponsPage, SellerCouponEditPage } from '../features/coupons/SellerCouponsPage'
 import { CouponsPage } from '../features/coupons/CouponsPage'
 import { SellerRefundListPage } from '../features/refunds/SellerRefundListPage'
 import { SellerRefundDetailPage } from '../features/refunds/SellerRefundDetailPage'
@@ -73,6 +74,9 @@ function App({ api }: AppProps) {
             <Route path="products/:productId" element={<AdminProductEditPage key="edit" />} />
             <Route path="refunds" element={<SellerRefundListPage />} />
             <Route path="refunds/:refundId" element={<SellerRefundDetailPage />} />
+            <Route path="coupons" element={<SellerCouponsPage />} />
+            <Route path="coupons/new" element={<SellerCouponEditPage key="new" />} />
+            <Route path="coupons/:id" element={<SellerCouponEditPage key="edit" />} />
             <Route path="lives" element={<AdminLiveListPage />} />
             <Route path="lives/new" element={<AdminLiveEditPage key="new" />} />
             <Route path="lives/:liveId" element={<AdminLiveEditPage key="edit" />} />
