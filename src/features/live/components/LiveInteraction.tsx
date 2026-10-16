@@ -7,7 +7,7 @@ import type { LikeTotal } from '../../../domain/ports'
 import { useSession } from '../../auth/useSession'
 import type { LiveStatus } from '../../../domain/types'
 import styles from './LiveInteraction.module.css'
-export function LiveInteraction({ liveId, liveStatus, showChat, onEnded }: { liveId: string; liveStatus: LiveStatus; showChat: boolean; onEnded: () => void }) {
+export function LiveInteraction({ liveId, liveStatus, showChat, onEnded, onPromotion }: { liveId: string; liveStatus: LiveStatus; showChat: boolean; onEnded: () => void; onPromotion?: () => void }) {
   const api = useApi(); const session = useSession()
   const chats = useAsync(() => api.lives.chats(liveId), [api, liveId])
   const likes = useLiveLikes(api.lives, liveId, session?.memberId)
@@ -17,12 +17,14 @@ export function LiveInteraction({ liveId, liveStatus, showChat, onEnded }: { liv
   useEffect(() => {
     if (liveStatus !== 'LIVE') return
     let stopped = false; let pending: ReturnType<typeof setTimeout> | undefined
-    const recover = () => { if (!stopped) { reloadChats(); reloadLikes() } }
+    const recover = () => { if (!stopped) { reloadChats(); reloadLikes(); onPromotion?.() } }
     const schedule = () => { if (!pending) pending = setTimeout(() => { pending = undefined; recover() }, 300) }
     const events = new EventSource(api.lives.eventsUrl(liveId))
     const ready = () => { setConnected(true); recover() }
     events.addEventListener('stream.ready', ready)
     events.addEventListener('chat.created', schedule)
+    events.addEventListener('promotion.opened', schedule)
+    events.addEventListener('promotion.closed', schedule)
     events.addEventListener('likes.updated', event => {
       try {
         const value = JSON.parse((event as MessageEvent).data) as LikeTotal
@@ -36,7 +38,7 @@ export function LiveInteraction({ liveId, liveStatus, showChat, onEnded }: { liv
     const timer = setInterval(() => { if (document.visibilityState === 'visible') recover() }, 15000)
     document.addEventListener('visibilitychange', recover)
     return () => { stopped = true; events.close(); clearInterval(timer); clearTimeout(pending); document.removeEventListener('visibilitychange', recover) }
-  }, [api, liveId, liveStatus, reloadChats, reloadLikes, acceptLike, onEnded])
+  }, [api, liveId, liveStatus, reloadChats, reloadLikes, acceptLike, onEnded, onPromotion])
   useEffect(() => { if (list.current) list.current.scrollTop = list.current.scrollHeight }, [chats.data])
   async function send(e: FormEvent) {
     e.preventDefault()

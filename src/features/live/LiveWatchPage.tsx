@@ -1,5 +1,6 @@
 import { AlertSubscription } from '../notifications/AlertSubscription'
-import { useEffect, useState } from 'react'
+import { PromotionBanner } from './PromotionBanner'
+import { useCallback, useEffect, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
 import { AsyncView } from '../../components/AsyncView'
@@ -34,6 +35,8 @@ export function LiveWatchPage() {
   const { liveId = '' } = useParams()
   const api = useApi()
   const [tab, setTab] = useState<PanelTab>('products')
+  const [promotionRevision, setPromotionRevision] = useState(0)
+  const reloadPromotions = useCallback(() => setPromotionRevision(value => value + 1), [])
   const live = useAsync(() => api.lives.get(liveId), [api, liveId])
   const products = useAsync(() => api.lives.listProducts(liveId), [api, liveId])
 
@@ -58,6 +61,7 @@ export function LiveWatchPage() {
               <>
                 <LivePlayer live={l} />
                 {l.status === 'READY' && <AlertSubscription kind="broadcast" targetId={liveId} />}
+                <PromotionBanner liveId={liveId} status={l.status} refreshKey={promotionRevision} />
                 <div className={styles.info}>
                   <h1 className="t-h2">{l.title}</h1>
                   <p className={styles.host}>
@@ -112,7 +116,7 @@ export function LiveWatchPage() {
           ) : (
             <p className={styles.about}>아래 채팅에서 함께 이야기해 보세요.</p>
           )}
-          {live.data && <LiveInteraction key={liveId} liveId={liveId} liveStatus={live.data.status} showChat={tab === 'chat'} onEnded={live.reload} />}
+          {live.data && <LiveInteraction key={liveId} liveId={liveId} liveStatus={live.data.status} showChat={tab === 'chat'} onEnded={live.reload} onPromotion={reloadPromotions} />}
         </aside>
       </div>
     </PageContainer>
