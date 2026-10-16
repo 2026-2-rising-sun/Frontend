@@ -12,7 +12,9 @@ async function fixture(page: Page, onViewer: (path: string, method: string, body
       data = { broadcastId: 42, total: 2, measuredAt: new Date().toISOString(), expiresAfterSeconds: 60 }
     }
     else if (path.endsWith('/broadcasts')) {
-      data = { content: ['LIVE', 'PREPARING', 'ENDED'].map((status, index) => ({ id: 42 + index, title: '시청자 검증 방송', status, scheduledAt: new Date().toISOString(), playbackUrl: null, version: 0 })), number: 0, size: 6, totalElements: 3, totalPages: 1 }
+      const requestedStatus = new URL(route.request().url()).searchParams.get('status')
+      const content = ['LIVE', 'PREPARING', 'ENDED'].map((status, index) => ({ id: 42 + index, title: '시청자 검증 방송', status, scheduledAt: new Date().toISOString(), playbackUrl: null, version: 0 })).filter(live => !requestedStatus || live.status === requestedStatus)
+      data = { content, number: 0, size: 6, totalElements: content.length, totalPages: 1 }
     }
     else if (path.endsWith('/broadcasts/42')) data = { id: 42, title: '시청자 검증 방송', status: 'LIVE', scheduledAt: new Date().toISOString(), playbackUrl: null, channelArn: 'arn:test', version: 0 }
     else if (path.endsWith('/products') && path.includes('/broadcasts/')) data = []
