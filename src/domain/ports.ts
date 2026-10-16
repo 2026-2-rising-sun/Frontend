@@ -1,4 +1,5 @@
 import type { CartSelection, CartCheckout, PaymentGroup } from './types'
+import type { CouponsPort } from './coupons'
 import type { AuthPort } from './auth'
 import type { NotificationsPort } from './notifications'
 import type { AdminLive, AdminProduct, AdminProductListParams, CreateOrderInput, LiveInput, LiveDetail, LiveStatus, LiveSummary, Order, PageParams, Paged, Product, ProductBasicInput, ProductListParams, SaleAction, SaleInfoInput } from './types'
@@ -71,6 +72,6 @@ export interface AdminLivesPort {
 }
 export interface Api {
   auth: AuthPort
-  notifications: NotificationsPort; products: ProductsPort; lives: LivesPort; orders: OrdersPort; payments: PaymentsPort; cart: CartPort; paymentGroups: PaymentGroupsPort
+  notifications: NotificationsPort; coupons: CouponsPort; products: ProductsPort; lives: LivesPort; orders: OrdersPort; payments: PaymentsPort; cart: CartPort; paymentGroups: PaymentGroupsPort
   admin: { products: AdminProductsPort; lives: AdminLivesPort }
 }

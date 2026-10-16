@@ -1,4 +1,5 @@
 import { NotificationsPage } from '../features/notifications/NotificationsPage'
+import { CouponsPage } from '../features/coupons/CouponsPage'
 import { CartCheckoutPage } from '../features/commerce/CartCheckoutPage'
 import { PaymentGroupPage } from '../features/commerce/PaymentGroupPage'
 import { CartPage } from '../features/commerce/CartPage'
@@ -53,6 +54,7 @@ function App({ api }: AppProps) {
             <Route path="products/:productId" element={<ProductDetailPage />} />
             <Route path="lives" element={<LiveListPage />} />
             <Route path="lives/:liveId" element={<LiveWatchPage />} />
+            <Route path="coupons" element={<RequireSession><CouponsPage /></RequireSession>} />
             <Route path="cart" element={<RequireSession><CartPage /></RequireSession>} />
             <Route path="checkout/cart" element={<RequireSession><CartCheckoutPage /></RequireSession>} />
             <Route path="payment-groups/:groupNumber" element={<RequireSession><PaymentGroupPage /></RequireSession>} />
