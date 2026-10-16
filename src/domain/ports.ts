@@ -25,7 +25,7 @@ export interface LivesPort {
   eventsUrl(id: string): string
 }
 export interface OrdersPort {
-  checkout(id: string, quantity: number): Promise<{ unitPrice: number; totalAmount: number; orderable: boolean; reason: string | null }>
+  checkout(id: string, quantity: number, couponId?: string): Promise<{ unitPrice: number; totalAmount: number; orderable: boolean; reason: string | null; discountAmount?: number; payableAmount?: number; couponId?: string | null }>
   create(input: CreateOrderInput): Promise<Order>
   list(params?: PageParams): Promise<Paged<Order>>
   lookup(number: string): Promise<Order>
@@ -43,8 +43,8 @@ export interface PaymentGroupsPort {
   cancel(number: string): Promise<void>
 }
 export interface CartPort {
-  checkout(items: CartSelection[]): Promise<CartCheckout>
-  order(input: { items: CartSelection[]; buyerName: string; buyerPhone: string; expectedTotalAmount: number; idempotencyKey: string }): Promise<PaymentGroup>
+  checkout(items: CartSelection[], couponId?: string): Promise<CartCheckout>
+  order(input: { items: CartSelection[]; buyerName: string; buyerPhone: string; expectedTotalAmount: number; couponId?: string; idempotencyKey: string }): Promise<PaymentGroup>
   list(): Promise<CartItem[]>
   add(productId: string, quantity: number): Promise<CartItem>
   update(id: string, quantity: number): Promise<CartItem>

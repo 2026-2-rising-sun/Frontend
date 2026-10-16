@@ -107,6 +107,7 @@ export interface CreateOrderInput {
   ordererPhone: string
   idempotencyKey: string
   cartItemId?: string
+  couponId?: string
 }
 
 /** 관리 기능은 SELLER 역할만 이용한다. */
@@ -175,7 +176,7 @@ export interface CartSelection { itemId: string; version: number }
 export interface CartCheckoutItem extends CartSelection {
   productId: string; productName: string; quantity: number; unitPrice: number; totalAmount: number
 }
-export interface CartCheckout { items: CartCheckoutItem[]; totalAmount: number }
+export interface CartCheckout { items: CartCheckoutItem[]; totalAmount: number; discountAmount?: number; payableAmount?: number; couponId?: string | null }
 export interface PaymentGroup {
   groupNumber: string
   status: 'PENDING_PAYMENT' | 'PAYMENT_CONFIRMING' | 'PAID' | 'FAILED' | 'CANCELLED' | 'EXPIRED' | 'REFUNDED'

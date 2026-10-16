@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
 import { AsyncView } from '../../components/AsyncView'
@@ -10,9 +10,14 @@ import { ActivePaymentGroup } from './ActivePaymentGroup'
 import { useSession } from '../auth/useSession'
 import { formatPrice } from '../../lib/format'
 import type { Product } from '../../domain/types'
+import { CouponPicker } from '../coupons/CouponPicker'
 import { OrderSummary } from './components/OrderSummary'
 import styles from './CheckoutPage.module.css'
 export function CheckoutPage() {
+  const [params] = useSearchParams(); const session = useSession()
+  return <CheckoutScope key={`${session?.memberId}:${params.toString()}`} />
+}
+function CheckoutScope() {
   const api = useApi(); const [params] = useSearchParams()
   const productId = params.get('productId') ?? ''
   const quantity = Number(params.get('quantity') ?? 1)
@@ -35,14 +40,16 @@ function CheckoutForm({ product, initialQuantity, cartItemId }: { product: Produ
   const [quantity, setQuantity] = useState(cartItemId ? initialQuantity : Math.min(initialQuantity, Math.max(product.stock, 1)))
   const [name, setName] = useState(session?.displayName ?? ''); const [phone, setPhone] = useState('')
   const [agreed, setAgreed] = useState(false); const [busy, setBusy] = useState(false); const [error, setError] = useState('')
-  const checkout = useAsync(() => api.orders.checkout(product.id, quantity), [api, product.id, quantity])
-  const quote = checkout.data
+  const [couponId, setCouponId] = useState('')
+  const inFlight = useRef(false)
+  const checkout = useAsync(async () => ({ quote: await api.orders.checkout(product.id, quantity, couponId || undefined), quantity, couponId }), [api, product.id, quantity, couponId])
+  const quote = checkout.data?.quantity === quantity && checkout.data.couponId === couponId ? checkout.data.quote : undefined
   async function submit(e: FormEvent) {
     e.preventDefault()
-    if (busy || !quote?.orderable || checkout.loading || checkout.error) return
+    if (inFlight.current || !session || !quote?.orderable || checkout.loading || checkout.error) return
     if (!name.trim() || name.trim().length > 64 || !/^[0-9-]{9,32}$/.test(phone.trim()) || !agreed) { setError('이름·연락처·결제 동의를 확인해 주세요.'); return }
-    const input = { productId: product.id, quantity, expectedUnitPrice: quote.unitPrice, ordererName: name.trim(), ordererPhone: phone.trim(), cartItemId }
-    setBusy(true); setError('')
+    const input = { productId: product.id, quantity, expectedUnitPrice: quote.unitPrice, ordererName: name.trim(), ordererPhone: phone.trim(), cartItemId, ...(couponId ? { couponId } : {}) }
+    inFlight.current = true; setBusy(true); setError('')
     try {
       const check = await api.products.check(product.id, quantity)
       if (!check.orderable) throw new Error('현재 재고로 주문할 수 없어요. 수량을 다시 확인해 주세요.')
@@ -58,7 +65,7 @@ function CheckoutForm({ product, initialQuantity, cartItemId }: { product: Produ
       setError(cause instanceof Error ? cause.message : '주문하지 못했어요.')
       try { const active = await api.paymentGroups.active(); if (active) { requestIdentity(session?.memberId ?? 'anonymous', 'direct-order', input).clear(); navigate(`/payment-groups/${encodeURIComponent(active.groupNumber)}`, { replace: true }) } } catch { /* retry keeps original key */ }
     }
-    finally { setBusy(false) }
+    finally { inFlight.current = false; setBusy(false) }
   }
   return <form className={styles.layout} onSubmit={submit}>
     <div className={styles.main}>
@@ -68,6 +75,7 @@ function CheckoutForm({ product, initialQuantity, cartItemId }: { product: Produ
         <QuantityStepper value={quantity} onChange={setQuantity} max={Math.max(product.stock, 1)} disabled={busy || !!cartItemId} />
         {cartItemId && <p className="t-caption">수량은 장바구니에서 변경할 수 있어요.</p>}
       </section>
+      <section className={styles.card}><CouponPicker value={couponId} onChange={setCouponId} disabled={busy || !!cartItemId} />{cartItemId && <p className="t-caption">쿠폰은 상품 바로 구매 또는 장바구니 선택 상품 주문서에서 적용할 수 있어요.</p>}</section>
       <section className={styles.card}><h2 className="t-h4">주문자 정보</h2>
         <Input label="주문자 이름" autoComplete="name" maxLength={64} value={name} onChange={e => setName(e.target.value)} disabled={busy} required />
         <Input label="연락처" autoComplete="tel" inputMode="tel" maxLength={32} value={phone} onChange={e => setPhone(e.target.value)} disabled={busy} required />
@@ -76,7 +84,7 @@ function CheckoutForm({ product, initialQuantity, cartItemId }: { product: Produ
     <aside className={styles.side}><section className={styles.card}><h2 className="t-h4">결제 금액</h2>
       {checkout.error && <Alert type="danger" title="최신 금액을 확인하지 못했어요">{checkout.error.message}<Button variant="secondary" onClick={checkout.reload}>다시 조회</Button></Alert>}
       {quote && !quote.orderable && <Alert type="warning" title="지금은 주문할 수 없어요">판매 상태와 재고를 확인해 주세요.</Alert>}
-      <strong className="t-price-lg">{formatPrice(quote?.totalAmount ?? product.price * quantity)}</strong>
+      <p>상품 금액 {formatPrice(quote?.totalAmount ?? product.price * quantity)}</p>{(quote?.discountAmount ?? 0) > 0 && <p>쿠폰 할인 -{formatPrice(quote?.discountAmount ?? 0)}</p>}<strong className="t-price-lg">{formatPrice(quote?.payableAmount ?? quote?.totalAmount ?? product.price * quantity)}</strong>{quote?.payableAmount === 0 && <p>0원 주문도 결제 완료 확인이 필요해요.</p>}
       <Checkbox label="주문 내용을 확인했으며 결제에 동의합니다" checked={agreed} onChange={e => setAgreed(e.target.checked)} disabled={busy} />
       <Button type="submit" size="L" fullWidth disabled={busy || checkout.loading || !!checkout.error || !quote?.orderable}>{busy ? '처리 중…' : '결제하기'}</Button>
     </section></aside>
