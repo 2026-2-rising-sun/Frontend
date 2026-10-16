@@ -46,6 +46,8 @@ test('Live administration uses link ID and snapshot version without substituting
   assert.equal(calls[9].url.search, '')
   await api.admin.lives.update('1', { title: '수정', channelArn: 'channel', scheduledAt: '2026-10-06T00:00:00Z', playbackUrl: 'https://example.com/live.m3u8', version: 10 })
   assert.equal(calls[12].url.searchParams.get('version'), '10'); assert.equal(JSON.parse(String(calls[12].options?.body)).version, undefined)
+  assert.ok(calls.every(call => call.url.pathname.startsWith('/api/live/v1/seller/broadcasts/')))
+  assert.equal(calls[2].url.pathname, '/api/live/v1/seller/broadcasts/1/products')
 })
 test('retry after an uncertain product create reuses its uploaded image ID and idempotency payload', async () => {
   let uploads = 0; const bodies: unknown[] = []; let creates = 0

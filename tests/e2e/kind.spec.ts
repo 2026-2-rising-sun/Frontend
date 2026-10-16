@@ -12,9 +12,9 @@ async function bearer(request: APIRequestContext, account = 'seller') {
 }
 async function fixture(request: APIRequestContext) {
   const headers = await bearer(request)
-  const image = await request.post('/api/shopping/v1/admin/product-images', { headers, multipart: { file: { name: 'fixture.png', mimeType: 'image/png', buffer: png } } }); expect(image.ok()).toBeTruthy()
+  const image = await request.post('/api/shopping/v1/seller/product-images', { headers, multipart: { file: { name: 'fixture.png', mimeType: 'image/png', buffer: png } } }); expect(image.ok()).toBeTruthy()
   const name = 'E2E 상품 ' + randomUUID().slice(0, 8)
-  const created = await request.post('/api/shopping/v1/admin/products', { headers: { ...headers, 'X-Idempotency-Key': randomUUID() }, data: { name, description: '실제 kind API 테스트 상품', mainImageId: (await image.json()).data.imageId } }); expect(created.ok()).toBeTruthy()
+  const created = await request.post('/api/shopping/v1/seller/products', { headers: { ...headers, 'X-Idempotency-Key': randomUUID() }, data: { name, description: '실제 kind API 테스트 상품', mainImageId: (await image.json()).data.imageId } }); expect(created.ok()).toBeTruthy()
   const productId = String((await created.json()).data.productId)
   const sale = await request.post('/api/commerce/v1/sales', { headers, data: { productId: Number(productId), price: 10000, initialStock: 20 } }); expect(sale.ok()).toBeTruthy()
   const salesId = (await sale.json()).id
@@ -128,7 +128,7 @@ test('kind: seller Live link/reorder/unlink, SSE chat/likes and end disable part
   await expect(page.getByRole('button', { name: f.name + ' 아래로', exact: true })).toBeEnabled()
   await page.getByRole('button', { name: f.name + ' 아래로', exact: true }).click()
   await expect(page.getByText('노출 순서를 저장했어요.', { exact: true })).toBeVisible()
-  const links = await request.get(`/api/live/v1/admin/broadcasts/${liveId}/products`, { headers: f.headers })
+  const links = await request.get(`/api/live/v1/seller/broadcasts/${liveId}/products`, { headers: f.headers })
   expect(String((await links.json()).data[0].productId)).toBe(f2.productId)
   const secondRow = page.locator('[class*=linked]').filter({ hasText: f2.name }).filter({ has: page.getByRole('button', { name: '해제', exact: true }) }).last()
   await secondRow.getByRole('button', { name: '해제', exact: true }).click()
@@ -188,7 +188,7 @@ test('kind: USER cannot enter seller console; seller can revoke their own sessio
   await page.getByRole('button', { name: '로그인', exact: true }).click()
   await expect(page.getByText('판매자만 접근할 수 있어요.', { exact: true })).toBeVisible()
   const user = await bearer(request, 'user')
-  expect((await request.get('/api/shopping/v1/admin/products', { headers: user })).status()).toBe(403)
+  expect((await request.get('/api/shopping/v1/seller/products', { headers: user })).status()).toBe(403)
   await login(page, 'seller')
   const seller = await bearer(request)
   await page.getByRole('link', { name: '← 쇼핑몰로' }).click(); await page.getByRole('link', { name: '내 계정', exact: true }).click()

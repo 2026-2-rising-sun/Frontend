@@ -30,13 +30,13 @@ test('local alias uses email API, authenticates /me and passes bearer; 403 retai
   assert.deepEqual(calls[0].body, { email: 'seller@local.test', password: 'seller' })
   assert.equal(calls[0].headers.get('Authorization'), null)
   assert.equal(calls[1].headers.get('Authorization'), 'Bearer signed-token')
-  assert.deepEqual(await request('/shopping/v1/admin/products'), { items: [] })
+  assert.deepEqual(await request('/shopping/v1/seller/products'), { items: [] })
   assert.equal(calls[2].headers.get('Authorization'), 'Bearer signed-token')
   denied = 403
-  await assert.rejects(request('/shopping/v1/admin/products'), { code: 'FORBIDDEN' })
+  await assert.rejects(request('/shopping/v1/seller/products'), { code: 'FORBIDDEN' })
   assert.equal(auth.getSession()?.role, 'SELLER')
   denied = 401
-  await assert.rejects(request('/shopping/v1/admin/products'), { code: 'UNAUTHORIZED' })
+  await assert.rejects(request('/shopping/v1/seller/products'), { code: 'UNAUTHORIZED' })
   assert.equal(auth.getSession(), null)
 })
 
@@ -222,4 +222,27 @@ test('public startup without a saved token makes no authentication requests', as
   const { storage } = refreshStorage()
   globalThis.fetch = async () => { throw new Error('unexpected auth request') }
   const { auth } = createHttpAuth('/api', true, storage); await auth.restore(); assert.equal(auth.getSession(), null)
+})
+
+test('판매자 세션 폐기는 새 seller 경로에 인증 요청을 보내고 로컬 세션을 지운다', async () => {
+  const { storage, values } = refreshStorage()
+  const calls: { path: string; method: string | undefined; authorization: string | null }[] = []
+  const originalFetch = globalThis.fetch
+  try {
+    globalThis.fetch = async (input, init) => {
+      const path = new URL(String(input)).pathname
+      calls.push({ path, method: init?.method, authorization: new Headers(init?.headers).get('Authorization') })
+      if (path.endsWith('/auth/login')) return envelope({ accessToken: 'seller-access', refreshToken: 'seller-refresh' })
+      if (path.endsWith('/members/me')) return envelope({ memberId: 'seller-id', email: 'seller@local.test', displayName: '판매자', roles: ['SELLER'] })
+      return new Response(null, { status: 204 })
+    }
+    const { auth } = createHttpAuth('/api', true, storage)
+    await auth.login('seller', 'seller')
+    await auth.revokeSessions()
+    assert.deepEqual(calls[2], { path: '/api/member/v1/seller/members/seller-id/sessions/revoke', method: 'POST', authorization: 'Bearer seller-access' })
+    assert.equal(auth.getSession(), null)
+    assert.equal(values.has(refreshKey), false)
+  } finally {
+    globalThis.fetch = originalFetch
+  }
 })
