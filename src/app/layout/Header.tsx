@@ -11,10 +11,9 @@ const NAV = [
   { to: '/', label: '쇼핑', end: true },
   { to: '/lives', label: '방송', end: false },
   { to: '/orders/lookup', label: '내 주문', end: false },
-  { to: '/cart', label: '장바구니', end: false },
 ] as const
 
-/** Figma "Header/Web". 태블릿 이상에서는 내비게이션·검색, 모바일에서는 로고와 내 주문만 보인다. */
+/** 상단은 로고·검색·계정, 두 번째 줄은 쇼핑 탐색 메뉴로 구성한다. */
 export function Header() {
   const session = useSession()
   const { auth } = useApi()
@@ -30,6 +29,17 @@ export function Header() {
           ShoppingLive
         </Link>
 
+        <SearchBox className={styles.search} />
+        <div className={styles.actions}>
+          <ButtonLink to="/cart" variant="secondary" size="S">장바구니</ButtonLink>
+          {session && <ButtonLink to="/account" variant="secondary" size="S">내 계정</ButtonLink>}
+          {session && <NotificationBadge />}
+          {session?.role === 'SELLER' && <ButtonLink className={styles.desktopAction} to="/admin/products" variant="secondary" size="S">판매자 콘솔</ButtonLink>}
+          {session ? <Button className={styles.desktopAction} variant="secondary" size="S" onClick={() => { void logout().catch(() => {}) }}>로그아웃</Button>
+            : <ButtonLink to="/login" variant="secondary" size="M">로그인</ButtonLink>}
+        </div>
+      </div>
+      <div className={styles.navigation}>
         <nav className={styles.nav} aria-label="주요 메뉴">
           {NAV.map((item) => (
             <NavLink
@@ -42,14 +52,6 @@ export function Header() {
             </NavLink>
           ))}
         </nav>
-
-        <div className={styles.spacer} />
-        <SearchBox className={styles.search} />
-        {session && <ButtonLink to="/account" variant="secondary" size="S">내 계정</ButtonLink>}
-        {session && <NotificationBadge />}
-        {session?.role === 'SELLER' && <ButtonLink className={styles.desktopAction} to="/admin/products" variant="secondary" size="S">판매자 콘솔</ButtonLink>}
-        {session ? <Button className={styles.desktopAction} variant="secondary" size="S" onClick={() => { void logout().catch(() => {}) }}>로그아웃</Button>
-          : <ButtonLink to="/login" variant="secondary" size="M">로그인</ButtonLink>}
       </div>
     </header>
   )

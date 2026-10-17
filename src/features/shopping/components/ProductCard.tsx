@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom'
 import { StatusBadge, Thumbnail, productBadge } from '../../../components/ui'
 import type { Product } from '../../../domain/types'
 import { formatPrice } from '../../../lib/format'
+import { ProductCouponHint } from '../../coupons/ProductCouponHint'
 import styles from './ProductCard.module.css'
 
 /** Figma "Product Card" (Selling · SoldOut). 품절은 조회 가능·구매 불가로 표시한다. */
@@ -16,6 +17,7 @@ export function ProductCard({ product }: { product: Product }) {
         <p className={styles.name}>{product.name}</p>
         <p className={styles.price}>{formatPrice(product.price)}</p>
         {product.status !== 'SELLING' && <StatusBadge status={productBadge(product.status)} />}
+        <ProductCouponHint productId={product.id} />
       </div>
     </Link>
   )

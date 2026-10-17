@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useCallback, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
 import { AsyncView } from '../../components/AsyncView'
@@ -41,6 +41,11 @@ function CheckoutForm({ product, initialQuantity, cartItemId }: { product: Produ
   const [name, setName] = useState(session?.displayName ?? ''); const [phone, setPhone] = useState('')
   const [agreed, setAgreed] = useState(false); const [busy, setBusy] = useState(false); const [error, setError] = useState('')
   const [couponId, setCouponId] = useState('')
+  const canApplyCoupon = useCallback(async (id: string) => {
+    if (cartItemId) return false
+    const preview = await api.orders.checkout(product.id, quantity, id)
+    return preview.orderable && (preview.discountAmount ?? 0) > 0
+  }, [api, product.id, quantity, cartItemId])
   const inFlight = useRef(false)
   const checkout = useAsync(async () => ({ quote: await api.orders.checkout(product.id, quantity, couponId || undefined), quantity, couponId }), [api, product.id, quantity, couponId])
   const quote = checkout.data?.quantity === quantity && checkout.data.couponId === couponId ? checkout.data.quote : undefined
@@ -75,7 +80,7 @@ function CheckoutForm({ product, initialQuantity, cartItemId }: { product: Produ
         <QuantityStepper value={quantity} onChange={setQuantity} max={Math.max(product.stock, 1)} disabled={busy || !!cartItemId} />
         {cartItemId && <p className="t-caption">수량은 장바구니에서 변경할 수 있어요.</p>}
       </section>
-      <section className={styles.card}><CouponPicker value={couponId} onChange={setCouponId} disabled={busy || !!cartItemId} />{cartItemId && <p className="t-caption">쿠폰은 상품 바로 구매 또는 장바구니 선택 상품 주문서에서 적용할 수 있어요.</p>}</section>
+      <section className={styles.card}><CouponPicker value={couponId} onChange={setCouponId} disabled={busy || !!cartItemId} canApply={canApplyCoupon} />{cartItemId && <p className="t-caption">쿠폰은 상품 바로 구매 또는 장바구니 선택 상품 주문서에서 적용할 수 있어요.</p>}</section>
       <section className={styles.card}><h2 className="t-h4">주문자 정보</h2>
         <Input label="주문자 이름" autoComplete="name" maxLength={64} value={name} onChange={e => setName(e.target.value)} disabled={busy} required />
         <Input label="연락처" autoComplete="tel" inputMode="tel" maxLength={32} value={phone} onChange={e => setPhone(e.target.value)} disabled={busy} required />

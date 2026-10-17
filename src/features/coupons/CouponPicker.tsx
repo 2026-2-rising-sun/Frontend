@@ -1,18 +1,22 @@
-import { useState } from 'react'
+import { useEffect } from 'react'
 import { useApi } from '../../app/apiContext'
 import { useAsync } from '../../hooks/useAsync'
 import { Alert, Button, Select } from '../../components/ui'
 import { formatPrice } from '../../lib/format'
 import styles from './coupons.module.css'
-export function CouponPicker({ value, onChange, disabled }: { value: string; onChange: (id: string) => void; disabled?: boolean }) {
-  const api = useApi(); const [page, setPage] = useState(0)
-  const coupons = useAsync(() => api.coupons.mine(page), [api, page])
-  const usable = coupons.data?.filter(c => c.status === 'AVAILABLE') ?? []
+import { applicableCoupons } from './applicableCoupons'
+export function CouponPicker({ value, onChange, disabled, canApply }: { value: string; onChange: (id: string) => void; disabled?: boolean; canApply: (couponId: string) => Promise<boolean> }) {
+  const api = useApi()
+  const coupons = useAsync(async () => ({ canApply, items: await applicableCoupons(api.coupons.mine, canApply) }), [api, canApply])
+  const current = coupons.data?.canApply === canApply && !coupons.loading && !coupons.error
+  const usable = current ? coupons.data!.items : []
+  useEffect(() => {
+    if (current && value && !coupons.data!.items.some(c => c.couponId === value)) onChange('')
+  }, [current, coupons.data, value, onChange])
   return <section className={styles.stack}><h2 className="t-h4">쿠폰 적용</h2>
-    <Select aria-label="사용할 보유 쿠폰" value={value} onChange={onChange} disabled={disabled || coupons.loading}
-      options={[{ value: '', label: '쿠폰 사용 안 함' }, ...usable.map(c => ({ value: c.couponId, label: `${c.name} · ${formatPrice(c.fixedDiscount)} 할인` })), ...(value && !usable.some(c => c.couponId === value) ? [{ value, label: '선택한 쿠폰' }] : [])]} />
-    <p className={styles.muted}>적용 가능 여부와 최종 할인액은 서버에서 확인해요.</p>
-    {coupons.error && <Alert type="warning" title="보유 쿠폰을 불러오지 못했어요"><Button onClick={coupons.reload}>다시 조회</Button></Alert>}
-    <div className={styles.actions}><Button size="S" variant="secondary" disabled={disabled || coupons.loading || page === 0} onClick={() => setPage(p => p - 1)}>이전 쿠폰</Button><span>{page + 1} 페이지</span><Button size="S" variant="secondary" disabled={disabled || coupons.loading || !coupons.data || coupons.data.length < 20} onClick={() => setPage(p => p + 1)}>다음 쿠폰</Button></div>
+    <Select aria-label="사용할 보유 쿠폰" value={usable.some(c => c.couponId === value) ? value : ''} onChange={onChange} disabled={disabled || !current}
+      options={[{ value: '', label: '쿠폰 사용 안 함' }, ...usable.map(c => ({ value: c.couponId, label: `${c.name} · ${formatPrice(c.fixedDiscount)} 할인` }))]} />
+    <p className={styles.muted}>{!current && !coupons.error ? '적용 가능한 쿠폰을 확인하고 있어요.' : current && !usable.length ? '이 주문에 적용 가능한 보유 쿠폰이 없어요.' : '이 주문에 적용 가능한 보유 쿠폰만 표시해요. 최종 할인액은 주문 시 다시 확인해요.'}</p>
+    {coupons.error && <Alert type="warning" title="적용 가능한 쿠폰을 확인하지 못했어요"><Button onClick={coupons.reload}>다시 조회</Button></Alert>}
   </section>
 }
