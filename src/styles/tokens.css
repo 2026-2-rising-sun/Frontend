@@ -176,6 +176,6 @@
   /* ── Layout ─────────────────────────────────── */
   --font-sans: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --container-max: 1200px;
-  --header-height: 64px;
+  --header-height: 110px; /* 상단 64px + 탐색 44px + 경계선 2px */
   --bottom-nav-height: 0px; /* 모바일에서 base.css 가 덮어쓴다 */
 }
