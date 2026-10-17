@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent } from 'react'
+import { useCallback, useRef, useState, type FormEvent } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
 import { AsyncView } from '../../components/AsyncView'
@@ -40,6 +40,11 @@ function CartCheckoutScope({ ids }: { ids: string }) {
 }
 function CartCheckoutForm({ quote, couponId, onCouponChange, refresh, blocked }: { quote: CartCheckout; couponId: string; onCouponChange: (id: string) => void; refresh: () => void; blocked: boolean }) {
   const api = useApi(); const navigate = useNavigate(); const session = useSession()
+  const selection = JSON.stringify(quote.items.map(item => ({ itemId: item.itemId, version: item.version })))
+  const canApplyCoupon = useCallback(async (id: string) => {
+    const preview = await api.cart.checkout(JSON.parse(selection), id)
+    return (preview.discountAmount ?? 0) > 0
+  }, [api, selection])
   const [name, setName] = useState(session?.displayName ?? ''); const [phone, setPhone] = useState('')
   const [agreed, setAgreed] = useState(false); const [busy, setBusy] = useState(false); const [error, setError] = useState('')
   const inFlight = useRef(false)
@@ -64,7 +69,7 @@ function CartCheckoutForm({ quote, couponId, onCouponChange, refresh, blocked }:
   return <form className={styles.layout} onSubmit={submit}><div className={styles.main}>
     {error && <Alert type="danger" title="주문을 확인해 주세요">{error}<Button variant="secondary" disabled={busy} onClick={refresh}>최신 주문서 조회</Button></Alert>}
     <section className={styles.card}><h2 className="t-h4">주문 상품 {quote.items.length}개</h2>{quote.items.map(item => <OrderSummary key={item.itemId} productName={item.productName} unitPrice={item.unitPrice} quantity={item.quantity} />)}<p>수량은 장바구니에서 변경할 수 있어요.</p></section>
-    <section className={styles.card}><CouponPicker value={couponId} onChange={onCouponChange} disabled={busy} /></section>
+    <section className={styles.card}><CouponPicker value={couponId} onChange={onCouponChange} disabled={busy || blocked} canApply={canApplyCoupon} /></section>
     <section className={styles.card}><h2 className="t-h4">주문자 정보</h2><Input label="주문자 이름" maxLength={64} autoComplete="name" value={name} onChange={e => setName(e.target.value)} disabled={busy} required /><Input label="연락처" autoComplete="tel" inputMode="tel" maxLength={32} value={phone} onChange={e => setPhone(e.target.value)} disabled={busy} required /></section>
   </div><aside className={styles.side}><section className={styles.card}><h2 className="t-h4">통합 결제 금액</h2><p>상품 금액 {formatPrice(quote.totalAmount)}</p>{(quote.discountAmount ?? 0) > 0 && <p>쿠폰 할인 -{formatPrice(quote.discountAmount ?? 0)}</p>}<strong className="t-price-lg">{formatPrice(quote.payableAmount ?? quote.totalAmount)}</strong>{quote.payableAmount === 0 && <p>0원 주문도 결제 완료 확인이 필요해요.</p>}<Checkbox label="상품별 주문과 통합 결제 금액을 확인했습니다" checked={agreed} onChange={e => setAgreed(e.target.checked)} disabled={busy} /><Button type="submit" fullWidth size="L" disabled={busy || blocked || !agreed}>{busy ? '주문 생성 중…' : '통합 주문 만들기'}</Button></section></aside></form>
 }
