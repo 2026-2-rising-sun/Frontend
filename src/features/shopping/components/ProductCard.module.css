@@ -1,4 +1,4 @@
-.card { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.card { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
 
 .thumb { border-radius: var(--radius-lg); }
 
@@ -13,19 +13,24 @@
   font: 700 20px/28px var(--font-sans);
 }
 
-.info { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.info { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-1); }
 
 .name {
-  font: 500 14px/20px var(--font-sans);
+  font: 400 16px/24px var(--font-sans);
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
 
-.price { font: 700 14px/20px var(--font-sans); }
+.price { font: 700 20px/28px var(--font-sans); }
 
 .soldOut .name,
 .soldOut .price { color: var(--text-tertiary); }
 
 .card:hover .name { text-decoration: underline; }
+
+@media (max-width: 767px) {
+  .name { font-size: 14px; line-height: 20px; }
+  .price { font-size: 16px; line-height: 24px; }
+}

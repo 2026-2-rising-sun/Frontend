@@ -1,0 +1,7 @@
+.stack { display: flex; flex-direction: column; gap: var(--space-3); width: 100%; min-width: 0; }
+.card { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4); border-radius: var(--radius-lg); background: var(--brand-subtle); }
+.heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.heading h3 { margin: 0; color: var(--text-brand); font: 700 16px/24px var(--font-sans); overflow-wrap: anywhere; }
+.heading > button, .heading > a { flex-shrink: 0; }
+.expected { color: var(--text-brand); }
+.muted { color: var(--text-secondary); font: 400 12px/18px var(--font-sans); overflow-wrap: anywhere; }

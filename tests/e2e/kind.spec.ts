@@ -158,6 +158,7 @@ test('kind: signup, profile edit and withdrawal', async ({ page }) => {
   await page.goto('/signup'); await page.getByLabel('이메일', { exact: true }).fill(email); await page.getByLabel('비밀번호', { exact: true }).fill(password); await page.getByLabel('이름', { exact: true }).fill('E2E 회원')
   await page.getByRole('button', { name: '가입하기', exact: true }).click(); await expect(page.getByRole('heading', { name: '로그인', exact: true })).toBeVisible()
   await login(page, email, password)
+  await page.getByRole('button', { name: '이름 변경', exact: true }).click();
   await page.getByLabel('변경할 이름').fill('변경된 회원'); await page.getByRole('button', { name: '이름 저장' }).click(); await expect(page.getByText('변경된 회원', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: '회원 탈퇴', exact: true }).click(); await page.getByLabel('현재 비밀번호').fill(password); await page.getByRole('button', { name: '탈퇴 확정' }).click()
   await expect(page.getByRole('link', { name: '로그인', exact: true })).toBeVisible()

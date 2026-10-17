@@ -19,7 +19,7 @@ export function ProductGridSkeleton({ count = 8 }: { count?: number }) {
     <div className={styles.grid} aria-busy="true">
       {Array.from({ length: count }, (_, i) => (
         <div key={i} className={styles.skeletonCard}>
-          <Skeleton height={0} style={{ aspectRatio: '1 / 1', height: 'auto' }} radius={14} />
+          <Skeleton height={0} style={{ aspectRatio: '282 / 240', height: 'auto' }} radius={14} />
           <Skeleton width="80%" />
           <Skeleton width="40%" />
         </div>
