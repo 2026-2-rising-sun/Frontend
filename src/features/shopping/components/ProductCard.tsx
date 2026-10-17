@@ -9,13 +9,13 @@ export function ProductCard({ product }: { product: Product }) {
   const soldOut = product.status === 'SOLD_OUT'
   return (
     <Link to={`/products/${product.id}`} className={[styles.card, soldOut && styles.soldOut].filter(Boolean).join(' ')}>
-      <Thumbnail src={product.imageUrl} alt={product.name} className={styles.thumb}>
+      <Thumbnail src={product.imageUrl} alt={product.name} ratio="282 / 240" className={styles.thumb}>
         {soldOut && <span className={styles.dim}>품절</span>}
       </Thumbnail>
       <div className={styles.info}>
         <p className={styles.name}>{product.name}</p>
         <p className={styles.price}>{formatPrice(product.price)}</p>
-        <StatusBadge status={productBadge(product.status)} />
+        {product.status !== 'SELLING' && <StatusBadge status={productBadge(product.status)} />}
       </div>
     </Link>
   )

@@ -55,9 +55,14 @@ interface EditorProps {
 function ProductEditor({ product, reload, onDone }: EditorProps & { product: AdminProduct | null }) {
   return (
     <>
-      <BasicInfoSection product={product} reload={reload} onDone={onDone} />
-      {product && <SaleInfoSection product={product} reload={reload} onDone={onDone} />}
-      {product && <SaleStatusSection product={product} reload={reload} onDone={onDone} />}
+      {product && <section className={styles.productOverview} aria-label="상품 설정 현황">
+        <div className={styles.cardHead}><h2 className="t-h4">{product.name}</h2><StatusBadge status={adminProductBadge(product.status)} /></div>
+        <p>{product.status === 'DRAFT' ? '기본정보를 등록했어요. 가격과 재고를 설정한 뒤 판매를 시작해 주세요.' : product.status === 'SOLD_OUT' ? '현재 품절이에요. 판매 설정에서 재고를 추가할 수 있어요.' : product.status === 'UNKNOWN' ? '판매정보를 확인하지 못했어요. 다시 조회한 뒤 판매 설정을 변경해 주세요.' : '변경할 항목으로 바로 이동하세요. 각 항목에서 따로 저장할 수 있어요.'}</p>
+        <nav className={styles.sectionLinks} aria-label="상품 설정 바로가기"><a href="#basic-info">1. 기본정보</a><a href="#sale-info">2. 가격·재고</a><a href="#sale-status">3. 판매 상태</a></nav>
+      </section>}
+      <div id="basic-info" className={styles.editorSection}><BasicInfoSection product={product} reload={reload} onDone={onDone} /></div>
+      {product && <div id="sale-info" className={styles.editorSection}><SaleInfoSection product={product} reload={reload} onDone={onDone} /></div>}
+      {product && <div id="sale-status" className={styles.editorSection}><SaleStatusSection product={product} reload={reload} onDone={onDone} /></div>}
     </>
   )
 }

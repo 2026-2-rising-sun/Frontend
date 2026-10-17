@@ -1,68 +1,43 @@
-/* 모바일: 이미지를 화면 폭에 맞추고, 하단 고정 바(88px) 만큼 아래 여백을 둔다. */
-.page { padding-left: 0; padding-right: 0; padding-top: 0; padding-bottom: 104px; }
-
-.layout { display: flex; flex-direction: column; gap: var(--space-5); }
-
-.image { width: 100%; }
-
-.info { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); padding: 0 var(--space-4); }
-.name { margin: 0; }
-.desc { color: var(--text-secondary); }
-.stock { font: 500 12px/16px var(--font-sans); color: var(--warning-text); }
-
-.live {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  width: 100%;
-  padding: var(--space-3);
-  background: var(--bg-muted);
-  border-radius: var(--radius-md);
-  font: 400 12px/18px var(--font-sans);
-  color: var(--text-secondary);
-}
-
+.surface { background: var(--bg-surface); }
+.page { max-width: calc(var(--container-max) + 2 * var(--space-6)); }
+.breadcrumb { display: flex; align-items: center; gap: var(--space-2); color: var(--text-secondary); font: 400 12px/18px var(--font-sans); }
+.breadcrumb a:hover { color: var(--text-brand); text-decoration: underline; }
+.product { padding-bottom: calc(var(--purchase-bar-height, 152px) + var(--space-6)); }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-6); }
+.gallery { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
+.gallery > p { color: var(--text-tertiary); font: 400 12px/18px var(--font-sans); }
+.image { width: 100%; border-radius: var(--radius-xl); }
+.info { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-5); min-width: 0; }
+.name { overflow-wrap: anywhere; }
+.summary { color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
+.summary:hover { color: var(--text-brand); }
+.stock { color: var(--warning-text); font: 500 12px/18px var(--font-sans); }
+.live { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius-md); background: var(--bg-page); color: var(--text-secondary); font: 400 12px/18px var(--font-sans); }
 .live:hover { text-decoration: underline; }
-
-/* 모바일 하단 고정 액션 바 */
-.actions {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom));
-  background: var(--bg-surface);
-  border-top: 1px solid var(--border-default);
-}
-
-.qtyRow { display: flex; align-items: center; }
-.qtyLabel, .totalRow { display: none; }
-.buy { flex: 1; }
-
+.actions { position: fixed; left: 0; right: 0; bottom: 0; z-index: 100; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom)); border-top: 1px solid var(--border-default); background: var(--bg-surface); }
+.purchaseSummary { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
+.qtyRow { display: flex; align-items: center; gap: var(--space-2); }
+.qtyRow > span { display: none; }
+.totalRow { display: flex; flex-direction: column; align-items: flex-end; color: var(--text-secondary); font: 400 12px/18px var(--font-sans); }
+.totalRow > strong { color: var(--text-brand); font-size: 20px; line-height: 28px; }
+.buttons { display: flex; gap: var(--space-3); }
+.buttons > * { flex: 1; min-width: 0; padding-left: var(--space-3); padding-right: var(--space-3); }
+.description { display: flex; flex-direction: column; gap: var(--space-4); border-top: 1px solid var(--border-default); padding-top: var(--space-6); margin-top: var(--space-6); scroll-margin-top: calc(var(--header-height) + var(--space-4)); }
+.description > p { color: var(--text-secondary); white-space: pre-wrap; overflow-wrap: anywhere; font: 400 16px/26px var(--font-sans); }
 @media (min-width: 768px) {
-  .page { padding: var(--space-10) var(--space-6) var(--space-16); }
-  .layout { flex-direction: row; align-items: flex-start; gap: var(--space-10); }
-  .image { width: 46%; flex: none; border-radius: var(--radius-xl); }
-  .info { flex: 1; padding: 0; gap: var(--space-4); }
-
-  .actions {
-    position: static;
-    width: 100%;
-    flex-direction: column;
-    align-items: stretch;
-    gap: var(--space-4);
-    padding: var(--space-4) 0 0;
-    background: transparent;
-    border-top: 1px solid var(--border-default);
-  }
-
+  .page { padding-top: var(--space-6); padding-bottom: var(--space-12); gap: var(--space-6); }
+  .product { padding-bottom: 0; }
+  .layout { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: var(--space-12); align-items: start; }
+  .actions { position: static; width: 100%; gap: var(--space-5); padding: var(--space-5) 0 0; }
+  .purchaseSummary { flex-direction: column; align-items: stretch; gap: var(--space-5); }
   .qtyRow { justify-content: space-between; }
-  .qtyLabel { display: inline; font: 500 16px/24px var(--font-sans); }
-  .totalRow { display: flex; align-items: center; justify-content: space-between; color: var(--text-secondary); font: 500 16px/24px var(--font-sans); }
-  .totalRow :last-child { color: var(--text-brand); }
-  .buy { flex: none; width: 100%; }
+  .qtyRow > span { display: inline; color: var(--text-secondary); }
+  .totalRow { flex-direction: row; align-items: center; justify-content: space-between; font: 400 16px/24px var(--font-sans); }
+  .totalRow > strong { font-size: 24px; line-height: 32px; }
+  .description { margin-top: var(--space-6); }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .layout { gap: var(--space-6); grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .buttons { flex-wrap: wrap; }
+  .buttons > * { flex-basis: 100%; }
 }

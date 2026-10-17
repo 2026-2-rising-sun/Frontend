@@ -86,7 +86,7 @@ test('홈 방송 카드에도 현재 시청 규모를 표시한다', async ({ pa
   const methods: string[] = []
   await fixture(page, (_path, method) => methods.push(method))
   await page.goto('/')
-  const section = page.getByRole('region', { name: '지금 볼 수 있는 방송' })
+  const section = page.getByRole('region', { name: '진행 중인 방송' })
   await expect(section.getByText('현재 시청 약 2명', { exact: true })).toBeVisible()
   expect(methods.every(method => method === 'GET')).toBeTruthy()
 })
