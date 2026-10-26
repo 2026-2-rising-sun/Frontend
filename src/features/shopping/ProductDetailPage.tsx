@@ -38,7 +38,7 @@ function ProductDetail({ product }: { product: Product }) {
   const inFlight = useRef(false)
   const productRef = useRef<HTMLDivElement>(null)
   const actionsRef = useRef<HTMLDivElement>(null)
-  const buyable = product.status === 'SELLING' && product.stock > 0
+  const buyable = product.status === 'SELLING' && product.stock !== null && product.stock > 0
 
   // 오류 안내와 글자 크기에 따라 달라지는 모바일 구매 바의 높이만큼 여백을 확보한다.
   useEffect(() => {
@@ -66,13 +66,13 @@ function ProductDetail({ product }: { product: Product }) {
         <h1 className={`t-h1 ${styles.name}`}>{product.name}</h1>
         <p className="t-price-lg">{formatPrice(product.price)}</p>
         {product.description && <a href="#product-description" className={styles.summary}>{product.description}</a>}
-        {buyable && product.stock <= 10 && <p className={styles.stock}>재고 {product.stock}개 남음</p>}
+        {buyable && product.stock !== null && product.stock <= 10 && <p className={styles.stock}>재고 {product.stock}개 남음</p>}
         {product.featuredLive && <Link to={`/lives/${product.featuredLive.id}`} className={styles.live}><StatusBadge status="live" /><span>{product.featuredLive.title}에서 소개된 상품이에요</span></Link>}
         <ProductCoupons productId={product.id} price={product.price} />
         {product.status === 'SOLD_OUT' && <AlertSubscription kind="restock" targetId={product.id} />}
         <div className={styles.actions} ref={actionsRef}>
           <div className={styles.purchaseSummary}>
-            <div className={styles.qtyRow}><span>수량</span><QuantityStepper value={quantity} onChange={setQuantity} max={product.stock} disabled={!buyable || busy} /></div>
+            <div className={styles.qtyRow}><span>수량</span><QuantityStepper value={quantity} onChange={setQuantity} max={product.stock ?? 1} disabled={!buyable || busy} /></div>
             <div className={styles.totalRow}><span>총 상품 금액</span><strong className="t-price-lg">{formatPrice(product.price * quantity)}</strong></div>
           </div>
           {notice && <Alert type={notice.type} title={notice.text} />}

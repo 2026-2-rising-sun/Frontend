@@ -14,8 +14,8 @@ export interface Product {
   imageUrl: string | null
   /** 양의 정수, 원 단위 */
   price: number
-  /** 0 이상 정수 */
-  stock: number
+  /** 주문 가능 재고 (예약분 제외). 0 이상 정수, 수량 미제공 시 null. */
+  stock: number | null
   purchasable?: boolean
   linkId?: string
   missing?: boolean

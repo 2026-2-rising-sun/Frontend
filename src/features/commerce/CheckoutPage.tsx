@@ -37,7 +37,7 @@ function CheckoutScope() {
 }
 function CheckoutForm({ product, initialQuantity, cartItemId }: { product: Product; initialQuantity: number; cartItemId?: string }) {
   const api = useApi(); const navigate = useNavigate(); const session = useSession()
-  const [quantity, setQuantity] = useState(cartItemId ? initialQuantity : Math.min(initialQuantity, Math.max(product.stock, 1)))
+  const [quantity, setQuantity] = useState(cartItemId ? initialQuantity : Math.min(initialQuantity, Math.max(product.stock ?? 1, 1)))
   const [name, setName] = useState(session?.displayName ?? ''); const [phone, setPhone] = useState('')
   const [agreed, setAgreed] = useState(false); const [busy, setBusy] = useState(false); const [error, setError] = useState('')
   const [couponId, setCouponId] = useState('')
@@ -77,7 +77,7 @@ function CheckoutForm({ product, initialQuantity, cartItemId }: { product: Produ
       {error && <Alert type="danger" title="주문을 확인해 주세요">{error}</Alert>}
       <section className={styles.card}><h2 className="t-h4">주문 상품</h2>
         <OrderSummary productName={product.name} unitPrice={quote?.unitPrice ?? product.price} quantity={quantity} imageUrl={product.imageUrl} />
-        <QuantityStepper value={quantity} onChange={setQuantity} max={Math.max(product.stock, 1)} disabled={busy || !!cartItemId} />
+        <QuantityStepper value={quantity} onChange={setQuantity} max={Math.max(product.stock ?? 1, 1)} disabled={busy || !!cartItemId} />
         {cartItemId && <p className="t-caption">수량은 장바구니에서 변경할 수 있어요.</p>}
       </section>
       <section className={styles.card}><CouponPicker value={couponId} onChange={setCouponId} disabled={busy || !!cartItemId} canApply={canApplyCoupon} />{cartItemId && <p className="t-caption">쿠폰은 상품 바로 구매 또는 장바구니 선택 상품 주문서에서 적용할 수 있어요.</p>}</section>

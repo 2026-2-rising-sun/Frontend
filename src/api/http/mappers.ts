@@ -6,7 +6,7 @@ export const imageUrl = (url: string | null) => url
 export function product(p: ProductDto): Product {
   const status = states[p.salesStatus ?? p.status ?? 'PRIVATE']
   if (!status || status === 'DRAFT' || status === 'UNKNOWN') throw new ApiError('NETWORK', '상품 판매 정보를 확인하지 못했어요.')
-  return { id: String(p.productId), name: p.name ?? '조회할 수 없는 상품', description: p.description ?? '', imageUrl: imageUrl(p.mainImageUrl), price: p.price ?? 0, stock: p.available ?? 0, status, purchasable: p.purchasable, linkId: p.linkId === undefined ? undefined : String(p.linkId), missing: p.missing }
+  return { id: String(p.productId), name: p.name ?? '조회할 수 없는 상품', description: p.description ?? '', imageUrl: imageUrl(p.mainImageUrl), price: p.price ?? 0, stock: p.available ?? null, status, purchasable: p.purchasable, linkId: p.linkId === undefined ? undefined : String(p.linkId), missing: p.missing }
 }
 export function adminProduct(p: ProductDto, salesId: string | null = null): AdminProduct {
   const status = states[p.salesStatus ?? 'NOT_REGISTERED']
