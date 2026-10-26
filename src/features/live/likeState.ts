@@ -10,7 +10,7 @@ export interface LikeState {
   pending?: { liked: boolean; key: string }
 }
 
-/** Aggregate and member state have independent clocks. A newer total may decrease. */
+/** 전체 집계와 회원별 상태의 갱신 시점은 독립적이다. 더 최신인 집계도 감소할 수 있다. */
 export function mergeLike(state: LikeState, incoming: LikeTotal | MyLike): LikeState {
   const aggregate = !state.aggregate || incoming.version >= state.aggregate.version ? incoming : state.aggregate
   const personal = 'liked' in incoming && (!state.personal || incoming.stateVersion >= state.personal.stateVersion)
@@ -25,7 +25,7 @@ function withTimeout<T>(request: Promise<T>, timeoutMs: number): Promise<T> {
   })
 }
 
-/** One instance owns one account/broadcast scope; no automatic mutation retries. */
+/** 인스턴스 하나는 계정·방송 조합 하나의 상태를 맡으며, 변경 요청을 자동 재시도하지 않는다. */
 export function createLikeState(
   api: Pick<LivesPort, 'likes' | 'myLike' | 'setLike'>,
   liveId: string,
@@ -73,7 +73,7 @@ export function createLikeState(
         return pending.liked && result.liked && state.personal?.liked === true
       } catch (error) {
         if (disposed) return
-        // Network/5xx failures may have committed. Keep the exact intent and key.
+        // 네트워크·5xx 오류여도 반영됐을 수 있으므로 같은 요청 의도와 키를 유지한다.
         const uncertain = !(error instanceof ApiError) || error.code === 'NETWORK' || error.code === 'UNKNOWN'
         publish({ ...state, busy: false, pending: uncertain ? pending : undefined,
           error: error instanceof Error ? error.message : '좋아요 상태를 변경하지 못했어요.' })

@@ -62,13 +62,13 @@ function CheckoutForm({ product, initialQuantity, cartItemId }: { product: Produ
       const order = await api.orders.create({ ...input, idempotencyKey: identity.key })
       identity.clear()
       if (order.groupNumber) { navigate(`/payment-groups/${encodeURIComponent(order.groupNumber)}`, { replace: true }); return }
-      // The saved order is the recovery point if payment start or its response is lost.
+      // 결제 시작이 실패하거나 응답이 유실되면 저장된 주문을 기준으로 복구한다.
       let paymentId: string | undefined
-      try { paymentId = String((await api.payments.start(order.orderNumber)).paymentId) } catch { /* result page offers a retry */ }
+      try { paymentId = String((await api.payments.start(order.orderNumber)).paymentId) } catch { /* 결과 화면에서 재시도할 수 있다 */ }
       navigate(`/orders/${encodeURIComponent(order.orderNumber)}`, { replace: true, state: { paymentId } })
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '주문하지 못했어요.')
-      try { const active = await api.paymentGroups.active(); if (active) { requestIdentity(session?.memberId ?? 'anonymous', 'direct-order', input).clear(); navigate(`/payment-groups/${encodeURIComponent(active.groupNumber)}`, { replace: true }) } } catch { /* retry keeps original key */ }
+      try { const active = await api.paymentGroups.active(); if (active) { requestIdentity(session?.memberId ?? 'anonymous', 'direct-order', input).clear(); navigate(`/payment-groups/${encodeURIComponent(active.groupNumber)}`, { replace: true }) } } catch { /* 재시도할 때 원래 키를 유지한다 */ }
     }
     finally { inFlight.current = false; setBusy(false) }
   }

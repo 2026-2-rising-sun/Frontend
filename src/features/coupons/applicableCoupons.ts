@@ -12,7 +12,7 @@ export async function applicableCoupons(
     if (items.length < 20) break
   }
   const usable: MemberCoupon[] = []
-  // Preview does not reserve coupons. Limit concurrent requests to the existing checkout API.
+  // 미리보기는 쿠폰을 예약하지 않는다. 기존 주문서 API에 보내는 동시 요청 수를 제한한다.
   for (let start = 0; start < candidates.length; start += 4) {
     const batch = candidates.slice(start, start + 4)
     const accepted = await Promise.all(batch.map(async coupon => {

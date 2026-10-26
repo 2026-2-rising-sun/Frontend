@@ -97,7 +97,7 @@ test('changing payment group route clears previous purchase actions while the ne
   await page.goto('/payment-groups/PG-A')
   await expect(page.getByRole('button', { name: '통합 결제하기' })).toBeVisible()
   await expect(page.getByRole('button', { name: '전체 주문 취소' })).toBeVisible()
-  // Change only the route, keeping the same mounted application and authenticated account.
+  // 마운트된 앱과 로그인 계정은 유지한 채 경로만 변경한다.
   await page.evaluate(() => { history.pushState({}, '', '/payment-groups/PG-B'); window.dispatchEvent(new PopStateEvent('popstate')) })
   await expect(page).toHaveURL(/\/payment-groups\/PG-B$/)
   await expect(page.getByRole('button', { name: '통합 결제하기' })).toHaveCount(0)

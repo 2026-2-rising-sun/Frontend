@@ -13,7 +13,7 @@ interface AlertProps {
   className?: string
 }
 
-/** Figma "Alert" (Info · Success · Warning · Danger). */
+/** Figma "Alert"의 알림 상태(Info · Success · Warning · Danger). */
 export function Alert({ type = 'info', title, children, className }: AlertProps) {
   const IconComponent = ICONS[type]
   return (

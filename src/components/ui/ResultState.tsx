@@ -13,7 +13,7 @@ interface ResultStateProps {
 }
 
 /**
- * Figma "Result State" (Empty · Error · Processing).
+ * Figma "Result State"의 결과 표시 상태(Empty · Error · Processing).
  * "결과 없음", "조회 실패", "처리 중"은 서로 다른 상태로 항상 구분해서 보여준다.
  * (조회 실패를 품절·재고 없음으로 위장하지 않는다.)
  */

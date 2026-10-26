@@ -11,7 +11,7 @@ interface QuantityStepperProps {
   disabled?: boolean
 }
 
-/** Figma "Quantity Stepper" (Default · Min · Max). */
+/** Figma "Quantity Stepper"의 수량 조절 상태(Default · Min · Max). */
 export function QuantityStepper({ value, onChange, min = 1, max, disabled }: QuantityStepperProps) {
   const atMin = value <= min
   const atMax = max !== undefined && value >= max

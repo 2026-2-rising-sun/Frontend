@@ -6,7 +6,7 @@ const root = resolve(import.meta.dirname, '..')
 const backend = resolve(process.env.BACKEND_DIR ?? root + '/../Backend')
 const namespace = process.env.KIND_NAMESPACE ?? 'shoppinglive-frontend-local'
 const context = process.env.KIND_CONTEXT ?? 'kind-shoppinglive-dev'
-if (!context.startsWith('kind-')) throw new Error('A kind context is required')
+if (!context.startsWith('kind-')) throw new Error('kind 컨텍스트가 필요합니다')
 const run = (name, args, options = {}) => execFileSync(name, args, { encoding: 'utf8', ...options })
 const k = args => ['--context', context, '-n', namespace, ...args]
 const work = root + '/test-artifacts/kind'; mkdirSync(work, { recursive: true })
@@ -17,17 +17,17 @@ const meta = name => ({ name, namespace, labels })
 const apply = objects => run('kubectl', k(['apply', '-f', '-']), { input: JSON.stringify({ apiVersion: 'v1', kind: 'List', items: objects }) })
 if (process.argv[2] === 'down') {
   const record = JSON.parse(run('kubectl', ['--context', context, 'get', 'namespace', namespace, '-o', 'json']))
-  if (record.metadata.labels['app.kubernetes.io/managed-by'] !== labels['app.kubernetes.io/managed-by']) throw new Error('Namespace ownership mismatch')
+  if (record.metadata.labels['app.kubernetes.io/managed-by'] !== labels['app.kubernetes.io/managed-by']) throw new Error('네임스페이스 소유자가 일치하지 않습니다')
   console.log(run('kubectl', ['--context', context, 'delete', 'namespace', namespace])); process.exit(0)
 }
 const sha = run('git', ['rev-parse', 'HEAD'], { cwd: backend }).trim()
-if (run('git', ['status', '--porcelain', '--untracked-files=no'], { cwd: backend }).trim()) throw new Error('Backend tracked changes must be committed before building integration images')
-console.log('Building the existing Backend commit: ' + sha)
+if (run('git', ['status', '--porcelain', '--untracked-files=no'], { cwd: backend }).trim()) throw new Error('통합 이미지를 빌드하기 전에 백엔드 추적 파일의 변경을 커밋해야 합니다')
+console.log('기존 백엔드 커밋으로 빌드: ' + sha)
 run(resolve(backend, 'gradlew'), ['--no-daemon', '--max-workers=2', ...services.map(s => `:services:${s}-service:bootJar`)], { cwd: backend, stdio: 'inherit' })
 try {
   const current = JSON.parse(run('kubectl', ['--context', context, 'get', 'namespace', namespace, '-o', 'json'], { stdio: ['ignore', 'pipe', 'ignore'] }))
-  if (current.metadata.labels['app.kubernetes.io/managed-by'] !== labels['app.kubernetes.io/managed-by']) throw new Error('Namespace ownership mismatch')
-} catch (e) { if (e.message === 'Namespace ownership mismatch') throw e }
+  if (current.metadata.labels['app.kubernetes.io/managed-by'] !== labels['app.kubernetes.io/managed-by']) throw new Error('네임스페이스 소유자가 일치하지 않습니다')
+} catch (e) { if (e.message === '네임스페이스 소유자가 일치하지 않습니다') throw e }
 console.log(apply([{ apiVersion: 'v1', kind: 'Namespace', metadata: { name: namespace, labels } }]))
 let config
 const credentialsFile = work + '/credentials.json'
@@ -43,7 +43,7 @@ writeFileSync(credentialsFile, JSON.stringify(config), { mode: 0o600 })
 const deployment = (name, image, env = [], volumes = [], mounts = [], probes = false) => ({ apiVersion: 'apps/v1', kind: 'Deployment', metadata: meta(name), spec: { replicas: 1, strategy: { type: 'Recreate' }, selector: { matchLabels: { app: name } }, template: { metadata: { labels: { app: name, ...labels } }, spec: { volumes, containers: [{ name, image, imagePullPolicy: 'IfNotPresent', env, ports: [{ containerPort: 8080 }, { containerPort: 9090 }], volumeMounts: mounts, ...(probes ? { resources: { requests: { memory: '160Mi', cpu: '50m' }, limits: { memory: '640Mi' } }, startupProbe: { httpGet: { path: '/actuator/health/readiness', port: 9090 }, failureThreshold: 90, periodSeconds: 2 }, readinessProbe: { httpGet: { path: '/actuator/health/readiness', port: 9090 }, periodSeconds: 3 } } : {}) }] } } } })
 const service = (name, port, targetPort = port) => ({ apiVersion: 'v1', kind: 'Service', metadata: meta(name), spec: { selector: { app: name }, ports: [{ port, targetPort }] } })
 const env = record => Object.entries(record).map(([name, value]) => ({ name, value: String(value) }))
-// Kafka is isolated in this namespace; existing clusters and topics are never reused.
+// Kafka는 이 네임스페이스에 격리하며 기존 클러스터와 토픽을 재사용하지 않는다.
 const kafkaDeployment = () => ({
   apiVersion: 'apps/v1', kind: 'Deployment', metadata: meta('kafka'),
   spec: { replicas: 1, strategy: { type: 'Recreate' }, selector: { matchLabels: { app: 'kafka' } }, template: {
@@ -83,7 +83,7 @@ const missingDatabasesSql = `SELECT format('CREATE DATABASE %I', name) FROM (VAL
 run('kubectl', k(['exec', '-i', 'deployment/postgres', '--', 'sh', '-c', 'PGPASSWORD="$POSTGRES_PASSWORD" exec psql -h 127.0.0.1 -U frontend -d postgres -v ON_ERROR_STOP=1']), { input: missingDatabasesSql })
 for (const s of services) {
   const jars = readdirSync(backend + `/services/${s}-service/build/libs`).filter(n => n.endsWith('.jar') && !n.endsWith('-plain.jar'))
-  if (jars.length !== 1) throw new Error('Expected one boot jar for ' + s)
+  if (jars.length !== 1) throw new Error('실행용 JAR 파일이 하나여야 하는 서비스: ' + s)
   const dir = work + '/' + s; mkdirSync(dir, { recursive: true })
   writeFileSync(dir + '/app.jar', readFileSync(backend + `/services/${s}-service/build/libs/` + jars[0]))
   writeFileSync(dir + '/Dockerfile', 'FROM eclipse-temurin:21-jdk\nCOPY app.jar /app.jar\nENTRYPOINT ["java","-jar","/app.jar"]\n')
@@ -97,4 +97,4 @@ for (const s of services) {
 if (kafkaEnabled) console.log(run('kubectl', k(['rollout', 'status', 'deployment/kafka', '--timeout=180s'])))
 for (const s of services) console.log(run('kubectl', k(['rollout', 'status', 'deployment/' + s, '--timeout=180s'])))
 writeFileSync(work + '/state.json', JSON.stringify({ context, namespace, backendSha: sha, services, kafkaEnabled, createdAt: new Date().toISOString() }, null, 2))
-console.log('Ready. Run npm run local:frontend to keep service forwarding and the frontend open at http://localhost:5174.')
+console.log('준비 완료. npm run local:frontend를 실행하면 서비스 포트 전달과 프런트엔드를 http://localhost:5174에서 유지합니다.')

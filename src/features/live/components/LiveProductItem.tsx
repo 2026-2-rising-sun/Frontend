@@ -5,7 +5,7 @@ import { formatPrice } from '../../../lib/format'
 import styles from './LiveProductItem.module.css'
 
 /**
- * Figma "Live Product Item" (Selling · SoldOut).
+ * Figma "Live Product Item"의 판매 상태(Selling · SoldOut).
  * 방송 상품은 P1 에서 "바로 구매"만 제공한다 (장바구니는 P2). 주문 화면은 일반 구매와 동일하다.
  */
 export function LiveProductItem({ product }: { product: Product }) {

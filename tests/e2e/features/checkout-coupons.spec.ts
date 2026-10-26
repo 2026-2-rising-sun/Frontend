@@ -53,7 +53,7 @@ test('kind: 상품 쿠폰 표시, 쿠폰함 수령, 직접 주문 0원 결제를
   await signIn(page, member.email, password)
   await page.goto('/coupons')
   await page.getByRole('button', { name: '받을 수 있는 쿠폰', exact: true }).click()
-  // The claimable catalogue is paginated and may contain preserved test data.
+  // 발급 가능한 쿠폰 목록은 페이지로 나뉘며 기존 테스트 데이터가 남아 있을 수 있다.
   let targetPage = 0
   for (; targetPage < 100; targetPage++) {
     const response = await request.get(`/api/commerce/v1/coupons?page=${targetPage}&size=20`, { headers: member.headers })

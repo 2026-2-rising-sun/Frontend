@@ -22,7 +22,7 @@ export function createHttpAuth(baseUrl: string, testAccounts = false, storage: R
   const storageKey = 'shoppinglive:refresh:' + new URL(baseUrl, window.location.origin).href
   const savedRefresh = () => { try { return storage?.getItem(storageKey) ?? null } catch { return null } }
   const saveRefresh = (token: string | null) => {
-    try { if (token) storage?.setItem(storageKey, token); else storage?.removeItem(storageKey) } catch { /* restricted storage falls back to memory */ }
+    try { if (token) storage?.setItem(storageKey, token); else storage?.removeItem(storageKey) } catch { /* 저장소 접근이 제한되면 메모리를 사용한다 */ }
   }
   let pair: TokenPair | null = null
   let generation = 0
@@ -45,7 +45,7 @@ export function createHttpAuth(baseUrl: string, testAccounts = false, storage: R
   const request: typeof raw = async (path, options) => {
     if (pair && !options?.anonymous) {
       let exp: number | undefined
-      try { exp = JSON.parse(atob(pair.accessToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp } catch { /* server verifies tokens */ }
+      try { exp = JSON.parse(atob(pair.accessToken.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp } catch { /* 토큰은 서버에서 검증한다 */ }
       if (exp && exp * 1000 < Date.now() + 60000) await refresh()
     }
     return raw(path, options)

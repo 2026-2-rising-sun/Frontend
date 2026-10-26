@@ -1,4 +1,4 @@
-# Logs
+# 로그
 logs
 *.log
 npm-debug.log*
@@ -12,7 +12,7 @@ dist
 dist-ssr
 *.local
 
-# Editor directories and files
+# 편집기 폴더와 파일
 .vscode/*
 !.vscode/extensions.json
 .idea
@@ -24,7 +24,7 @@ dist-ssr
 *.sw?
 .vercel
 
-# Local E2E keys, jars, test traces and reports
+# 로컬 E2E 키·JAR·테스트 추적 결과·보고서
 /test-artifacts/
 /test-results/
 /playwright-report/
