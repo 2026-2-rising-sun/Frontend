@@ -1,5 +1,33 @@
 .panel { display:flex; flex-direction:column; gap:var(--space-3); padding:var(--space-4); border:1px solid var(--border-default); border-radius:var(--radius-lg); background:var(--bg-surface); }
-.actions { display:flex; align-items:center; justify-content:space-between; gap:var(--space-2); }
+.actions { display:flex; align-items:center; justify-self:end; grid-column:2; gap:2px; }
+.likeCount { color:var(--text-secondary); font:500 14px/20px var(--font-sans); white-space:nowrap; }
+.likeLabel { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip-path:inset(50%); white-space:nowrap; }
+.likeError { grid-column:1 / -1; }
+.heartControl { display:flex; flex-direction:column; align-items:center; gap:var(--space-1); }
+.heartStage { position:relative; }
+.heartButton { display:flex; align-items:center; justify-content:center; width:44px; height:44px; padding:0; border:0; border-radius:50%; background:transparent; color:var(--danger-strong); cursor:pointer; }
+.heartButton:hover:not(:disabled) { background:var(--danger-subtle); }
+.heartButton:focus-visible { outline:2px solid var(--danger-strong); outline-offset:3px; box-shadow:var(--focus-ring); }
+.heartButton:disabled { cursor:not-allowed; opacity:0.5; }
+.heartStatus { font:400 12px/18px var(--font-sans); color:var(--text-secondary); }
+.heartBurst { position:absolute; inset:0; pointer-events:none; }
+.heartBurst span { position:absolute; left:10px; top:10px; color:var(--danger-strong); opacity:0; animation:heartFloat 900ms ease-out both; }
+.heartBurst span:nth-child(1) { --drift:-44px; --rise:-104px; --turn:-25deg; }
+.heartBurst span:nth-child(2) { --drift:-22px; --rise:-142px; --turn:15deg; animation-delay:60ms; }
+.heartBurst span:nth-child(3) { --drift:4px; --rise:-118px; --turn:-12deg; animation-delay:120ms; }
+.heartBurst span:nth-child(4) { --drift:18px; --rise:-148px; --turn:24deg; animation-delay:30ms; }
+.heartBurst span:nth-child(5) { --drift:28px; --rise:-98px; --turn:-18deg; animation-delay:150ms; }
+.heartBurst span:nth-child(6) { --drift:-8px; --rise:-170px; --turn:12deg; animation-delay:180ms; }
+@keyframes heartFloat {
+  0% { opacity:0; transform:translate(0, 0) scale(0.45) rotate(0); }
+  15% { opacity:0.95; }
+  65% { opacity:0.8; }
+  100% { opacity:0; transform:translate(var(--drift), var(--rise)) scale(1.1) rotate(var(--turn)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .heartBurst { display:none; }
+  .heartBurst span { animation:none; }
+}
 .messages { list-style:none; margin:0; padding:0; max-height:320px; overflow:auto; display:flex; flex-direction:column; gap:var(--space-3); }
 .messages li { padding:var(--space-2); border-radius:var(--radius-md); background:var(--bg-muted); overflow-wrap:anywhere; }
 .messages strong { font:500 12px/18px var(--font-sans); color:var(--text-secondary); }

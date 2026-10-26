@@ -54,14 +54,14 @@ test('response loss preserves exact intent/key; successful cancel uses a fresh k
     },
   }, '1', true, () => `key-${++next}`)
   await store.refresh()
-  await store.toggle(true)
+  assert.equal(await store.toggle(true), undefined)
   assert.equal(store.getSnapshot().pending?.key, 'key-1')
-  await store.toggle(false)
+  assert.equal(await store.toggle(false), true)
   assert.deepEqual(calls.slice(0, 2), [{ liked: true, key: 'key-1' }, { liked: true, key: 'key-1' }])
   assert.equal(store.getSnapshot().personal?.liked, true)
   await store.toggle(false)
   assert.equal(calls.length, 2)
-  await store.toggle(true)
+  assert.equal(await store.toggle(true), false)
   assert.deepEqual(calls[2], { liked: false, key: 'key-2' })
   assert.equal(store.getSnapshot().personal?.liked, false)
 })
@@ -74,8 +74,8 @@ test('rapid double clicks create one mutation, timeout retains intent and refres
   }, '1', true, () => 'one-key', 10)
   await store.refresh()
   const write = store.toggle(true)
-  await store.toggle(true)
-  await write
+  assert.equal(await store.toggle(true), undefined)
+  assert.equal(await write, undefined)
   assert.equal(writes, 1)
   assert.equal(store.getSnapshot().pending?.key, 'one-key')
   assert.equal(store.getSnapshot().busy, false)
@@ -115,4 +115,18 @@ test('definitive 409 clears pending; anonymous state never calls private endpoin
   await member.refresh(); await member.toggle(true)
   assert.equal(member.getSnapshot().pending, undefined)
   assert.equal(member.getSnapshot().error, '방송이 종료되었어요.')
+})
+
+test('확인된 좋아요 응답만 성공을 알리고 최신 취소나 폐기된 화면의 응답은 알리지 않는다', async () => {
+  for (const dispose of [false, true]) {
+    const response = deferred<MyLike>()
+    const store = createLikeState({ likes: async () => snapshot(false), myLike: async () => snapshot(false), setLike: () => response.promise }, '1', true)
+    await store.refresh()
+    const write = store.toggle(true)
+    if (dispose) store.dispose()
+    else store.accept(snapshot(false, 2))
+    response.resolve(snapshot(true, 1))
+    assert.equal(await write, dispose ? undefined : false)
+    assert.equal(store.getSnapshot().personal?.liked, false)
+  }
 })
