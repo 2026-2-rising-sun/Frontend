@@ -18,6 +18,7 @@ export interface NotificationsPort {
   list(cursor?: string | null): Promise<NotificationPage>
   unreadCount(): Promise<number>
   read(id: string): Promise<void>
+  readAll(): Promise<void>
   registerBroadcast(id: string): Promise<void>
   unregisterBroadcast(id: string): Promise<void>
   registerRestock(id: string): Promise<void>

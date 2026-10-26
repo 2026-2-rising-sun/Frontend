@@ -15,6 +15,7 @@ export function createNotifications(request: HttpClient): NotificationsPort {
       return { ...page, items: page.items.map(item => ({ ...item, id: String(item.id) })) }
     },
     async unreadCount() { return (await request<{ unreadCount: number }>('/notification/v1/notifications/unread-count')).unreadCount },
+    readAll: () => request('/notification/v1/notifications/read-all', { method: 'POST', responseType: 'empty' }),
     read: id => request(`/notification/v1/notifications/${encodeURIComponent(id)}/read`, { method: 'POST', responseType: 'empty' }),
     registerBroadcast: id => request('/notification/v1/broadcast-alerts', { method: 'POST', body: { broadcastId: Number(id) }, responseType: 'empty' }),
     unregisterBroadcast: id => request(`/notification/v1/broadcast-alerts/${encodeURIComponent(id)}`, { method: 'DELETE', responseType: 'empty' }),
