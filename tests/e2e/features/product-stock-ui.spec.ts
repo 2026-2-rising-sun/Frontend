@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-// 현재 Backend의 두 목록에는 available이 없다. 수량이 있는 fixture는 필드 추가 후의 표시를 검증한다.
+// 수량 제공과 누락 응답을 함께 검증한다. 실제 서비스 연동 검증과는 구분한다.
 const products = [
   { productId: 1, name: '데일리 텀블러', mainImageUrl: null, price: 18000, salesStatus: 'ON_SALE', available: 1234 },
   { productId: 2, name: '품절 머그컵', mainImageUrl: null, price: 12000, salesStatus: 'SOLD_OUT', available: 0 },
