@@ -25,6 +25,8 @@
 
 .price { font: 700 20px/28px var(--font-sans); }
 
+.stock { color: var(--text-secondary); font: 400 12px/18px var(--font-sans); }
+
 .soldOut .name,
 .soldOut .price { color: var(--text-tertiary); }
 

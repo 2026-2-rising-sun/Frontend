@@ -16,6 +16,7 @@ export function ProductCard({ product }: { product: Product }) {
       <div className={styles.info}>
         <p className={styles.name}>{product.name}</p>
         <p className={styles.price}>{formatPrice(product.price)}</p>
+        <p className={styles.stock}>{product.stock === null ? '재고 확인 필요' : `남은 재고 ${product.stock.toLocaleString('ko-KR')}개`}</p>
         {product.status !== 'SELLING' && <StatusBadge status={productBadge(product.status)} />}
         <ProductCouponHint productId={product.id} />
       </div>
