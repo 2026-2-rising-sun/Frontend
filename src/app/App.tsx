@@ -15,11 +15,11 @@ import { LoginPage } from '../features/auth/LoginPage'
 import { useEffect } from 'react'
 import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import type { Api } from '../domain/ports'
-import { AdminLayout } from '../features/admin/AdminLayout'
-import { AdminLiveEditPage } from '../features/admin/AdminLiveEditPage'
-import { AdminLiveListPage } from '../features/admin/AdminLiveListPage'
-import { AdminProductEditPage } from '../features/admin/AdminProductEditPage'
-import { AdminProductListPage } from '../features/admin/AdminProductListPage'
+import { SellerLayout } from '../features/seller/SellerLayout'
+import { SellerLiveEditPage } from '../features/seller/SellerLiveEditPage'
+import { SellerLiveListPage } from '../features/seller/SellerLiveListPage'
+import { SellerProductEditPage } from '../features/seller/SellerProductEditPage'
+import { SellerProductListPage } from '../features/seller/SellerProductListPage'
 import { CheckoutPage } from '../features/commerce/CheckoutPage'
 import { OrderLookupPage } from '../features/commerce/OrderLookupPage'
 import { OrderResultPage } from '../features/commerce/OrderResultPage'
@@ -71,19 +71,19 @@ function App({ api }: AppProps) {
             <Route path="*" element={<NotFoundPage />} />
           </Route>
           {/* 판매자 역할을 검증한 뒤 관리 콘솔을 렌더링한다. */}
-          <Route path="admin" element={<AdminLayout />}>
+          <Route path="seller" element={<SellerLayout />}>
             <Route index element={<Navigate to="products" replace />} />
-            <Route path="products" element={<AdminProductListPage />} />
-            <Route path="products/new" element={<AdminProductEditPage key="new" />} />
-            <Route path="products/:productId" element={<AdminProductEditPage key="edit" />} />
+            <Route path="products" element={<SellerProductListPage />} />
+            <Route path="products/new" element={<SellerProductEditPage key="new" />} />
+            <Route path="products/:productId" element={<SellerProductEditPage key="edit" />} />
             <Route path="refunds" element={<SellerRefundListPage />} />
             <Route path="refunds/:refundId" element={<SellerRefundDetailPage />} />
             <Route path="coupons" element={<SellerCouponsPage />} />
             <Route path="coupons/new" element={<SellerCouponEditPage key="new" />} />
             <Route path="coupons/:id" element={<SellerCouponEditPage key="edit" />} />
-            <Route path="lives" element={<AdminLiveListPage />} />
-            <Route path="lives/new" element={<AdminLiveEditPage key="new" />} />
-            <Route path="lives/:liveId" element={<AdminLiveEditPage key="edit" />} />
+            <Route path="lives" element={<SellerLiveListPage />} />
+            <Route path="lives/new" element={<SellerLiveEditPage key="new" />} />
+            <Route path="lives/:liveId" element={<SellerLiveEditPage key="edit" />} />
           </Route>
         </Routes>
       </BrowserRouter>

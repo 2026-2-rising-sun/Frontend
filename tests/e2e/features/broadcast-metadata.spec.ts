@@ -8,7 +8,7 @@ test('kind: 판매자 썸네일·진행자명·소개 저장 후 재접속과 �
   await page.getByLabel('비밀번호', { exact: true }).fill('seller')
   await page.getByRole('button', { name: '로그인', exact: true }).click()
   await expect(page).not.toHaveURL(/\/login$/)
-  await page.goto('/admin/lives/new')
+  await page.goto('/seller/lives/new')
   await page.getByLabel('방송 제목', { exact: true }).fill(title)
   await page.getByLabel('공개 진행자 이름', { exact: true }).fill('메타 진행자')
   await page.getByLabel('방송 소개', { exact: true }).fill('새 상품을 소개하는 방송입니다.')
@@ -17,7 +17,7 @@ test('kind: 판매자 썸네일·진행자명·소개 저장 후 재접속과 �
   await page.getByLabel(/예정 시작/).fill('2026-12-01T12:00')
   await page.getByLabel(/시청.*URL|재생 URL|시청 연결/).fill(`https://stub.live-video.net/${suffix}.m3u8`)
   await page.getByRole('button', { name: '방송 등록', exact: true }).click()
-  await expect(page).toHaveURL(/\/admin\/lives\/\d+$/)
+  await expect(page).toHaveURL(/\/seller\/lives\/\d+$/)
   const id = page.url().split('/').at(-1)!
   await page.reload()
   await expect(page.getByLabel('공개 진행자 이름', { exact: true })).toHaveValue('메타 진행자')

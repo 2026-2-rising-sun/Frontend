@@ -7,28 +7,28 @@ import { AsyncView } from '../../components/AsyncView'
 import { ChevronDownIcon } from '../../components/icons'
 import { Alert, Button, ButtonLink, ImageUpload, Input, Textarea, Thumbnail, Select, Skeleton, StatusBadge, liveBadge, productBadge } from '../../components/ui'
 import { LIVE_TITLE_MAX } from '../../domain/constraints'
-import type { AdminLive } from '../../domain/types'
+import type { SellerLive } from '../../domain/types'
 import { useIdempotencyKey } from '../../hooks/useIdempotencyKey'
 import { useAsync } from '../../hooks/useAsync'
 import { usePaged } from '../../hooks/usePaged'
 import { formatPrice, fromKstInputValue, toKstInputValue } from '../../lib/format'
 import { ActionAlert } from './components/ActionAlert'
-import { AdminSection } from './components/AdminSection'
+import { SellerSection } from './components/SellerSection'
 import { useAction } from './useAction'
-import styles from './admin.module.css'
+import styles from './seller.module.css'
 
-/** 방송 등록(/admin/lives/new) 과 편집(/admin/lives/:id) 을 한 화면으로 처리한다. */
-export function AdminLiveEditPage() {
+/** 방송 등록(/seller/lives/new) 과 편집(/seller/lives/:id) 을 한 화면으로 처리한다. */
+export function SellerLiveEditPage() {
   const { liveId } = useParams()
   const api = useApi()
   const location = useLocation()
   const [flash, setFlash] = useState<string | null>((location.state as { notice?: string } | null)?.notice ?? null)
-  const live = useAsync(() => (liveId ? api.admin.lives.get(liveId) : Promise.resolve(null)), [api, liveId])
+  const live = useAsync(() => (liveId ? api.seller.lives.get(liveId) : Promise.resolve(null)), [api, liveId])
 
   return (
     <>
       <div className={styles.pageHead}>
-        <Link to="/admin/lives" className={styles.back}>
+        <Link to="/seller/lives" className={styles.back}>
           ← 방송 목록
         </Link>
         <div className={styles.pageTitle}>
@@ -49,7 +49,7 @@ interface EditorProps {
   onDone: (message: string | null) => void
 }
 
-function LiveEditor({ live, reload, onDone }: EditorProps & { live: AdminLive | null }) {
+function LiveEditor({ live, reload, onDone }: EditorProps & { live: SellerLive | null }) {
   return (
     <>
       {live && live.status !== 'READY' && (
@@ -66,7 +66,7 @@ function LiveEditor({ live, reload, onDone }: EditorProps & { live: AdminLive | 
   )
 }
 
-function BasicSection({ live, reload, onDone }: EditorProps & { live: AdminLive | null }) {
+function BasicSection({ live, reload, onDone }: EditorProps & { live: SellerLive | null }) {
   const api = useApi()
   const navigate = useNavigate()
   const { busy, error, run } = useAction()
@@ -99,18 +99,18 @@ function BasicSection({ live, reload, onDone }: EditorProps & { live: AdminLive 
     if (!live) {
       let createdId = ''
       const ok = await run('save', async () => {
-        createdId = (await api.admin.lives.create({ ...input, idempotencyKey: keyFor({ ...input, thumbnail: thumbnail ? [thumbnail.name, thumbnail.size, thumbnail.lastModified] : null }) })).id
+        createdId = (await api.seller.lives.create({ ...input, idempotencyKey: keyFor({ ...input, thumbnail: thumbnail ? [thumbnail.name, thumbnail.size, thumbnail.lastModified] : null }) })).id
       })
       // 상품 연결 없이도 준비 중 방송은 저장할 수 있다. 이어서 같은 방송에서 상품을 연결한다.
-      if (ok) navigate(`/admin/lives/${createdId}`, { replace: true, state: { notice: '방송을 등록했어요(준비 중). 이어서 상품을 연결해 주세요.' } })
-    } else if (await run('save', () => api.admin.lives.update(live.id, { ...input, version: live.version }))) {
+      if (ok) navigate(`/seller/lives/${createdId}`, { replace: true, state: { notice: '방송을 등록했어요(준비 중). 이어서 상품을 연결해 주세요.' } })
+    } else if (await run('save', () => api.seller.lives.update(live.id, { ...input, version: live.version }))) {
       onDone('방송 기본정보를 저장했어요.')
       reload()
     }
   }
 
   return (
-    <AdminSection title="기본정보" description="방송 제목·예정 시각·시청 연결 정보. 방송을 등록해도 영상 송출이 시작되는 것은 아니에요.">
+    <SellerSection title="기본정보" description="방송 제목·예정 시각·시청 연결 정보. 방송을 등록해도 영상 송출이 시작되는 것은 아니에요.">
       <form className={styles.form} onSubmit={submit} noValidate>
         <ActionAlert error={error} onReload={reload} />
         <Input label="방송 제목" value={title} onChange={(e) => setTitle(e.target.value)} disabled={!editable} error={show('title')} placeholder="예: 가을 신상 이어폰 특가 라이브" />
@@ -146,11 +146,11 @@ function BasicSection({ live, reload, onDone }: EditorProps & { live: AdminLive 
           </div>
         )}
       </form>
-    </AdminSection>
+    </SellerSection>
   )
 }
 
-function ProductsSection({ live, reload, onDone }: EditorProps & { live: AdminLive }) {
+function ProductsSection({ live, reload, onDone }: EditorProps & { live: SellerLive }) {
   const api = useApi()
   const { busy, error, run } = useAction()
   const canLink = live.status !== 'ENDED'
@@ -172,11 +172,11 @@ function ProductsSection({ live, reload, onDone }: EditorProps & { live: AdminLi
     const ids = live.products.map((p) => p.linkId!)
     const [item] = ids.splice(index, 1)
     ids.splice(index + delta, 0, item)
-    void finish('reorder', () => api.admin.lives.reorderProducts(live.id, ids, live.version), '노출 순서를 저장했어요.')
+    void finish('reorder', () => api.seller.lives.reorderProducts(live.id, ids, live.version), '노출 순서를 저장했어요.')
   }
 
   return (
-    <AdminSection
+    <SellerSection
       title="연결 상품"
       description="방송에서 소개할 상품과 노출 순서. 판매 중·품절인 공개 상품만 연결할 수 있고, 연결해도 상품·재고는 복제되지 않아요."
       aside={<span className={styles.hint}>{live.products.length}개</span>}
@@ -207,7 +207,7 @@ function ProductsSection({ live, reload, onDone }: EditorProps & { live: AdminLi
                   </>
                 )}
                 {canLink && (
-                  <Button size="S" variant="secondary" disabled={busy !== null || (live.status === 'LIVE' && live.products.length === 1)} onClick={() => finish('unlink', () => api.admin.lives.unlinkProduct(live.id, p.linkId!, live.version), `'${p.name}' 연결을 해제했어요.`)}>
+                  <Button size="S" variant="secondary" disabled={busy !== null || (live.status === 'LIVE' && live.products.length === 1)} onClick={() => finish('unlink', () => api.seller.lives.unlinkProduct(live.id, p.linkId!, live.version), `'${p.name}' 연결을 해제했어요.`)}>
                     해제
                   </Button>
                 )}
@@ -227,7 +227,7 @@ function ProductsSection({ live, reload, onDone }: EditorProps & { live: AdminLi
             <Button
               variant="tonal"
               disabled={busy !== null || !selected || live.products.length >= 100}
-              onClick={() => finish('link', () => api.admin.lives.linkProduct(live.id, selected, live.version), '상품을 연결했어요.').then(() => setSelected(''))}
+              onClick={() => finish('link', () => api.seller.lives.linkProduct(live.id, selected, live.version), '상품을 연결했어요.').then(() => setSelected(''))}
             >
               상품 연결
             </Button>
@@ -236,13 +236,13 @@ function ProductsSection({ live, reload, onDone }: EditorProps & { live: AdminLi
         {canLink && candidates.hasNext && <Button variant="secondary" disabled={candidates.loadingMore} onClick={candidates.loadMore}>{candidates.loadingMore ? '불러오는 중…' : '연결할 상품 더 불러오기'}</Button>}
         {canLink && (candidates.error || candidates.moreError) && <Alert type="warning" title="연결 가능한 상품을 불러오지 못했어요"><Button variant="secondary" onClick={candidates.error ? candidates.reload : candidates.loadMore}>다시 조회</Button></Alert>}
       </div>
-    </AdminSection>
+    </SellerSection>
   )
 }
 
 const productBadgeLabel = (status: 'READY' | 'SELLING' | 'SOLD_OUT' | 'HIDDEN') => (status === 'SOLD_OUT' ? '품절' : '판매 중')
 
-function ControlSection({ live, reload, onDone }: EditorProps & { live: AdminLive }) {
+function ControlSection({ live, reload, onDone }: EditorProps & { live: SellerLive }) {
   const api = useApi()
   const { busy, error, run } = useAction()
   const [confirmEnd, setConfirmEnd] = useState(false)
@@ -252,14 +252,14 @@ function ControlSection({ live, reload, onDone }: EditorProps & { live: AdminLiv
 
   const act = async (key: 'start' | 'end') => {
     onDone(null)
-    if (await run(key, () => (key === 'start' ? api.admin.lives.start(live.id, live.version) : api.admin.lives.end(live.id)))) {
+    if (await run(key, () => (key === 'start' ? api.seller.lives.start(live.id, live.version) : api.seller.lives.end(live.id)))) {
       onDone(key === 'start' ? '방송을 시작했어요. 이제 공개 방송 목록에서 진행 중으로 보여요.' : '방송을 종료했어요. 소개된 상품은 계속 구매할 수 있어요.')
       reload()
     }
   }
 
   return (
-    <AdminSection title="방송 진행">
+    <SellerSection title="방송 진행">
       <div className={styles.form}>
         <ActionAlert error={error} onReload={reload} />
 
@@ -314,6 +314,6 @@ function ControlSection({ live, reload, onDone }: EditorProps & { live: AdminLiv
           </div>
         )}
       </div>
-    </AdminSection>
+    </SellerSection>
   )
 }

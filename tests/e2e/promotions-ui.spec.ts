@@ -42,7 +42,7 @@ async function fixture(page: Page, options: { seller?: boolean; claim?: () => Pr
 test('판매자는 여러 페이지의 기존 쿠폰을 선택하고 공지와 구분해 이벤트를 생성한다', async ({ page }) => {
   const inputs: unknown[] = []
   await fixture(page, { seller: true, created: input => inputs.push(input) })
-  await page.goto('/admin/lives/42'); await login(page)
+  await page.goto('/seller/lives/42'); await login(page)
   const panel = page.getByRole('region', { name: '방송 이벤트', exact: true })
   await panel.getByLabel('이벤트 유형').selectOption('COUPON_DROP')
   await expect(panel.getByRole('button', { name: '이벤트 준비하기' })).toBeDisabled()
@@ -62,7 +62,7 @@ test('판매자는 여러 페이지의 기존 쿠폰을 선택하고 공지와 �
 
 test('쿠폰 조회 실패 시 재조회 안내와 생성 차단을 제공한다', async ({ page }) => {
   await fixture(page, { seller: true, couponError: true })
-  await page.goto('/admin/lives/42'); await login(page)
+  await page.goto('/seller/lives/42'); await login(page)
   await page.getByLabel('이벤트 유형').selectOption('COUPON_DROP')
   await expect(page.getByText('쿠폰을 불러오지 못했어요', { exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: '이벤트 준비하기' })).toBeDisabled()

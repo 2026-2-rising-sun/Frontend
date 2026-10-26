@@ -21,7 +21,7 @@ for (const seller of [true, false]) {
     await page.goto('/login'); await page.getByLabel('아이디 또는 이메일').fill('user@test.dev'); await page.getByLabel('비밀번호', { exact: true }).fill('password'); await page.getByRole('button', { name: '로그인', exact: true }).click()
     await expect(page).not.toHaveURL(/\/login$/)
     await page.clock.install()
-    await page.goto(seller ? '/admin/refunds/42' : '/payment-groups/PG-SLOW')
+    await page.goto(seller ? '/seller/refunds/42' : '/payment-groups/PG-SLOW')
     await expect(page.getByRole('heading', { name: '환불 처리 중', exact: true })).toBeVisible()
     const initialRequests = requests; slow = true
     await page.clock.fastForward(3100)
@@ -55,7 +55,7 @@ for (const seller of [false, true]) {
     })
     await page.goto('/login'); await page.getByLabel('아이디 또는 이메일').fill('user@test.dev'); await page.getByLabel('비밀번호', { exact: true }).fill('password'); await page.getByRole('button', { name: '로그인', exact: true }).click()
     await expect(page).not.toHaveURL(/\/login$/)
-    await page.goto(seller ? '/admin/refunds/42' : '/payment-groups/PG-R')
+    await page.goto(seller ? '/seller/refunds/42' : '/payment-groups/PG-R')
     await expect(page.getByText('추가 재시도 2회', { exact: true })).toBeVisible()
     await expect(page.getByText(/환불 완료 시각이 아닙니다/)).toBeVisible()
     const refresh = page.getByRole('button', { name: seller ? '상태 새로고침' : '환불 내역 새로고침', exact: true })

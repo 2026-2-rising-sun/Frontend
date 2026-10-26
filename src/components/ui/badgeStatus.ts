@@ -1,4 +1,4 @@
-import type { AdminProductStatus, LiveStatus, OrderStatus, ProductStatus } from '../../domain/types'
+import type { SellerProductStatus, LiveStatus, OrderStatus, ProductStatus } from '../../domain/types'
 
 /** Figma "Status Badge" 의 Status 값. 방송 / 상품 / 주문 상태를 한 컴포넌트로 표시한다. */
 export type BadgeStatus =
@@ -47,7 +47,7 @@ const ORDER: Record<OrderStatus, BadgeStatus> = {
   REFUNDED: 'refunded',
 }
 
-export const adminProductBadge = (status: AdminProductStatus): BadgeStatus => (status === 'DRAFT' ? 'draft' : status === 'UNKNOWN' ? 'unknown' : PRODUCT[status])
+export const sellerProductBadge = (status: SellerProductStatus): BadgeStatus => (status === 'DRAFT' ? 'draft' : status === 'UNKNOWN' ? 'unknown' : PRODUCT[status])
 export const liveBadge = (status: LiveStatus) => LIVE[status]
 export const productBadge = (status: ProductStatus) => PRODUCT[status]
 export const orderBadge = (status: OrderStatus) => ORDER[status]

@@ -20,7 +20,7 @@ test('썸네일은 별도 업로드하고 방송 저장에는 서버 ID만 보�
   }
   const api = createHttpApi('/api'); const thumbnail = new File(['png'], 'thumbnail.png', { type: 'image/png' })
   const input = { title: '방송', scheduledAt: '2026-10-17T00:00:00Z', channelArn: 'arn', playbackUrl: 'https://test/live.m3u8', hostName: '공개 진행자', description: '소개', thumbnail, idempotencyKey: 'same-key' }
-  await api.admin.lives.create(input); await api.admin.lives.create(input)
+  await api.seller.lives.create(input); await api.seller.lives.create(input)
   assert.equal(calls.filter(call => call.url.endsWith('/broadcast-thumbnails')).length, 1)
   const body = JSON.parse(String(calls.find(call => call.url.endsWith('/seller/broadcasts'))!.body))
   assert.equal(body.thumbnailId, 'image-id'); assert.equal(body.hostName, '공개 진행자'); assert.equal('thumbnail' in body, false)

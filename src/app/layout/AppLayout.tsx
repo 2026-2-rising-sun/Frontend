@@ -17,7 +17,7 @@ export function AppLayout() {
         <Outlet />
       </main>
       <footer className={styles.footer}>
-        <Link to="/admin/products">판매자 콘솔</Link>
+        <Link to="/seller/products">판매자 콘솔</Link>
       </footer>
       {showBottomNav && <BottomNav />}
     </div>

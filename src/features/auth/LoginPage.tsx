@@ -22,7 +22,7 @@ export function LoginPage() {
       const session = await auth.login(username, password)
       const destination = location.state?.from
       const safe = typeof destination === 'string' && destination.startsWith('/') && !destination.startsWith('//')
-      navigate(safe ? destination : session.role === 'SELLER' ? '/admin/products' : '/account', { replace: true })
+      navigate(safe ? destination : session.role === 'SELLER' ? '/seller/products' : '/account', { replace: true })
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '로그인하지 못했어요.')
     } finally { setBusy(false) }

@@ -1,20 +1,20 @@
 import { useSession } from '../auth/useSession'
 import { ButtonLink, ResultState } from '../../components/ui'
 import { Link, NavLink, Navigate, Outlet, useLocation } from 'react-router-dom'
-import styles from './AdminLayout.module.css'
+import styles from './SellerLayout.module.css'
 
 const NAV = [
-  { to: '/admin/products', label: '상품 관리' },
-  { to: '/admin/coupons', label: '쿠폰 관리' },
-  { to: '/admin/lives', label: '방송 관리' },
-  { to: '/admin/refunds', label: '환불 관리' },
+  { to: '/seller/products', label: '상품 관리' },
+  { to: '/seller/coupons', label: '쿠폰 관리' },
+  { to: '/seller/lives', label: '방송 관리' },
+  { to: '/seller/refunds', label: '환불 관리' },
 ] as const
 
 /**
  * 판매자 콘솔 레이아웃.
  * 모바일: 상단 가로 메뉴 / PC(≥1024px): 왼쪽 사이드바.
  */
-export function AdminLayout() {
+export function SellerLayout() {
   const session = useSession()
   const location = useLocation()
   if (!session) return <Navigate to="/login" replace state={{ from: location.pathname }} />
@@ -23,7 +23,7 @@ export function AdminLayout() {
   return (
     <div className={styles.shell}>
       <aside className={styles.sidebar}>
-        <Link to="/admin/products" className={styles.logo}>
+        <Link to="/seller/products" className={styles.logo}>
           <span className={styles.mark} aria-hidden="true" />
           판매자 콘솔
         </Link>

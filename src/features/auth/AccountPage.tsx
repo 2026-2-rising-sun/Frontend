@@ -51,7 +51,7 @@ export function AccountPage() {
       </form>
     </section>}
     {session.role === 'SELLER' && <section className={styles.seller} aria-labelledby="seller-title">
-      <div><h2 id="seller-title" className="t-h4">판매자 센터</h2><p>상품·방송·쿠폰·환불을 관리하세요.</p></div><ButtonLink to="/admin/products">판매자 콘솔 →</ButtonLink>
+      <div><h2 id="seller-title" className="t-h4">판매자 센터</h2><p>상품·방송·쿠폰·환불을 관리하세요.</p></div><ButtonLink to="/seller/products">판매자 콘솔 →</ButtonLink>
     </section>}
     <section className={styles.section} aria-labelledby="shopping-title">
       <h2 id="shopping-title" className="t-h4">나의 쇼핑</h2>

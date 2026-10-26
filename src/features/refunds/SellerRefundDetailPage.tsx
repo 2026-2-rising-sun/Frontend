@@ -24,7 +24,7 @@ function SellerRefundDetail({ refundId }: { refundId: string }) {
     return () => clearTimeout(timer)
   }, [pending, refund.loading, reload])
   return <section className={styles.section}>
-    <Link to="/admin/refunds">← 환불 목록</Link><h1 className="t-h1">환불 상세</h1>
+    <Link to="/seller/refunds">← 환불 목록</Link><h1 className="t-h1">환불 상세</h1>
     {refund.error && refund.data && <Alert type="warning" title="최신 환불 상태를 확인하지 못했어요" />}
     <Button variant="secondary" onClick={reload} disabled={refund.loading}>상태 새로고침</Button>
     <AsyncView state={refund} skeleton={<Skeleton height={240} />}>{(value) => <RefundDetails refund={value} />}</AsyncView>

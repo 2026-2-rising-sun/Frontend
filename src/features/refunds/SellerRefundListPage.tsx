@@ -21,7 +21,7 @@ function SellerRefundPage({ page, onPage }: { page: number; onPage: (page: numbe
     <p>내 상품에 대한 환불 내역입니다. 다른 판매자의 상품과 금액은 포함되지 않아요.</p>
     {refunds.error && refunds.data && <Alert type="warning" title="최신 내역을 확인하지 못했어요"><Button onClick={refunds.reload}>다시 조회</Button></Alert>}
     <AsyncView state={refunds} skeleton={<Skeleton height={240} />} isEmpty={(items) => items.length === 0} emptyTitle="환불 내역이 없어요" emptyMessage="구매자가 환불을 요청하면 이곳에서 확인할 수 있어요.">
-      {(items) => <div className={styles.section}>{items.map((refund) => <div key={refund.id}><RefundDetails refund={refund} /><Link to={`/admin/refunds/${encodeURIComponent(refund.id)}`}>환불 상세 보기</Link></div>)}</div>}
+      {(items) => <div className={styles.section}>{items.map((refund) => <div key={refund.id}><RefundDetails refund={refund} /><Link to={`/seller/refunds/${encodeURIComponent(refund.id)}`}>환불 상세 보기</Link></div>)}</div>}
     </AsyncView>
     <nav className={styles.actions} aria-label="환불 목록 페이지">
       <Button variant="secondary" disabled={page === 0 || refunds.loading} onClick={() => onPage(page - 1)}>이전</Button>

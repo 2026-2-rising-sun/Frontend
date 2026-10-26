@@ -17,7 +17,7 @@ test('쿠폰 이름만 수정하면 기간의 초 이하와 대상 상품·버�
   })
   await page.goto('/login'); await page.getByLabel('아이디 또는 이메일').fill('seller@test.dev'); await page.getByLabel('비밀번호', { exact: true }).fill('password'); await page.getByRole('button', { name: '로그인', exact: true }).click()
   await expect(page.getByRole('heading', { name: '상품 관리', exact: true })).toBeVisible()
-  await page.goto('/admin/coupons/42'); await page.getByLabel('쿠폰명', { exact: true }).fill('새 쿠폰 이름')
+  await page.goto('/seller/coupons/42'); await page.getByLabel('쿠폰명', { exact: true }).fill('새 쿠폰 이름')
   const saved = page.waitForResponse(response => response.request().method() === 'PATCH' && response.url().endsWith('/seller/coupons/42'))
   await page.getByRole('button', { name: '쿠폰 저장', exact: true }).click(); expect((await saved).ok()).toBeTruthy()
   expect(patch?.version).toBe(7); expect(patch?.settings.name).toBe('새 쿠폰 이름')

@@ -66,7 +66,7 @@ test('kind: 구매자는 전체 검색 결과를 가격순으로 이어 보고 �
   await page.getByLabel('비밀번호', { exact: true }).fill('seller')
   await page.getByRole('button', { name: '로그인', exact: true }).click()
   await expect(page).not.toHaveURL(/\/login$/)
-  await page.goto('/admin/products')
+  await page.goto('/seller/products')
   const filtered = page.waitForResponse(response => response.url().includes('/seller/products?') && new URL(response.url()).searchParams.get('status') === 'SOLD_OUT')
   await page.getByRole('button', { name: '품절', exact: true }).click()
   const filteredResponse = await filtered

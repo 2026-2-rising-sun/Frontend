@@ -47,7 +47,7 @@ test('kind: 판매자 이벤트 준비·열기, 공개 시청 배너, 새로고�
   test.setTimeout(120000)
   const f = await fixture(request)
   await signIn(page, 'seller@local.test', 'seller')
-  await page.goto(`/admin/lives/${f.liveId}`)
+  await page.goto(`/seller/lives/${f.liveId}`)
   const panel = page.getByRole('region', { name: '방송 이벤트', exact: true })
   const title = `라이브 특별 안내 ${randomUUID().slice(0, 8)}`
   await panel.getByLabel('이벤트 제목', { exact: true }).fill(title)
