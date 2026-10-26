@@ -74,3 +74,10 @@ test('기존 마이그레이션 묶음의 거래·환불 알림도 상세 화면
     assert.equal(notificationTarget({ ...item, linkValue }), null)
   }
 })
+
+test('전체 읽음은 ID 목록 없이 bulk API를 한 번 호출하고 204 빈 응답을 처리한다', async () => {
+  const calls: unknown[] = []
+  const api = createNotifications((async (path: string, options: unknown) => { calls.push({ path, options }) }) as HttpClient)
+  await api.readAll()
+  assert.deepEqual(calls, [{ path: '/notification/v1/notifications/read-all', options: { method: 'POST', responseType: 'empty' } }])
+})
