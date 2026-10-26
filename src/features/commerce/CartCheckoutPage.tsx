@@ -62,8 +62,8 @@ function CartCheckoutForm({ quote, couponId, onCouponChange, refresh, blocked }:
       navigate(`/payment-groups/${encodeURIComponent(group.groupNumber)}`, { replace: true })
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '주문하지 못했어요.')
-      // An active group is the recovery point when the creation response is lost.
-      try { const active = await api.paymentGroups.active(); if (active) { pending.current?.clear(); navigate(`/payment-groups/${encodeURIComponent(active.groupNumber)}`, { replace: true }) } } catch { /* retry retains request identity */ }
+      // 주문 생성 응답이 유실되면 진행 중인 결제 그룹을 조회해 복구한다.
+      try { const active = await api.paymentGroups.active(); if (active) { pending.current?.clear(); navigate(`/payment-groups/${encodeURIComponent(active.groupNumber)}`, { replace: true }) } } catch { /* 재시도할 때 같은 요청 식별자를 유지한다 */ }
     } finally { inFlight.current = false; setBusy(false) }
   }
   return <form className={styles.layout} onSubmit={submit}><div className={styles.main}>

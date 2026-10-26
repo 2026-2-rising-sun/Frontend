@@ -11,7 +11,7 @@ function start(command, args, name, env = process.env) {
   const log = createWriteStream(logs + '/' + name + '.log', { flags: 'a' })
   const child = spawn(command, args, { cwd: root, env, stdio: ['ignore', 'pipe', 'pipe'] })
   child.stdout.pipe(log); child.stderr.pipe(log); child.once('error', error => { console.error(name + ': ' + error.message); stop(1) })
-  child.once('exit', code => { if (!stopping) { console.error(name + ' exited: ' + code); stop(code || 1) } })
+  child.once('exit', code => { if (!stopping) { console.error(name + ' 종료 코드: ' + code); stop(code || 1) } })
   children.push(child)
 }
 let stopping = false
@@ -29,6 +29,6 @@ for (const [index, service] of ['member', 'shopping', 'commerce', 'live', 'notif
   if (prism) start(root + '/node_modules/.bin/prism', ['mock', root + `/../Backend/contracts/api/${service}-service.yaml`, '--host', '127.0.0.1', '--port', String(apiPort)], service)
   else start('kubectl', ['--context', process.env.KIND_CONTEXT ?? 'kind-shoppinglive-dev', '-n', namespace, 'port-forward', 'svc/' + service, apiPort + ':8080', '--address=127.0.0.1'], service)
 }
-// Forwarded processes can be ready a little after Vite. Tests wait for the service route too.
+// 포트 전달 프로세스가 Vite보다 늦게 준비될 수 있으므로 테스트는 서비스 경로도 기다린다.
 start(root + '/node_modules/.bin/vite', ['--host', '127.0.0.1', '--port', String(port), '--strictPort'], 'vite', { ...process.env, ...urls })
-console.log(`Frontend ${prism ? 'Prism contract' : 'kind integration'}: http://localhost:${port}`)
+console.log(`프런트엔드 ${prism ? 'Prism 계약 모의 서버' : 'kind 연동'}: http://localhost:${port}`)

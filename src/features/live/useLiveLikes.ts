@@ -7,7 +7,7 @@ export function useLiveLikes(api: LivesPort, liveId: string, memberId?: string) 
   const state = useSyncExternalStore(store.subscribe, store.getSnapshot)
   useEffect(() => {
     void store.refresh()
-    // Old scope responses are isolated in their own store after account/broadcast changes.
+    // 계정·방송이 바뀌면 이전 범위의 응답은 해당 범위의 저장소에만 반영된다.
   }, [store])
   return { ...state, reload: store.refresh, toggle: store.toggle, accept: store.accept }
 }

@@ -31,12 +31,12 @@ export function LiveInteraction({ liveId, liveStatus, likesTarget, showChat, onE
       try {
         const value = JSON.parse((event as MessageEvent).data) as LikeTotal
         if (value.broadcastId === Number(liveId) && Number.isSafeInteger(value.total) && value.total >= 0 && Number.isSafeInteger(value.version) && value.version >= 0) acceptLike(value)
-      } catch { /* REST recovers malformed or missing event payloads. */ }
+      } catch { /* 이벤트 내용이 잘못됐거나 누락되면 REST 조회로 복구한다. */ }
       schedule()
     })
     events.addEventListener('broadcast.ended', () => { events.close(); setConnected(false); recover(); onEnded() })
     events.onerror = () => { setConnected(false); recover() }
-    // SSE has no replay. REST recovers missed events and is also the fallback while reconnecting.
+    // SSE는 재전송하지 않으므로 REST로 누락된 이벤트를 복구하고 재연결 중에도 REST를 사용한다.
     const timer = setInterval(() => { if (document.visibilityState === 'visible') recover() }, 15000)
     document.addEventListener('visibilitychange', recover)
     return () => { stopped = true; events.close(); clearInterval(timer); clearTimeout(pending); document.removeEventListener('visibilitychange', recover) }

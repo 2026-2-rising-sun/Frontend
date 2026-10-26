@@ -1,11 +1,11 @@
 /*
  * 디자인 토큰 — Figma "Live Commerce Design System" 의 변수와 1:1 대응한다.
- *   Primitives (원시 팔레트)  →  --color-<scale>-<step>
+ *   기본값 (원시 팔레트)  →  --color-<scale>-<step>
  *   Tokens (의미 토큰)        →  --<group>-<name>   (컴포넌트는 이쪽만 사용)
  * 변환 규칙: Figma 변수명의 "/" → "-"   (예: brand/default → --brand-default)
  */
 :root {
-  /* ── Primitives ─────────────────────────────── */
+  /* ── 기본값 ─────────────────────────────── */
   /* Primary · Light Green (주 색상 · CTA·선택) */
   --color-primary-50: #f2fdec;
   --color-primary-100: #e0f9d1;
@@ -55,7 +55,7 @@
   --color-info-600: #3d5a6c;
   --color-info-700: #2c4352;
 
-  /* Status */
+  /* 상태 */
   --color-success-50: #f2fdec;
   --color-success-100: #e0f9d1;
   --color-success-500: #8de969;
@@ -77,7 +77,7 @@
   --color-warning-600: #d97706;
   --color-warning-700: #b45309;
 
-  /* ── Tokens (Semantic) ──────────────────────── */
+  /* ── 의미별 토큰 ──────────────────────── */
   --bg-page: var(--color-neutral-50);
   --bg-surface: var(--color-neutral-0);
   --bg-muted: var(--color-neutral-100);
@@ -148,7 +148,7 @@
   --info-text: var(--color-info-700);
   --info-border: var(--color-info-500);
 
-  /* ── Spacing (4px base) ─────────────────────── */
+  /* ── 간격(4px 기준) ─────────────────────── */
   --space-1: 4px;
   --space-2: 8px;
   --space-3: 12px;
@@ -160,20 +160,20 @@
   --space-12: 48px;
   --space-16: 64px;
 
-  /* ── Radius ─────────────────────────────────── */
+  /* ── 모서리 반경 ─────────────────────────────────── */
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
   --radius-xl: 20px;
   --radius-full: 999px;
 
-  /* ── Elevation (Figma effect styles) ────────── */
+  /* ── 그림자(Figma 효과 스타일) ────────── */
   --shadow-sm: 0 1px 2px rgb(30 25 28 / 0.06), 0 1px 3px rgb(30 25 28 / 0.08);
   --shadow-md: 0 4px 10px rgb(30 25 28 / 0.08), 0 2px 4px rgb(30 25 28 / 0.05);
   --shadow-lg: 0 12px 24px rgb(30 25 28 / 0.12), 0 4px 8px rgb(30 25 28 / 0.06);
   --focus-ring: 0 0 0 3px var(--color-emphasis-300);
 
-  /* ── Layout ─────────────────────────────────── */
+  /* ── 배치 ─────────────────────────────────── */
   --font-sans: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --container-max: 1200px;
   --header-height: 110px; /* 상단 64px + 탐색 44px + 경계선 2px */
