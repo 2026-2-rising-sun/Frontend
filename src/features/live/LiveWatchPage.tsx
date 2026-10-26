@@ -36,6 +36,7 @@ export function LiveWatchPage() {
   const { liveId = '' } = useParams()
   const api = useApi()
   const [tab, setTab] = useState<PanelTab>('products')
+  const [likesTarget, setLikesTarget] = useState<HTMLDivElement | null>(null)
   const [promotionRevision, setPromotionRevision] = useState(0)
   const reloadPromotions = useCallback(() => setPromotionRevision(value => value + 1), [])
   const live = useAsync(() => api.lives.get(liveId), [api, liveId])
@@ -67,7 +68,10 @@ export function LiveWatchPage() {
                   <h1 className="t-h2">{l.title}</h1>
                   {l.hostName && <p className={styles.host}>{l.hostName}</p>}
                   {l.description && <p>{l.description}</p>}
-                  <ViewerCount liveId={liveId} status={l.status} />
+                  <div className={styles.stats}>
+                    <ViewerCount liveId={liveId} status={l.status} />
+                    <div ref={setLikesTarget} className={styles.likesSlot} />
+                  </div>
                   <p className={styles.host}>
 {l.status === 'LIVE' ? '지금 방송 중' : l.status === 'READY' ? `${formatDateTime(l.scheduledAt)} 시작 예정` : '방송 종료'}
                   </p>
@@ -120,7 +124,7 @@ export function LiveWatchPage() {
           ) : (
             <p className={styles.about}>아래 채팅에서 함께 이야기해 보세요.</p>
           )}
-          {live.data && <LiveInteraction key={liveId} liveId={liveId} liveStatus={live.data.status} showChat={tab === 'chat'} onEnded={live.reload} onPromotion={reloadPromotions} />}
+          {live.data && <LiveInteraction key={liveId} liveId={liveId} liveStatus={live.data.status} likesTarget={likesTarget} showChat={tab === 'chat'} onEnded={live.reload} onPromotion={reloadPromotions} />}
         </aside>
       </div>
     </PageContainer>

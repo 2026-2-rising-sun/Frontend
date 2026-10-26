@@ -69,6 +69,8 @@ export function createLikeState(
         if (disposed) return
         accept(result)
         publish({ ...state, busy: false, pending: undefined, error: '' })
+        // 재확인도 성공 응답을 받은 때만 표현하고, 더 최신의 취소 상태를 존중한다.
+        return pending.liked && result.liked && state.personal?.liked === true
       } catch (error) {
         if (disposed) return
         // Network/5xx failures may have committed. Keep the exact intent and key.
