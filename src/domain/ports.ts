@@ -4,7 +4,7 @@ import type { CouponsPort, SellerCouponsPort } from './coupons'
 import type { AuthPort } from './auth'
 import type { NotificationsPort } from './notifications'
 import type { PromotionsPort } from './promotions'
-import type { AdminLive, AdminProduct, AdminProductListParams, CreateOrderInput, LiveInput, LiveDetail, LiveStatus, LiveSummary, Order, PageParams, Paged, Product, ProductBasicInput, ProductListParams, SaleAction, SaleInfoInput } from './types'
+import type { SellerLive, SellerProduct, SellerProductListParams, CreateOrderInput, LiveInput, LiveDetail, LiveStatus, LiveSummary, Order, PageParams, Paged, Product, ProductBasicInput, ProductListParams, SaleAction, SaleInfoInput } from './types'
 export interface ChatMessage { messageId: string; broadcastId: number; displayName: string; content: string; createdAt: string }
 export interface LikeTotal { broadcastId: number; total: number; version: number }
 export interface ViewerTotal { broadcastId: number; total: number; measuredAt: string; expiresAfterSeconds: number }
@@ -54,31 +54,31 @@ export interface CartPort {
   update(id: string, quantity: number): Promise<CartItem>
   remove(id: string): Promise<void>
 }
-export interface AdminProductsPort {
-  list(params?: AdminProductListParams): Promise<Paged<AdminProduct>>
-  get(id: string): Promise<AdminProduct>
-  create(input: ProductBasicInput & { idempotencyKey: string }): Promise<AdminProduct>
-  updateBasicInfo(id: string, input: ProductBasicInput & { version: number }): Promise<AdminProduct>
-  setSaleInfo(id: string, input: SaleInfoInput): Promise<AdminProduct>
-  changePrice(id: string, price: number): Promise<AdminProduct>
-  adjustStock(id: string, delta: number): Promise<AdminProduct>
-  changeSaleStatus(id: string, action: SaleAction): Promise<AdminProduct>
+export interface SellerProductsPort {
+  list(params?: SellerProductListParams): Promise<Paged<SellerProduct>>
+  get(id: string): Promise<SellerProduct>
+  create(input: ProductBasicInput & { idempotencyKey: string }): Promise<SellerProduct>
+  updateBasicInfo(id: string, input: ProductBasicInput & { version: number }): Promise<SellerProduct>
+  setSaleInfo(id: string, input: SaleInfoInput): Promise<SellerProduct>
+  changePrice(id: string, price: number): Promise<SellerProduct>
+  adjustStock(id: string, delta: number): Promise<SellerProduct>
+  changeSaleStatus(id: string, action: SaleAction): Promise<SellerProduct>
 }
-export interface AdminLivesPort {
+export interface SellerLivesPort {
   list(params?: PageParams & { status?: LiveStatus }): Promise<Paged<LiveSummary>>
-  get(id: string): Promise<AdminLive>
-  create(input: LiveInput & { idempotencyKey: string }): Promise<AdminLive>
-  update(id: string, input: LiveInput & { version: number }): Promise<AdminLive>
-  linkProduct(id: string, productId: string, version: number): Promise<AdminLive>
-  unlinkProduct(id: string, linkId: string, version: number): Promise<AdminLive>
-  reorderProducts(id: string, linkIds: string[], version: number): Promise<AdminLive>
-  start(id: string, version: number): Promise<AdminLive>
-  end(id: string): Promise<AdminLive>
+  get(id: string): Promise<SellerLive>
+  create(input: LiveInput & { idempotencyKey: string }): Promise<SellerLive>
+  update(id: string, input: LiveInput & { version: number }): Promise<SellerLive>
+  linkProduct(id: string, productId: string, version: number): Promise<SellerLive>
+  unlinkProduct(id: string, linkId: string, version: number): Promise<SellerLive>
+  reorderProducts(id: string, linkIds: string[], version: number): Promise<SellerLive>
+  start(id: string, version: number): Promise<SellerLive>
+  end(id: string): Promise<SellerLive>
 }
 export interface Api {
   auth: AuthPort
   promotions: PromotionsPort
   refunds: RefundsPort
   notifications: NotificationsPort; coupons: CouponsPort; products: ProductsPort; lives: LivesPort; orders: OrdersPort; payments: PaymentsPort; cart: CartPort; paymentGroups: PaymentGroupsPort
-  admin: { products: AdminProductsPort; lives: AdminLivesPort; coupons: SellerCouponsPort }
+  seller: { products: SellerProductsPort; lives: SellerLivesPort; coupons: SellerCouponsPort }
 }

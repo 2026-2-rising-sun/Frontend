@@ -7,7 +7,7 @@ import type { LiveStatus, LiveSummary } from '../../domain/types'
 import { usePaged } from '../../hooks/usePaged'
 import { formatDateTime } from '../../lib/format'
 import { ViewerCount } from '../live/ViewerCount'
-import styles from './admin.module.css'
+import styles from './seller.module.css'
 
 type Filter = 'ALL' | LiveStatus
 const FILTERS: { value: Filter; label: string }[] = [
@@ -27,16 +27,16 @@ const NEXT_ACTION = {
   ENDED: { label: '방송 상세', hint: '종료된 방송의 정보와 연결 상품을 확인하세요.' },
 }
 
-export function AdminLiveListPage() {
+export function SellerLiveListPage() {
   const api = useApi()
   const [filter, setFilter] = useState<Filter>('ALL')
-  const lives = usePaged((page) => api.admin.lives.list({ status: filter === 'ALL' ? undefined : filter, page, size: 20 }), [api, filter])
+  const lives = usePaged((page) => api.seller.lives.list({ status: filter === 'ALL' ? undefined : filter, page, size: 20 }), [api, filter])
   return <>
     <header className={styles.pageHead}>
       <p className={styles.eyebrow}>SELLER CENTER</p>
       <div className={styles.pageTitle}>
         <div><h1 className="t-h1">방송 관리</h1><p className={styles.pageDescription}>방송 준비부터 진행 중인 운영까지, 한곳에서 관리하세요.</p></div>
-        <ButtonLink to="/admin/lives/new" className={styles.primaryAction}>+ 방송 등록</ButtonLink>
+        <ButtonLink to="/seller/lives/new" className={styles.primaryAction}>+ 방송 등록</ButtonLink>
       </div>
     </header>
     <section className={styles.listSection} aria-label="방송 목록">
@@ -51,7 +51,7 @@ export function AdminLiveListPage() {
         {items => <div className={styles.productList}>{items.map(live => <article key={live.id} className={styles.productCard}>
           <div className={styles.productIdentity}>
             <Thumbnail src={live.thumbnailUrl} alt="" className={styles.productThumb} />
-            <div className={styles.rowText}><span className={styles.rowMeta}>{live.hostName}</span><Link to={`/admin/lives/${live.id}`} className={styles.productName}>{live.title}</Link></div>
+            <div className={styles.rowText}><span className={styles.rowMeta}>{live.hostName}</span><Link to={`/seller/lives/${live.id}`} className={styles.productName}>{live.title}</Link></div>
             <StatusBadge status={liveBadge(live.status)} label={live.status === 'READY' ? '준비 중' : undefined} className={styles.productBadge} />
           </div>
           <div className={styles.liveTime}><p>{timeText(live)}</p><ViewerCount liveId={live.id} status={live.status} watching={false} compact /></div>
@@ -59,7 +59,7 @@ export function AdminLiveListPage() {
             <p>{NEXT_ACTION[live.status].hint}</p>
             <div className={styles.actions}>
               {live.status === 'LIVE' && <ButtonLink to={`/lives/${live.id}`} variant="secondary" size="S">시청 화면</ButtonLink>}
-              <ButtonLink to={`/admin/lives/${live.id}`} variant={live.status === 'LIVE' ? 'primary' : 'tonal'} size="S" aria-label={`${live.title} ${NEXT_ACTION[live.status].label}`}>{NEXT_ACTION[live.status].label} →</ButtonLink>
+              <ButtonLink to={`/seller/lives/${live.id}`} variant={live.status === 'LIVE' ? 'primary' : 'tonal'} size="S" aria-label={`${live.title} ${NEXT_ACTION[live.status].label}`}>{NEXT_ACTION[live.status].label} →</ButtonLink>
             </div>
           </div>
         </article>)}</div>}

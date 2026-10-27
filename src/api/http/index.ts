@@ -4,7 +4,7 @@ import { createPromotions } from './promotions'
 import { createCoupons, createSellerCoupons } from './coupons'
 import { createSellerProducts } from './sellerProducts'
 import type { Api, CartItem, ChatMessage } from '../../domain/ports'
-import type { PaymentGroup, CartCheckout, AdminLive, LiveInput } from '../../domain/types'
+import type { PaymentGroup, CartCheckout, SellerLive, LiveInput } from '../../domain/types'
 import { createHttpAuth } from './auth'
 import { product, live, page, order, type ProductDto, type LiveDto, type PageDto, type OrderDto } from './mappers'
 const id = encodeURIComponent
@@ -13,12 +13,12 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
   const publicRequest: typeof request = (path, options) => request(path, { ...options, anonymous: true })
   type LivePage = { content: LiveDto[]; number: number; size: number; totalElements: number; totalPages: number }
   const livePage = (p: LivePage) => page({ ...p, items: p.content, page: p.number }, live)
-  const liveProducts = async (n: string, admin = false) => (await (admin ? request : publicRequest)<ProductDto[]>(`/live/v1/${admin ? 'seller/' : ''}broadcasts/${id(n)}/products`)).map(product)
-  const adminLive = async (n: string): Promise<AdminLive> => {
+  const liveProducts = async (n: string, seller = false) => (await (seller ? request : publicRequest)<ProductDto[]>(`/live/v1/${seller ? 'seller/' : ''}broadcasts/${id(n)}/products`)).map(product)
+  const sellerLive = async (n: string): Promise<SellerLive> => {
     const dto = await request<LiveDto>(`/live/v1/seller/broadcasts/${id(n)}`)
     return { ...live(dto), version: dto.version ?? 0, products: await liveProducts(n, true) }
   }
-  const liveMutation = async (n: string, suffix: string, options: Parameters<typeof request>[1]) => { await request(`/live/v1/seller/broadcasts/${id(n)}${suffix}`, options); return adminLive(n) }
+  const liveMutation = async (n: string, suffix: string, options: Parameters<typeof request>[1]) => { await request(`/live/v1/seller/broadcasts/${id(n)}${suffix}`, options); return sellerLive(n) }
   const thumbnailUploads = new WeakMap<File, Promise<string>>()
   const broadcastBody = async ({ thumbnail, ...input }: LiveInput) => {
     if (!thumbnail) return input
@@ -95,13 +95,13 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
       update: async (n, quantity) => cartItem(await request(`/commerce/v1/cart/items/${id(n)}`, { method: 'PATCH', body: { quantity } })),
       remove: n => request(`/commerce/v1/cart/items/${id(n)}`, { method: 'DELETE' }),
     },
-    admin: {
+    seller: {
       coupons: createSellerCoupons(request),
       products: createSellerProducts(request),
       lives: {
         list: async params => livePage(await request('/live/v1/seller/broadcasts', { query: { page: params?.page, size: params?.size, status: params?.status === 'READY' ? 'PREPARING' : params?.status } })),
-        get: adminLive,
-        async create({ idempotencyKey, ...input }) { const result = await request<LiveDto>('/live/v1/seller/broadcasts', { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: await broadcastBody(input) }); return adminLive(String(result.id)) },
+        get: sellerLive,
+        async create({ idempotencyKey, ...input }) { const result = await request<LiveDto>('/live/v1/seller/broadcasts', { method: 'POST', headers: { 'Idempotency-Key': idempotencyKey }, body: await broadcastBody(input) }); return sellerLive(String(result.id)) },
         update: async (n, { version, ...input }) => liveMutation(n, '', { method: 'PATCH', query: { version }, body: await broadcastBody(input) }),
         linkProduct: (n, p, version) => liveMutation(n, '/products', { method: 'POST', body: { productId: Number(p), expectedVersion: version } }),
         unlinkProduct: (n, p, version) => liveMutation(n, `/products/${id(p)}`, { method: 'DELETE', query: { expectedVersion: version } }),

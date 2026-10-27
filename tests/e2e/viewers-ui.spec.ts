@@ -38,7 +38,7 @@ test('공개 시청은 같은 브라우저 UUID로 갱신하고 판매자는 조
   await page.reload()
   await expect(page.getByText('현재 시청 약 2명', { exact: true })).toBeVisible()
   expect((requests.at(-1)!.body as { viewerId: string }).viewerId).toBe(id)
-  await page.goto('/admin/lives/42')
+  await page.goto('/seller/lives/42')
   await page.getByLabel('아이디 또는 이메일').fill('seller@test.dev'); await page.getByLabel('비밀번호', { exact: true }).fill('password'); await page.getByRole('button', { name: '로그인', exact: true }).click()
   await expect(page.getByText('현재 시청 약 2명', { exact: true })).toBeVisible()
   expect(requests.at(-1)!.method).toBe('GET')
@@ -92,11 +92,11 @@ test('홈 방송 카드에도 현재 시청 규모를 표시한다', async ({ pa
 })
 
 async function sellerList(page: Page) {
-  await page.goto('/admin/lives')
+  await page.goto('/seller/lives')
   await page.getByLabel('아이디 또는 이메일').fill('seller@test.dev')
   await page.getByLabel('비밀번호', { exact: true }).fill('password')
   await page.getByRole('button', { name: '로그인', exact: true }).click()
-  await expect(page).toHaveURL(/\/admin\/lives$/)
+  await expect(page).toHaveURL(/\/seller\/lives$/)
 }
 test('판매자 방송 목록은 LIVE만 조회하며 시청 인원에 포함되지 않는다', async ({ page }) => {
   const requests: { path: string; method: string }[] = []

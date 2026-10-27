@@ -28,7 +28,7 @@ test('member order uses total amount and a stable idempotency header; no guest p
   assert.equal(new Headers(calls[0].options?.headers).get('X-Idempotency-Key'), 'order-one')
   await api.payments.start('ORD-1'); assert.deepEqual(JSON.parse(String(calls[1].options?.body)), {})
 })
-test('Live administration uses link ID and snapshot version without substituting a product ID', async () => {
+test('Seller live management uses link ID and snapshot version without substituting a product ID', async () => {
   const calls: { url: URL; options?: RequestInit }[] = []
   globalThis.fetch = async (url, options) => {
     calls.push({ url: new URL(String(url)), options })
@@ -36,15 +36,15 @@ test('Live administration uses link ID and snapshot version without substituting
     return envelope({ id: 1, title: '방송', status: 'PREPARING', scheduledAt: '2026-10-06T00:00:00Z', playbackUrl: 'https://example.com/live.m3u8', channelArn: 'channel', version: 8 })
   }
   const api = createHttpApi('/api')
-  await api.admin.lives.reorderProducts('1', ['101', '102'], 7)
+  await api.seller.lives.reorderProducts('1', ['101', '102'], 7)
   assert.equal(calls[0].options?.method, 'PUT'); assert.deepEqual(JSON.parse(String(calls[0].options?.body)), { linkIds: [101, 102], expectedVersion: 7 })
-  await api.admin.lives.unlinkProduct('1', '102', 8)
+  await api.seller.lives.unlinkProduct('1', '102', 8)
   assert.ok(calls[3].url.pathname.endsWith('/products/102')); assert.equal(calls[3].url.searchParams.get('expectedVersion'), '8')
-  await api.admin.lives.start('1', 8)
+  await api.seller.lives.start('1', 8)
   assert.equal(calls[6].url.searchParams.get('expectedVersion'), '8')
-  await api.admin.lives.end('1')
+  await api.seller.lives.end('1')
   assert.equal(calls[9].url.search, '')
-  await api.admin.lives.update('1', { title: '수정', channelArn: 'channel', scheduledAt: '2026-10-06T00:00:00Z', playbackUrl: 'https://example.com/live.m3u8', version: 10 })
+  await api.seller.lives.update('1', { title: '수정', channelArn: 'channel', scheduledAt: '2026-10-06T00:00:00Z', playbackUrl: 'https://example.com/live.m3u8', version: 10 })
   assert.equal(calls[12].url.searchParams.get('version'), '10'); assert.equal(JSON.parse(String(calls[12].options?.body)).version, undefined)
   assert.ok(calls.every(call => call.url.pathname.startsWith('/api/live/v1/seller/broadcasts/')))
   assert.equal(calls[2].url.pathname, '/api/live/v1/seller/broadcasts/1/products')

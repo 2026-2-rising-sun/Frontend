@@ -115,10 +115,10 @@ export interface CreateOrderInput {
 /** 관리 기능은 SELLER 역할만 이용한다. */
 
 /** 관리용 상품 상태. DRAFT = 기본정보만 등록되고 판매 설정(가격·재고)이 아직 없는 상태. */
-export type AdminProductStatus = 'DRAFT' | 'UNKNOWN' | ProductStatus
-export type AdminProductStatusFilter = 'ALL' | AdminProductStatus
+export type SellerProductStatus = 'DRAFT' | 'UNKNOWN' | ProductStatus
+export type SellerProductStatusFilter = 'ALL' | SellerProductStatus
 
-export interface AdminProduct {
+export interface SellerProduct {
   id: string
   name: string
   description: string
@@ -130,15 +130,15 @@ export interface AdminProduct {
   stock: number | null
   /** 결제 대기 주문이 예약한 수량. 판매 가능 재고와 별도다. */
   reservedStock?: number
-  status: AdminProductStatus
+  status: SellerProductStatus
   /** 기본정보 수정 충돌 감지용. 수정할 때 화면이 본 version 을 함께 보낸다. */
   version: number
   /** 본인 상품 확인 후 주문서 조회 또는 판매 설정 응답으로 확인한 ID. */
   salesId: string | null
 }
 
-export interface AdminProductListParams extends PageParams {
-  status?: AdminProductStatusFilter
+export interface SellerProductListParams extends PageParams {
+  status?: SellerProductStatusFilter
   query?: string
 }
 
@@ -172,7 +172,7 @@ export interface LiveInput {
   playbackUrl: string
 }
 
-export interface AdminLive extends LiveDetail {
+export interface SellerLive extends LiveDetail {
   version: number
   /** 연결 상품 (노출 순서대로, 공개 상태와 무관하게 모두) */
   products: Product[]

@@ -1,23 +1,23 @@
-import type { AdminProductsPort } from '../../domain/ports'
+import type { SellerProductsPort } from '../../domain/ports'
 import type { ProductBasicInput } from '../../domain/types'
 import { ApiError } from '../../domain/errors'
 import type { HttpClient } from './client'
-import { adminProduct, page, type ProductDto, type PageDto } from './mappers'
+import { sellerProduct, page, type ProductDto, type PageDto } from './mappers'
 
-export function createSellerProducts(request: HttpClient): AdminProductsPort {
+export function createSellerProducts(request: HttpClient): SellerProductsPort {
   const uploads = new Map<string, Promise<Awaited<ReturnType<typeof body>>>>()
   const get = async (id: string) => {
     // 판매자 본인 상품 확인 후에만 조회한 판매 ID를 사용한다.
     const dto = await request<ProductDto>(`/shopping/v1/seller/products/${encodeURIComponent(id)}`)
-    if (dto.salesStatus === 'NOT_REGISTERED' || dto.salesStatus === 'UNKNOWN') return adminProduct(dto)
+    if (dto.salesStatus === 'NOT_REGISTERED' || dto.salesStatus === 'UNKNOWN') return sellerProduct(dto)
     try {
       const sale = await request<{ productId: number; salesId: number; unitPrice: number; salesStatus: string }>('/commerce/v1/orders/checkout', { query: { productId: id, quantity: 1 } })
-      if (String(sale.productId) !== id || !Number.isSafeInteger(sale.salesId) || sale.salesId <= 0) return adminProduct({ ...dto, salesStatus: 'UNKNOWN' })
+      if (String(sale.productId) !== id || !Number.isSafeInteger(sale.salesId) || sale.salesId <= 0) return sellerProduct({ ...dto, salesStatus: 'UNKNOWN' })
       const stock = await request<{ available: number; reserved: number }>(`/commerce/v1/sales/${sale.salesId}/stock`)
-      return { ...adminProduct({ ...dto, price: sale.unitPrice, available: stock.available, salesStatus: sale.salesStatus }, String(sale.salesId)), reservedStock: stock.reserved }
+      return { ...sellerProduct({ ...dto, price: sale.unitPrice, available: stock.available, salesStatus: sale.salesStatus }, String(sale.salesId)), reservedStock: stock.reserved }
     } catch {
       // 판매정보 장애에도 기본정보 편집은 유지한다.
-      return adminProduct({ ...dto, salesStatus: 'UNKNOWN' })
+      return sellerProduct({ ...dto, salesStatus: 'UNKNOWN' })
     }
   }
   const body = async ({ name, description, image }: ProductBasicInput) => {
@@ -37,7 +37,7 @@ export function createSellerProducts(request: HttpClient): AdminProductsPort {
   return {
     async list(params) {
       const value = await request<PageDto<ProductDto>>('/shopping/v1/seller/products', { query: { page: params?.page, size: params?.size, status: params?.status ? { ALL: undefined, DRAFT: 'NOT_REGISTERED', READY: 'READY', SELLING: 'ON_SALE', SOLD_OUT: 'SOLD_OUT', HIDDEN: 'PRIVATE', UNKNOWN: 'UNKNOWN' }[params.status] : undefined } })
-      const result = page(value, p => adminProduct(p))
+      const result = page(value, p => sellerProduct(p))
       return result
     }, get,
     async create(input) {

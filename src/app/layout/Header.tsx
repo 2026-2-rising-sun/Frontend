@@ -34,7 +34,7 @@ export function Header() {
           <ButtonLink to="/cart" variant="secondary" size="S">장바구니</ButtonLink>
           {session && <ButtonLink to="/account" variant="secondary" size="S">내 계정</ButtonLink>}
           {session && <NotificationBadge />}
-          {session?.role === 'SELLER' && <ButtonLink className={styles.desktopAction} to="/admin/products" variant="secondary" size="S">판매자 콘솔</ButtonLink>}
+          {session?.role === 'SELLER' && <ButtonLink className={styles.desktopAction} to="/seller/products" variant="secondary" size="S">판매자 콘솔</ButtonLink>}
           {session ? <Button className={styles.desktopAction} variant="secondary" size="S" onClick={() => { void logout().catch(() => {}) }}>로그아웃</Button>
             : <ButtonLink to="/login" variant="secondary" size="M">로그인</ButtonLink>}
         </div>

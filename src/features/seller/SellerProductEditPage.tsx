@@ -2,31 +2,31 @@ import { useState, type FormEvent } from 'react'
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
 import { AsyncView } from '../../components/AsyncView'
-import { Alert, Button, ButtonLink, ImageUpload, Input, Skeleton, StatusBadge, Textarea, adminProductBadge } from '../../components/ui'
+import { Alert, Button, ButtonLink, ImageUpload, Input, Skeleton, StatusBadge, Textarea, sellerProductBadge } from '../../components/ui'
 import { PRODUCT_DESCRIPTION_MAX, PRODUCT_NAME_MAX } from '../../domain/constraints'
-import type { AdminProduct, SaleAction } from '../../domain/types'
+import type { SellerProduct, SaleAction } from '../../domain/types'
 import { useIdempotencyKey } from '../../hooks/useIdempotencyKey'
 import { useAsync } from '../../hooks/useAsync'
 import { formatPrice } from '../../lib/format'
 import { ActionAlert } from './components/ActionAlert'
-import { AdminSection } from './components/AdminSection'
+import { SellerSection } from './components/SellerSection'
 import { useAction } from './useAction'
-import styles from './admin.module.css'
+import styles from './seller.module.css'
 
-/** 상품 등록(/admin/products/new) 과 수정(/admin/products/:id) 을 한 화면으로 처리한다. */
-export function AdminProductEditPage() {
+/** 상품 등록(/seller/products/new) 과 수정(/seller/products/:id) 을 한 화면으로 처리한다. */
+export function SellerProductEditPage() {
   const { productId } = useParams()
   const api = useApi()
   const location = useLocation()
   const initialNotice = (location.state as { notice?: string } | null)?.notice ?? null
   // 저장 후 상품을 다시 불러오면 섹션이 새로 만들어지므로, 성공 안내는 이 화면이 들고 있는다.
   const [flash, setFlash] = useState<string | null>(initialNotice)
-  const product = useAsync(() => (productId ? api.admin.products.get(productId) : Promise.resolve(null)), [api, productId])
+  const product = useAsync(() => (productId ? api.seller.products.get(productId) : Promise.resolve(null)), [api, productId])
 
   return (
     <>
       <div className={styles.pageHead}>
-        <Link to="/admin/products" className={styles.back}>
+        <Link to="/seller/products" className={styles.back}>
           ← 상품 목록
         </Link>
         <h1 className="t-h1">{productId ? '상품 수정' : '상품 등록'}</h1>
@@ -52,11 +52,11 @@ interface EditorProps {
   onDone: (message: string | null) => void
 }
 
-function ProductEditor({ product, reload, onDone }: EditorProps & { product: AdminProduct | null }) {
+function ProductEditor({ product, reload, onDone }: EditorProps & { product: SellerProduct | null }) {
   return (
     <>
       {product && <section className={styles.productOverview} aria-label="상품 설정 현황">
-        <div className={styles.cardHead}><h2 className="t-h4">{product.name}</h2><StatusBadge status={adminProductBadge(product.status)} /></div>
+        <div className={styles.cardHead}><h2 className="t-h4">{product.name}</h2><StatusBadge status={sellerProductBadge(product.status)} /></div>
         <p>{product.status === 'DRAFT' ? '기본정보를 등록했어요. 가격과 재고를 설정한 뒤 판매를 시작해 주세요.' : product.status === 'SOLD_OUT' ? '현재 품절이에요. 판매 설정에서 재고를 추가할 수 있어요.' : product.status === 'UNKNOWN' ? '판매정보를 확인하지 못했어요. 다시 조회한 뒤 판매 설정을 변경해 주세요.' : '변경할 항목으로 바로 이동하세요. 각 항목에서 따로 저장할 수 있어요.'}</p>
         <nav className={styles.sectionLinks} aria-label="상품 설정 바로가기"><a href="#basic-info">1. 기본정보</a><a href="#sale-info">2. 가격·재고</a><a href="#sale-status">3. 판매 상태</a></nav>
       </section>}
@@ -67,7 +67,7 @@ function ProductEditor({ product, reload, onDone }: EditorProps & { product: Adm
   )
 }
 
-function BasicInfoSection({ product, reload, onDone }: EditorProps & { product: AdminProduct | null }) {
+function BasicInfoSection({ product, reload, onDone }: EditorProps & { product: SellerProduct | null }) {
   const api = useApi()
   const navigate = useNavigate()
   const { busy, error, run } = useAction()
@@ -88,13 +88,13 @@ function BasicInfoSection({ product, reload, onDone }: EditorProps & { product: 
     if (!product) {
       let createdId = ''
       const ok = await run('save', async () => {
-        const created = await api.admin.products.create({ name, description, image, idempotencyKey: keyFor({ name, description, image: image ? [image.name, image.size, image.lastModified] : null }) })
+        const created = await api.seller.products.create({ name, description, image, idempotencyKey: keyFor({ name, description, image: image ? [image.name, image.size, image.lastModified] : null }) })
         createdId = created.id
       })
       // 기본정보만 저장된 상품(DRAFT)은 공개·주문 대상이 아니다. 이어서 같은 상품의 판매 설정으로 안내한다.
-      if (ok) navigate(`/admin/products/${createdId}`, { replace: true, state: { notice: '기본정보를 등록했어요. 이어서 판매 설정(가격·재고)을 해 주세요.' } })
+      if (ok) navigate(`/seller/products/${createdId}`, { replace: true, state: { notice: '기본정보를 등록했어요. 이어서 판매 설정(가격·재고)을 해 주세요.' } })
     } else {
-      const ok = await run('save', () => api.admin.products.updateBasicInfo(product.id, { name, description, image, version: product.version }))
+      const ok = await run('save', () => api.seller.products.updateBasicInfo(product.id, { name, description, image, version: product.version }))
       if (ok) {
         onDone('기본정보를 저장했어요.')
         reload()
@@ -103,7 +103,7 @@ function BasicInfoSection({ product, reload, onDone }: EditorProps & { product: 
   }
 
   return (
-    <AdminSection title="기본정보" description="상품명·설명·대표 이미지. 가격·재고는 아래 판매 설정에서 관리해요.">
+    <SellerSection title="기본정보" description="상품명·설명·대표 이미지. 가격·재고는 아래 판매 설정에서 관리해요.">
       <form className={styles.form} onSubmit={submit} noValidate>
         <ActionAlert error={error} onReload={reload} />
         <Input label="상품명" value={name} onChange={(e) => setName(e.target.value)} maxLength={PRODUCT_NAME_MAX + 20} placeholder="예: 무선 노이즈캔슬링 이어폰" error={attempted ? nameError || undefined : undefined} />
@@ -123,11 +123,11 @@ function BasicInfoSection({ product, reload, onDone }: EditorProps & { product: 
         </div>
         {!product && <p className={styles.hint}>등록하면 &lsquo;기본정보만&rsquo; 상태가 되며, 판매 설정을 마치기 전까지는 공개 목록과 주문에 나타나지 않아요.</p>}
       </form>
-    </AdminSection>
+    </SellerSection>
   )
 }
 
-function SaleInfoSection({ product, reload, onDone }: EditorProps & { product: AdminProduct }) {
+function SaleInfoSection({ product, reload, onDone }: EditorProps & { product: SellerProduct }) {
   const api = useApi()
   const { busy, error, run } = useAction()
   const draft = product.status === 'DRAFT'
@@ -146,10 +146,10 @@ function SaleInfoSection({ product, reload, onDone }: EditorProps & { product: A
     }
   }
 
-  if (product.status === 'UNKNOWN') return <AdminSection title="판매 설정"><Alert type="warning" title="판매정보를 확인하지 못했어요">기본정보는 수정할 수 있어요. 판매 설정은 다시 조회한 뒤 변경해 주세요.<Button variant="secondary" onClick={reload}>다시 조회</Button></Alert></AdminSection>
+  if (product.status === 'UNKNOWN') return <SellerSection title="판매 설정"><Alert type="warning" title="판매정보를 확인하지 못했어요">기본정보는 수정할 수 있어요. 판매 설정은 다시 조회한 뒤 변경해 주세요.<Button variant="secondary" onClick={reload}>다시 조회</Button></Alert></SellerSection>
 
   return (
-    <AdminSection
+    <SellerSection
       title="판매 설정"
       description={draft ? '가격과 최초 재고를 설정하면 판매 준비 상태가 돼요. 아직 공개·주문 대상은 아니에요.' : '가격은 새로 생기는 주문부터 적용되고, 이미 만든 주문 금액은 바뀌지 않아요.'}
     >
@@ -165,7 +165,7 @@ function SaleInfoSection({ product, reload, onDone }: EditorProps & { product: A
             <div className={styles.actions}>
               <Button
                 disabled={busy !== null || !!priceError || !!stockError || price === '' || stock === ''}
-                onClick={() => done('판매 설정을 저장했어요. 판매 준비 상태예요.')(() => api.admin.products.setSaleInfo(product.id, { price: toInt(price), stock: toInt(stock) }), 'sale')}
+                onClick={() => done('판매 설정을 저장했어요. 판매 준비 상태예요.')(() => api.seller.products.setSaleInfo(product.id, { price: toInt(price), stock: toInt(stock) }), 'sale')}
               >
                 {busy === 'sale' ? '저장 중…' : '판매 설정 저장'}
               </Button>
@@ -180,7 +180,7 @@ function SaleInfoSection({ product, reload, onDone }: EditorProps & { product: A
                 <Button
                   variant="secondary"
                   disabled={!product.salesId || busy !== null || !!priceError || price === '' || toInt(price) === product.price}
-                  onClick={() => done('가격을 변경했어요. 새 주문부터 적용돼요.')(() => api.admin.products.changePrice(product.id, toInt(price)), 'price')}
+                  onClick={() => done('가격을 변경했어요. 새 주문부터 적용돼요.')(() => api.seller.products.changePrice(product.id, toInt(price)), 'price')}
                 >
                   {busy === 'price' ? '변경 중…' : '가격 변경'}
                 </Button>
@@ -192,7 +192,7 @@ function SaleInfoSection({ product, reload, onDone }: EditorProps & { product: A
                 <Button
                   variant="secondary"
                   disabled={!product.salesId || busy !== null || !!stockError || stock === '' || toInt(stock) === 0}
-                  onClick={() => done('재고를 수정했어요.')(() => api.admin.products.adjustStock(product.id, toInt(stock)), 'stock')}
+                  onClick={() => done('재고를 수정했어요.')(() => api.seller.products.adjustStock(product.id, toInt(stock)), 'stock')}
                 >
                   {busy === 'stock' ? '수정 중…' : '재고 수정'}
                 </Button>
@@ -201,7 +201,7 @@ function SaleInfoSection({ product, reload, onDone }: EditorProps & { product: A
           </>
         )}
       </div>
-    </AdminSection>
+    </SellerSection>
   )
 }
 
@@ -211,13 +211,13 @@ const ACTION_COPY: Record<SaleAction, { label: string; done: string }> = {
   RESUME: { label: '공개 재개', done: '공개를 재개했어요.' },
 }
 
-function SaleStatusSection({ product, reload, onDone }: EditorProps & { product: AdminProduct }) {
+function SaleStatusSection({ product, reload, onDone }: EditorProps & { product: SellerProduct }) {
   const api = useApi()
   const { busy, error, run } = useAction()
 
   const act = async (action: SaleAction) => {
     onDone(null)
-    if (await run(action, () => api.admin.products.changeSaleStatus(product.id, action))) {
+    if (await run(action, () => api.seller.products.changeSaleStatus(product.id, action))) {
       onDone(ACTION_COPY[action].done)
       reload()
     }
@@ -227,7 +227,7 @@ function SaleStatusSection({ product, reload, onDone }: EditorProps & { product:
   const publicNow = status === 'SELLING' || status === 'SOLD_OUT'
 
   return (
-    <AdminSection title="판매 상태" aside={<StatusBadge status={adminProductBadge(status)} />}>
+    <SellerSection title="판매 상태" aside={<StatusBadge status={sellerProductBadge(status)} />}>
       <div className={styles.form}>
         <ActionAlert error={error} onReload={reload} />
         {status === 'DRAFT' && <p className={styles.hint}>판매 설정(가격·재고)을 저장하면 판매를 시작할 수 있어요.</p>}
@@ -270,6 +270,6 @@ function SaleStatusSection({ product, reload, onDone }: EditorProps & { product:
           </>
         )}
       </div>
-    </AdminSection>
+    </SellerSection>
   )
 }

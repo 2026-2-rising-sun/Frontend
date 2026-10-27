@@ -14,7 +14,7 @@ function CouponOptions({ page, selected, onSelect, disabled, onPage }: {
   page: number; selected: SellerCoupon | null; onSelect: (coupon: SellerCoupon | null) => void; disabled: boolean; onPage: (page: number) => void
 }) {
   const api = useApi()
-  const coupons = useAsync(() => api.admin.coupons.list(page), [api, page])
+  const coupons = useAsync(() => api.seller.coupons.list(page), [api, page])
   const items = coupons.data?.items ?? []
   const options = items.map(coupon => ({ value: String(coupon.id), label: `${coupon.name} · ${formatPrice(coupon.fixedDiscount)} 할인` }))
   if (selected && !items.some(coupon => String(coupon.id) === String(selected.id))) options.unshift({ value: String(selected.id), label: `${selected.name} (선택됨)` })

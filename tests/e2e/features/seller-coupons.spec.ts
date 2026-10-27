@@ -36,7 +36,7 @@ async function fixture(request: APIRequestContext) {
 test('kind: 판매자는 발급 전 쿠폰 설정을 수정하고 서버 버전이 증가한다', async ({ page, request }) => {
   const f = await fixture(request)
   await signIn(page, 'seller@local.test', 'seller')
-  await page.goto(`/admin/coupons/${f.coupon.id}`)
+  await page.goto(`/seller/coupons/${f.coupon.id}`)
   await page.getByLabel('쿠폰명', { exact: true }).fill(f.name + ' 수정')
   await page.getByLabel('정액 할인 금액 (원)', { exact: true }).fill('1500')
   const updated = page.waitForResponse(response => response.request().method() === 'PATCH' && response.url().endsWith(`/seller/coupons/${f.coupon.id}`))

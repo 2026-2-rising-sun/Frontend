@@ -54,7 +54,7 @@ test('kind: 쿠폰 이벤트 생성·공개·회원 발급·종료를 실제 API
   expect(response.ok(), await response.text()).toBeTruthy()
   const coupon = (await response.json()).data
   await signIn(page, 'seller@local.test', 'seller')
-  await page.goto(`/admin/lives/${f.liveId}`)
+  await page.goto(`/seller/lives/${f.liveId}`)
   const panel = page.getByRole('region', { name: '방송 이벤트', exact: true })
   await panel.getByLabel('이벤트 유형').selectOption('COUPON_DROP')
   // 보존된 기존 쿠폰이 여러 페이지에 있어도 이번 검증용 쿠폰을 찾아 선택한다.

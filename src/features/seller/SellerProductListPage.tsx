@@ -1,13 +1,13 @@
 import { useSearchParams, Link } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
 import { PagedView } from '../../components/PagedView'
-import { Button, ButtonLink, Chip, Input, ResultState, Skeleton, StatusBadge, Thumbnail, adminProductBadge } from '../../components/ui'
-import type { AdminProductStatus, AdminProductStatusFilter } from '../../domain/types'
+import { Button, ButtonLink, Chip, Input, ResultState, Skeleton, StatusBadge, Thumbnail, sellerProductBadge } from '../../components/ui'
+import type { SellerProductStatus, SellerProductStatusFilter } from '../../domain/types'
 import { usePaged } from '../../hooks/usePaged'
 import { formatPrice } from '../../lib/format'
-import styles from './admin.module.css'
+import styles from './seller.module.css'
 
-const FILTERS: { value: AdminProductStatusFilter; label: string }[] = [
+const FILTERS: { value: SellerProductStatusFilter; label: string }[] = [
   { value: 'ALL', label: '전체' },
   { value: 'DRAFT', label: '기본정보만' },
   { value: 'READY', label: '판매 준비' },
@@ -17,7 +17,7 @@ const FILTERS: { value: AdminProductStatusFilter; label: string }[] = [
   { value: 'UNKNOWN', label: '확인 필요' },
 ]
 
-const NEXT_ACTION: Record<AdminProductStatus, { label: string; hint: string }> = {
+const NEXT_ACTION: Record<SellerProductStatus, { label: string; hint: string }> = {
   DRAFT: { label: '판매 설정', hint: '가격과 최초 재고를 설정해 주세요.' },
   READY: { label: '판매 준비 확인', hint: '이미지와 재고를 확인하고 판매를 시작하세요.' },
   SELLING: { label: '상품 관리', hint: '가격·재고·공개 여부를 관리할 수 있어요.' },
@@ -26,14 +26,14 @@ const NEXT_ACTION: Record<AdminProductStatus, { label: string; hint: string }> =
   UNKNOWN: { label: '판매정보 확인', hint: '판매정보를 다시 확인해 주세요.' },
 }
 
-export function AdminProductListPage() {
+export function SellerProductListPage() {
   const api = useApi()
   const [params, setParams] = useSearchParams()
   const status = FILTERS.find(f => f.value === params.get('status'))?.value ?? 'ALL'
   const query = params.get('q') ?? ''
   // 서버의 상품 상태 필터는 페이지 내부에서 적용된다. 전체 페이지를 순서대로 누적한 뒤
   // 화면에서 필터링하여 상태를 바꿔도 이미 불러온 상품을 잃지 않는다.
-  const products = usePaged((page) => api.admin.products.list({ page, size: 20 }), [api])
+  const products = usePaged((page) => api.seller.products.list({ page, size: 20 }), [api])
   const update = (key: string, value: string) => setParams(prev => {
     const next = new URLSearchParams(prev)
     if (!value || value === 'ALL') next.delete(key)
@@ -54,7 +54,7 @@ export function AdminProductListPage() {
       <p className={styles.eyebrow}>SELLER CENTER</p>
       <div className={styles.pageTitle}>
         <div><h1 className="t-h1">상품 관리</h1><p className={styles.pageDescription}>판매 상태를 확인하고, 필요한 작업을 이어가세요.</p></div>
-        <ButtonLink to="/admin/products/new" className={styles.primaryAction}>+ 상품 등록</ButtonLink>
+        <ButtonLink to="/seller/products/new" className={styles.primaryAction}>+ 상품 등록</ButtonLink>
       </div>
     </header>
 
@@ -84,10 +84,10 @@ export function AdminProductListPage() {
               <Thumbnail src={p.imageUrl} alt="" className={styles.productThumb} />
               <div className={styles.rowText}>
                 <span className={styles.rowMeta}>상품 ID {p.id}</span>
-                <Link to={`/admin/products/${p.id}`} className={styles.productName}>{p.name}</Link>
+                <Link to={`/seller/products/${p.id}`} className={styles.productName}>{p.name}</Link>
                 {!p.hasImage && <span className={styles.attention}>대표 이미지를 등록해 주세요</span>}
               </div>
-              <StatusBadge status={adminProductBadge(p.status)} className={styles.productBadge} />
+              <StatusBadge status={sellerProductBadge(p.status)} className={styles.productBadge} />
             </div>
             <dl className={styles.productMetrics}>
               <div><dt>판매 가격</dt><dd>{p.price === null ? '설정 전' : formatPrice(p.price)}</dd></div>
@@ -95,12 +95,12 @@ export function AdminProductListPage() {
             </dl>
             <div className={styles.productFooter}>
               <p>{NEXT_ACTION[p.status].hint}</p>
-              <ButtonLink to={`/admin/products/${p.id}`} size="S" variant={p.status === 'SELLING' ? 'secondary' : 'tonal'} aria-label={`${p.name} ${NEXT_ACTION[p.status].label}`}>{NEXT_ACTION[p.status].label} →</ButtonLink>
+              <ButtonLink to={`/seller/products/${p.id}`} size="S" variant={p.status === 'SELLING' ? 'secondary' : 'tonal'} aria-label={`${p.name} ${NEXT_ACTION[p.status].label}`}>{NEXT_ACTION[p.status].label} →</ButtonLink>
             </div>
           </article>)}
         </div>}
       </PagedView>
-      {!products.loading && !products.error && !products.items.length && !products.hasNext && <ButtonLink to="/admin/products/new" className={styles.emptyAction}>첫 상품 등록</ButtonLink>}
+      {!products.loading && !products.error && !products.items.length && !products.hasNext && <ButtonLink to="/seller/products/new" className={styles.emptyAction}>첫 상품 등록</ButtonLink>}
     </section>
   </>
 }

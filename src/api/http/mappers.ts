@@ -1,6 +1,6 @@
-import type { Product, AdminProduct, AdminProductStatus, LiveDetail, Order, Paged } from '../../domain/types'
+import type { Product, SellerProduct, SellerProductStatus, LiveDetail, Order, Paged } from '../../domain/types'
 import { ApiError } from '../../domain/errors'
-export const states: Record<string, AdminProductStatus> = { NOT_REGISTERED: 'DRAFT', UNKNOWN: 'UNKNOWN', READY: 'READY', ON_SALE: 'SELLING', SOLD_OUT: 'SOLD_OUT', PRIVATE: 'HIDDEN' }
+export const states: Record<string, SellerProductStatus> = { NOT_REGISTERED: 'DRAFT', UNKNOWN: 'UNKNOWN', READY: 'READY', ON_SALE: 'SELLING', SOLD_OUT: 'SOLD_OUT', PRIVATE: 'HIDDEN' }
 export type ProductDto = { productId: number; name: string | null; description?: string; mainImageUrl: string | null; version?: number; salesStatus?: string; status?: string | null; price: number | null; available?: number | null; purchasable?: boolean; linkId?: number; missing?: boolean }
 export const imageUrl = (url: string | null) => url
 export function product(p: ProductDto): Product {
@@ -8,7 +8,7 @@ export function product(p: ProductDto): Product {
   if (!status || status === 'DRAFT' || status === 'UNKNOWN') throw new ApiError('NETWORK', '상품 판매 정보를 확인하지 못했어요.')
   return { id: String(p.productId), name: p.name ?? '조회할 수 없는 상품', description: p.description ?? '', imageUrl: imageUrl(p.mainImageUrl), price: p.price ?? 0, stock: p.available ?? null, status, purchasable: p.purchasable, linkId: p.linkId === undefined ? undefined : String(p.linkId), missing: p.missing }
 }
-export function adminProduct(p: ProductDto, salesId: string | null = null): AdminProduct {
+export function sellerProduct(p: ProductDto, salesId: string | null = null): SellerProduct {
   const status = states[p.salesStatus ?? 'NOT_REGISTERED']
   if (!status) throw new ApiError('NETWORK', '판매 정보를 조회하지 못했어요. 잠시 후 다시 시도해 주세요.')
   return { id: String(p.productId), name: p.name ?? '', description: p.description ?? '', imageUrl: imageUrl(p.mainImageUrl), hasImage: !!p.mainImageUrl, version: p.version ?? 0, status, price: p.price, stock: p.available ?? null, salesId }

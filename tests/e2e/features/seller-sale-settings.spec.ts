@@ -38,7 +38,7 @@ async function newProduct(request: APIRequestContext) {
 test('kind: 새 브라우저에서 기존 READY·PRIVATE 상품 가격·재고·판매 상태를 변경한다', async ({ page, request, browser }) => {
   const f = await newProduct(request)
   await signIn(page, 'seller@local.test', 'seller')
-  await page.goto(`/admin/products/${f.productId}`)
+  await page.goto(`/seller/products/${f.productId}`)
   await expect(page.getByRole('region', { name: '판매 상태', exact: true })).toContainText('판매 준비')
   const price = page.getByLabel(/^판매 가격\(원\)/)
   await expect(price).toHaveValue('1200')
@@ -59,7 +59,7 @@ test('kind: 새 브라우저에서 기존 READY·PRIVATE 상품 가격·재고·
   try {
     const fresh = await context.newPage()
     await signIn(fresh, 'seller@local.test', 'seller')
-    await fresh.goto(`/admin/products/${f.productId}`)
+    await fresh.goto(`/seller/products/${f.productId}`)
     await expect(fresh.getByRole('button', { name: '공개 재개', exact: true })).toBeEnabled()
     await expect(fresh.getByLabel(/^판매 가격\(원\)/)).toHaveValue('1450')
     await fresh.getByLabel(/^판매 가격\(원\)/).fill('1600')

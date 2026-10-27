@@ -79,8 +79,38 @@ test('내 계정에서 이름 변경 성공·실패를 구분하고 탈퇴 취�
 test('판매자 내 계정에서 판매자 콘솔과 세션 관리를 제공한다', async ({ page }) => {
   await setup(page, 'SELLER')
   await page.goto('/login'); await login(page)
-  await expect(page).toHaveURL(/\/admin\/products$/)
+  await expect(page).toHaveURL(/\/seller\/products$/)
+  await page.goto('/seller')
+  await expect(page).toHaveURL(/\/seller\/products$/)
+  for (const [name, path] of [['상품 관리', 'products'], ['방송 관리', 'lives'], ['쿠폰 관리', 'coupons'], ['환불 관리', 'refunds']]) {
+    await expect(page.getByRole('link', { name, exact: true })).toHaveAttribute('href', `/seller/${path}`)
+  }
   await page.goto('/account')
-  await expect(page.getByRole('region', { name: '판매자 센터' }).getByRole('link')).toHaveAttribute('href', '/admin/products')
+  await expect(page.getByRole('region', { name: '판매자 센터' }).getByRole('link')).toHaveAttribute('href', '/seller/products')
   await expect(page.getByRole('button', { name: '내 모든 세션 종료', exact: true })).toBeVisible()
+})
+
+for (const [path, heading] of [
+  ['/seller/products/new', '상품 등록'],
+  ['/seller/lives/new', '방송 등록'],
+  ['/seller/coupons/new', '쿠폰 만들기'],
+  ['/seller/refunds/42', '환불 상세'],
+]) {
+  test(`판매자 로그인 후 요청한 ${path} 화면으로 복귀한다`, async ({ page }) => {
+    await setup(page, 'SELLER')
+    await page.goto(path)
+    await expect(page).toHaveURL(/\/login$/)
+    await login(page)
+    await expect(page).toHaveURL(new RegExp(`${path}$`))
+    await expect(page.getByRole('heading', { name: heading, exact: true })).toBeVisible()
+  })
+}
+
+test('일반 회원은 seller 경로에서도 판매자 화면에 접근할 수 없다', async ({ page }) => {
+  await setup(page)
+  await page.goto('/login'); await login(page)
+  await expect(page).toHaveURL(/\/account$/)
+  await page.goto('/seller/products')
+  await expect(page.getByText('판매자만 접근할 수 있어요.', { exact: true })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '상품 관리', exact: true })).not.toBeVisible()
 })

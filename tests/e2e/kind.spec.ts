@@ -184,7 +184,7 @@ test('kind: frontend direct purchase creates the quoted order and completes paym
 })
 
 test('kind: USER cannot enter seller console; seller can revoke their own sessions', async ({ page, request }) => {
-  await page.goto('/admin/products')
+  await page.goto('/seller/products')
   await page.getByLabel('아이디 또는 이메일').fill('user'); await page.getByLabel('비밀번호', { exact: true }).fill('user')
   await page.getByRole('button', { name: '로그인', exact: true }).click()
   await expect(page.getByText('판매자만 접근할 수 있어요.', { exact: true })).toBeVisible()
