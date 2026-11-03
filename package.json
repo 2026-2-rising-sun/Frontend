@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "dev:api": "vite --mode api",
+    "dev:gateway": "vite --mode gateway",
     "test": "tsx --test tests/*.test.ts",
     "e2e:prism": "E2E_MODE=prism playwright test",
     "e2e:checkout-ui": "playwright test --config playwright.checkout.config.ts",
