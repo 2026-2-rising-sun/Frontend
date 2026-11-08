@@ -101,4 +101,9 @@ test('kind: 두 상품을 결제한 뒤 재접속하여 선택 환불하고 남�
   })
   expect(duplicate.status()).toBe(409)
   expect(new Set(ids).size).toBe(2)
+  for (const item of [first, second]) {
+    const stock = await request.get(`/api/commercecore/v1/sales/${item.salesId}/stock`, { headers: item.seller })
+    expect(stock.ok(), await stock.text()).toBeTruthy()
+    expect(await stock.json()).toMatchObject({ available: 7, reserved: 0 })
+  }
 })

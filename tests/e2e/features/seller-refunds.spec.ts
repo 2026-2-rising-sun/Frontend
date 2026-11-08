@@ -45,6 +45,7 @@ async function newProduct(request: APIRequestContext) {
 }
 
 test('kind: 실제 결제 묶음을 전체 환불 접수하고 구매자 이력과 판매자 상세를 조회한다', async ({ page, request, browser }) => {
+  test.setTimeout(180000)
   const f = await newProduct(request)
   const member = await newBuyer(request)
   const started = await request.patch(`/api/commercecore/v1/sales/${f.salesId}/status`, {
@@ -88,8 +89,15 @@ test('kind: 실제 결제 묶음을 전체 환불 접수하고 구매자 이력�
   expect(history.ok(), await history.text()).toBeTruthy()
   const persisted = (await history.json()).data.find((item: { id: number }) => item.id === refund.id)
   expect(persisted).toMatchObject({ id: refund.id, refundAmount: 2400 })
-  // Kafka 유무와 무관하게 접수·영속화가 완료 조건이며 비동기 완료를 강제로 기다리지 않는다.
-  test.info().annotations.push({ type: 'refund-status', description: `접수 및 이력 검증 시점 상태: ${persisted.status}. 비동기 최종 완료는 이 테스트의 필수 조건이 아님.` })
+  // 분리된 Payment 결과가 Kafka를 거쳐 Core 환불·재고에 최종 반영되는지 확인한다.
+  await expect.poll(async () => {
+    const response = await request.get(`/api/commercecore/v1/payment-groups/${encodeURIComponent(groupNumber)}/refunds/${refund.id}`, { headers: member.headers })
+    expect(response.ok(), await response.text()).toBeTruthy()
+    return (await response.json()).data.status
+  }, { timeout: 60000 }).toBe('SUCCESS')
+  const stock = await request.get(`/api/commercecore/v1/sales/${f.salesId}/stock`, { headers: f.seller })
+  expect(stock.ok(), await stock.text()).toBeTruthy()
+  expect(await stock.json()).toMatchObject({ available: 7, reserved: 0 })
 
   const sellerContext = await browser.newContext({ baseURL: new URL(page.url()).origin, viewport: { width: 390, height: 844 } })
   try {

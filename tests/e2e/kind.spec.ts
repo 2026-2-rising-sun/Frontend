@@ -23,9 +23,9 @@ async function fixture(request: APIRequestContext) {
   await waitForCatalogProduct(request, productId)
   return { productId, name, headers, salesId }
 }
-test('kind: seller product upload, JSON register, sale configuration and atomic stock delta', async ({ page }) => {
+test('kind: seller product upload, JSON register, sale configuration and atomic stock delta', async ({ page, request }) => {
   const name = '판매자 화면 ' + randomUUID().slice(0, 8)
-  await login(page, 'seller'); await page.getByRole('link', { name: '상품 등록', exact: true }).click()
+  await login(page, 'seller'); await page.getByRole('link', { name: '+ 상품 등록', exact: true }).click()
   await page.getByLabel('상품명', { exact: true }).fill(name); await page.getByLabel('상품 설명', { exact: true }).fill('프론트 연동 확인')
   await page.locator('input[type=file]').setInputFiles({ name: 'product.png', mimeType: 'image/png', buffer: png })
   await page.getByRole('button', { name: '기본정보 등록', exact: true }).click()
@@ -41,7 +41,16 @@ test('kind: seller product upload, JSON register, sale configuration and atomic 
   await page.getByRole('button', { name: '기본정보 저장', exact: true }).click(); await expect(page.getByText('기본정보를 저장했어요.', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: '비공개로 전환' }).click(); await expect(page.getByRole('button', { name: '공개 재개', exact: true })).toBeVisible()
   await page.getByRole('button', { name: '공개 재개', exact: true }).click(); await expect(page.getByRole('button', { name: '비공개로 전환' })).toBeVisible()
+  const productId = new URL(page.url()).pathname.split('/').pop()!
+  // Core 원본 저장과 Catalog 상품·판매 사본 반영은 별도 단계다.
+  await expect.poll(async () => {
+    const response = await request.get(`/api/catalog/v1/products/${productId}`)
+    return response.ok() ? (await response.json()).data : null
+  }, { timeout: 30000 }).toMatchObject({ name, description: '수정한 상품 설명', price: 13000, available: 6, salesStatus: 'ON_SALE' })
   await page.getByRole('link', { name: '공개 상세 보기' }).click(); await expect(page.getByRole('heading', { name, exact: true })).toBeVisible()
+  const publicImage = page.getByRole('img', { name, exact: true })
+  await expect(publicImage).toHaveAttribute('src', /^\/api\/commercecore\/v1\/product-images\//)
+  await expect.poll(() => publicImage.evaluate(image => image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0)).toBe(true)
   await page.screenshot({ path: 'test-artifacts/kind-product-desktop.png', fullPage: true })
   await page.setViewportSize({ width: 390, height: 844 }); await expect(page.getByRole('link', { name: '바로 구매', exact: true })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
