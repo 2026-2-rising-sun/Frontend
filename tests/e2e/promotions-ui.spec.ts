@@ -7,7 +7,7 @@ async function login(page: Page) {
 }
 async function fixture(page: Page, options: { seller?: boolean; claim?: () => Promise<number>; id?: unknown; closeAt?: string; couponError?: boolean; created?: (input: unknown) => void } = {}) {
   const promotions: unknown[] = []
-  await page.route(/\/api\/(member|commerce|shopping|notification|live)\//, async route => {
+  await page.route(/\/api\/(member|commercecore|catalog|notification|live)\//, async route => {
     const url = new URL(route.request().url()); const path = url.pathname
     let data: unknown
     if (path.includes('/auth/')) data = { accessToken: 'token', refreshToken: 'refresh' }
@@ -97,7 +97,7 @@ test('잘못된 쿠폰 참조와 만료 이벤트에는 발급 버튼을 표시�
   await fixture(page, { id: 'invalid' }); await page.goto('/lives/42')
   await expect(page.getByText('쿠폰 정보를 확인할 수 없어요.', { exact: true })).toBeVisible()
   await expect(page.getByRole('link', { name: '로그인하고 쿠폰 받기' })).toHaveCount(0)
-  await page.unroute(/\/api\/(member|commerce|shopping|notification|live)\//)
+  await page.unroute(/\/api\/(member|commercecore|catalog|notification|live)\//)
   await fixture(page, { closeAt: '2020-01-01T00:00:00Z' }); await page.reload()
   await expect(page.getByRole('heading', { name: '검증 방송', exact: true })).toBeVisible()
   await expect(page.getByText('방송 중 이벤트 · 방송 쿠폰', { exact: true })).toHaveCount(0)

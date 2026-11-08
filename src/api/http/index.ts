@@ -30,7 +30,7 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
     }
     return { ...input, thumbnailId: await upload }
   }
-  const getOrder = async (n: string) => order(await request<OrderDto>(`/commerce/v1/orders/${id(n)}`))
+  const getOrder = async (n: string) => order(await request<OrderDto>(`/commercecore/v1/orders/${id(n)}`))
   const cartItem = (c: CartItem) => ({ ...c, id: String(c.id), productId: String(c.productId) })
   type GroupDto = Omit<PaymentGroup, 'orders' | 'paymentId' | 'discountAmount' | 'payableAmount' | 'couponId'> & { discountAmount?: number; payableAmount?: number; couponId?: string | null; orders: OrderDto[]; paymentId: number | null }
   const group = (g: GroupDto): PaymentGroup => ({ ...g, discountAmount: g.discountAmount ?? 0, payableAmount: g.payableAmount ?? g.totalAmount, couponId: g.couponId ?? null, orders: g.orders.map(order), paymentId: g.paymentId === null ? null : String(g.paymentId) })
@@ -43,11 +43,11 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
     promotions: createPromotions(request, publicRequest),
     products: {
       async list(params) {
-        const dto = await publicRequest<{ items: ProductDto[]; nextCursor: string | null; hasNext: boolean }>('/shopping/v1/products', { query: { cursor: params?.cursor, size: params?.size, q: params?.query, sort: params?.sort, status: params?.status === 'SELLING' ? 'ON_SALE' : params?.status === 'SOLD_OUT' ? 'SOLD_OUT' : undefined } })
+        const dto = await publicRequest<{ items: ProductDto[]; nextCursor: string | null; hasNext: boolean }>('/catalog/v1/products', { query: { cursor: params?.cursor, size: params?.size, q: params?.query, sort: params?.sort, status: params?.status === 'SELLING' ? 'ON_SALE' : params?.status === 'SOLD_OUT' ? 'SOLD_OUT' : undefined } })
         return { items: dto.items.map(product), nextCursor: dto.nextCursor === null ? null : String(dto.nextCursor), hasNext: dto.hasNext, page: params?.page ?? 0, size: params?.size ?? 12, totalCount: -1 }
       },
-      get: async n => product(await publicRequest<ProductDto>(`/shopping/v1/products/${id(n)}`)),
-      check: (n, quantity) => publicRequest(`/shopping/v1/products/${id(n)}/purchase-check`, { query: { quantity } }),
+      get: async n => product(await publicRequest<ProductDto>(`/catalog/v1/products/${id(n)}`)),
+      check: (n, quantity) => publicRequest(`/catalog/v1/products/${id(n)}/purchase-check`, { query: { quantity } }),
     },
     lives: {
       async list(params) {
@@ -66,34 +66,34 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
       eventsUrl: n => `${baseUrl.replace(/\/$/, '')}/live/v1/broadcasts/${id(n)}/events`,
     },
     orders: {
-      checkout: (n, quantity, couponId) => request('/commerce/v1/orders/checkout', { query: { productId: n, quantity, couponId } }),
+      checkout: (n, quantity, couponId) => request('/commercecore/v1/orders/checkout', { query: { productId: n, quantity, couponId } }),
       async create(input) {
         const body = { buyerName: input.ordererName, buyerPhone: input.ordererPhone, expectedTotalAmount: input.expectedUnitPrice * input.quantity, ...(input.couponId && !input.cartItemId ? { couponId: input.couponId } : {}) }
-        const path = input.cartItemId ? `/commerce/v1/cart/items/${id(input.cartItemId)}/orders` : '/commerce/v1/orders'
+        const path = input.cartItemId ? `/commercecore/v1/cart/items/${id(input.cartItemId)}/orders` : '/commercecore/v1/orders'
         return order(await request<OrderDto>(path, { method: 'POST', headers: { 'X-Idempotency-Key': input.idempotencyKey }, body: input.cartItemId ? body : { ...body, productId: Number(input.productId), quantity: input.quantity } }))
       },
-      list: async params => page(await request<PageDto<OrderDto>>('/commerce/v1/orders', { query: { page: params?.page, size: params?.size } }), order),
+      list: async params => page(await request<PageDto<OrderDto>>('/commercecore/v1/orders', { query: { page: params?.page, size: params?.size } }), order),
       lookup: getOrder,
-      async cancel(n) { await request(`/commerce/v1/orders/${id(n)}/cancel`, { method: 'POST' }); return getOrder(n) },
+      async cancel(n) { await request(`/commercecore/v1/orders/${id(n)}/cancel`, { method: 'POST' }); return getOrder(n) },
     },
     payments: {
-      start: n => request(`/commerce/v1/orders/${id(n)}/payments`, { method: 'POST', body: {} }),
-      get: (n, p) => request(`/commerce/v1/orders/${id(n)}/payments/${id(p)}`),
+      start: n => request(`/commercecore/v1/orders/${id(n)}/payments`, { method: 'POST', body: {} }),
+      get: (n, p) => request(`/commercecore/v1/orders/${id(n)}/payments/${id(p)}`),
     },
     paymentGroups: {
-      active: async () => { const g = await request<GroupDto | undefined>('/commerce/v1/payment-groups/active'); return g ? group(g) : null },
-      get: async n => group(await request<GroupDto>(`/commerce/v1/payment-groups/${id(n)}`)),
-      start: async (n, key) => { const p = await request<{ paymentId: number; status: string }>(`/commerce/v1/payment-groups/${id(n)}/payments`, { method: 'POST', headers: { 'X-Idempotency-Key': key }, body: {} }); return { ...p, paymentId: String(p.paymentId) } },
-      payment: async (n, p) => { const result = await request<{ paymentId: number; status: string }>(`/commerce/v1/payment-groups/${id(n)}/payments/${id(p)}`); return { ...result, paymentId: String(result.paymentId) } },
-      cancel: n => request(`/commerce/v1/payment-groups/${id(n)}/cancel`, { method: 'POST' }),
+      active: async () => { const g = await request<GroupDto | undefined>('/commercecore/v1/payment-groups/active'); return g ? group(g) : null },
+      get: async n => group(await request<GroupDto>(`/commercecore/v1/payment-groups/${id(n)}`)),
+      start: async (n, key) => { const p = await request<{ paymentId: number; status: string }>(`/commercecore/v1/payment-groups/${id(n)}/payments`, { method: 'POST', headers: { 'X-Idempotency-Key': key }, body: {} }); return { ...p, paymentId: String(p.paymentId) } },
+      payment: async (n, p) => { const result = await request<{ paymentId: number; status: string }>(`/commercecore/v1/payment-groups/${id(n)}/payments/${id(p)}`); return { ...result, paymentId: String(result.paymentId) } },
+      cancel: n => request(`/commercecore/v1/payment-groups/${id(n)}/cancel`, { method: 'POST' }),
     },
     cart: {
-      checkout: async (items, couponId) => { const result = await request<CartCheckout>('/commerce/v1/cart/checkout', { method: 'POST', body: { items: selection(items), ...(couponId ? { couponId } : {}) } }); return { ...result, items: result.items.map(i => ({ ...i, itemId: String(i.itemId), productId: String(i.productId) })) } },
-      order: async ({ idempotencyKey, items, ...input }) => group(await request<GroupDto>('/commerce/v1/cart/orders', { method: 'POST', headers: { 'X-Idempotency-Key': idempotencyKey }, body: { ...input, items: selection(items) } })),
-      list: async () => (await request<CartItem[]>('/commerce/v1/cart/items')).map(cartItem),
-      add: async (n, quantity) => cartItem(await request('/commerce/v1/cart/items', { method: 'POST', body: { productId: Number(n), quantity } })),
-      update: async (n, quantity) => cartItem(await request(`/commerce/v1/cart/items/${id(n)}`, { method: 'PATCH', body: { quantity } })),
-      remove: n => request(`/commerce/v1/cart/items/${id(n)}`, { method: 'DELETE' }),
+      checkout: async (items, couponId) => { const result = await request<CartCheckout>('/commercecore/v1/cart/checkout', { method: 'POST', body: { items: selection(items), ...(couponId ? { couponId } : {}) } }); return { ...result, items: result.items.map(i => ({ ...i, itemId: String(i.itemId), productId: String(i.productId) })) } },
+      order: async ({ idempotencyKey, items, ...input }) => group(await request<GroupDto>('/commercecore/v1/cart/orders', { method: 'POST', headers: { 'X-Idempotency-Key': idempotencyKey }, body: { ...input, items: selection(items) } })),
+      list: async () => (await request<CartItem[]>('/commercecore/v1/cart/items')).map(cartItem),
+      add: async (n, quantity) => cartItem(await request('/commercecore/v1/cart/items', { method: 'POST', body: { productId: Number(n), quantity } })),
+      update: async (n, quantity) => cartItem(await request(`/commercecore/v1/cart/items/${id(n)}`, { method: 'PATCH', body: { quantity } })),
+      remove: n => request(`/commercecore/v1/cart/items/${id(n)}`, { method: 'DELETE' }),
     },
     seller: {
       coupons: createSellerCoupons(request),

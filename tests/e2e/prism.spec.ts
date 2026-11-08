@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 test('Prism: anonymous product read and login-gated checkout/cart', async ({ page, request }) => {
-  const result = await request.get('/api/shopping/v1/products/1'); expect(result.ok()).toBeTruthy()
+  const result = await request.get('/api/catalog/v1/products/1'); expect(result.ok()).toBeTruthy()
   const product = (await result.json()).data
   await page.goto('/products/1'); await expect(page.getByRole('heading', { name: product.name, exact: true })).toBeVisible()
   await page.getByRole('link', { name: '바로 구매', exact: true }).click()

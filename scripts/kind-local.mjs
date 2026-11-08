@@ -2,16 +2,18 @@ import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { generateKeyPairSync, randomBytes, randomUUID } from 'node:crypto'
+import { servicePorts } from './services.ts'
 const root = resolve(import.meta.dirname, '..')
 const backend = resolve(process.env.BACKEND_DIR ?? root + '/../Backend')
-const namespace = process.env.KIND_NAMESPACE ?? 'shoppinglive-frontend-local'
+const namespace = process.env.KIND_NAMESPACE ?? 'shoppinglive-service-split-local'
 const context = process.env.KIND_CONTEXT ?? 'kind-shoppinglive-dev'
 if (!context.startsWith('kind-')) throw new Error('kind 컨텍스트가 필요합니다')
 const run = (name, args, options = {}) => execFileSync(name, args, { encoding: 'utf8', ...options })
 const k = args => ['--context', context, '-n', namespace, ...args]
 const work = root + '/test-artifacts/kind'; mkdirSync(work, { recursive: true })
-const services = ['member', 'shopping', 'commerce', 'live', 'notification']
-const kafkaEnabled = process.env.KIND_KAFKA === 'true'
+const services = Object.keys(servicePorts)
+const kafkaEnabled = process.env.KIND_KAFKA !== 'false'
+if (!kafkaEnabled) throw new Error('Catalog 사본과 Payment 결과 반영에는 Kafka가 필요합니다. KIND_KAFKA=false는 지원하지 않습니다.')
 const labels = { 'app.kubernetes.io/managed-by': 'shoppinglive-frontend-local' }
 const meta = name => ({ name, namespace, labels })
 const apply = objects => run('kubectl', k(['apply', '-f', '-']), { input: JSON.stringify({ apiVersion: 'v1', kind: 'List', items: objects }) })
@@ -35,10 +37,8 @@ if (existsSync(credentialsFile)) config = JSON.parse(readFileSync(credentialsFil
 else {
   const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 }); const kid = 'frontend-local-' + randomUUID()
   config = { kid, password: randomBytes(24).toString('base64url'), private: privateKey.export({ type: 'pkcs8', format: 'pem' }), public: JSON.stringify({ keys: [{ ...publicKey.export({ format: 'jwk' }), kid, alg: 'RS256', use: 'sig' }] }), env: {} }
-  for (const pair of ['SHOPPING_MEMBER', 'COMMERCE_MEMBER', 'LIVE_MEMBER', 'COMMERCE_SHOPPING', 'LIVE_SHOPPING', 'SHOPPING_COMMERCE', 'LIVE_COMMERCE']) config.env[pair + '_SERVICE_TOKEN'] = randomBytes(32).toString('base64url')
-  writeFileSync(credentialsFile, JSON.stringify(config), { mode: 0o600 })
 }
-for (const pair of ['NOTIFICATION_MEMBER']) config.env[pair + '_SERVICE_TOKEN'] ??= randomBytes(32).toString('base64url')
+for (const pair of ['CATALOG_MEMBER', 'COMMERCECORE_MEMBER', 'PAYMENT_MEMBER', 'LIVE_MEMBER', 'LIVE_COMMERCECORE', 'CATALOG_COMMERCECORE', 'COMMERCECORE_PAYMENT', 'PAYMENT_COMMERCECORE', 'NOTIFICATION_MEMBER']) config.env[pair + '_SERVICE_TOKEN'] ??= randomBytes(32).toString('base64url')
 writeFileSync(credentialsFile, JSON.stringify(config), { mode: 0o600 })
 const deployment = (name, image, env = [], volumes = [], mounts = [], probes = false) => ({ apiVersion: 'apps/v1', kind: 'Deployment', metadata: meta(name), spec: { replicas: 1, strategy: { type: 'Recreate' }, selector: { matchLabels: { app: name } }, template: { metadata: { labels: { app: name, ...labels } }, spec: { volumes, containers: [{ name, image, imagePullPolicy: 'IfNotPresent', env, ports: [{ containerPort: 8080 }, { containerPort: 9090 }], volumeMounts: mounts, ...(probes ? { resources: { requests: { memory: '160Mi', cpu: '50m' }, limits: { memory: '640Mi' } }, startupProbe: { httpGet: { path: '/actuator/health/readiness', port: 9090 }, failureThreshold: 90, periodSeconds: 2 }, readinessProbe: { httpGet: { path: '/actuator/health/readiness', port: 9090 }, periodSeconds: 3 } } : {}) }] } } } })
 const service = (name, port, targetPort = port) => ({ apiVersion: 'v1', kind: 'Service', metadata: meta(name), spec: { selector: { app: name }, ports: [{ port, targetPort }] } })
@@ -90,7 +90,7 @@ for (const s of services) {
   const image = `shoppinglive-frontend-local/${s}:${sha.slice(0, 12)}`
   run('docker', ['build', '-t', image, dir], { stdio: 'inherit' })
   run('kind', ['load', 'docker-image', image, '--name', context.slice(5)], { stdio: 'inherit' })
-  const values = { JAVA_TOOL_OPTIONS: '-Xmx128m -XX:MaxMetaspaceSize=192m -XX:ReservedCodeCacheSize=48m -XX:MaxDirectMemorySize=32m -XX:ActiveProcessorCount=2 -Xss512k', SERVER_TOMCAT_THREADS_MAX: 24, SERVER_TOMCAT_THREADS_MIN_SPARE: 2, SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 5, SPRING_PROFILES_ACTIVE: 'local', SERVER_PORT: 8080, MANAGEMENT_SERVER_PORT: 9090, SPRING_DATASOURCE_URL: `jdbc:postgresql://postgres:5432/${s}`, SPRING_DATASOURCE_USERNAME: 'frontend', MEMBER_LOCAL_TEST_ACCOUNTS_ENABLED: true, MEMBER_JWT_PUBLIC_KEY_SET_LOCATION: 'file:/run/auth/public.jwks', MEMBER_JWT_PRIVATE_KEY_LOCATION: 'file:/run/auth/private.pem', MEMBER_JWT_KEY_ID: config.kid, MEMBER_ACCESS_TOKEN_TTL: 'PT15M', MEMBER_REFRESH_TOKEN_TTL: 'P30D', MEMBER_SESSION_BASE_URL: 'http://member:8080', SHOPPING_SALES_CLIENT_BASE_URL: 'http://commerce:8080', COMMERCE_SHOPPING_CLIENT_BASE_URL: 'http://shopping:8080', LIVE_PRODUCTS_MODE: 'http', LIVE_PRODUCTS_SHOPPING_URL: 'http://shopping:8080', LIVE_PRODUCTS_COMMERCE_URL: 'http://commerce:8080', LIVE_IVS_MODE: 'stub', LIVE_IVS_STUB_READY: true, SHOPPING_IMAGE_DIR: '/tmp/images', SHOPPING_IMAGE_PUBLIC_BASE_URL: '/api/shopping', SPRING_DATA_REDIS_HOST: 'redis', SPRING_DATA_REDIS_PORT: 6379, SPRING_KAFKA_BOOTSTRAP_SERVERS: kafkaEnabled ? 'kafka:9092' : '127.0.0.1:1', SPRING_KAFKA_ADMIN_AUTO_CREATE: kafkaEnabled, SPRING_KAFKA_LISTENER_AUTO_STARTUP: kafkaEnabled }
+  const values = { JAVA_TOOL_OPTIONS: '-Xmx128m -XX:MaxMetaspaceSize=192m -XX:ReservedCodeCacheSize=48m -XX:MaxDirectMemorySize=32m -XX:ActiveProcessorCount=2 -Xss512k', SERVER_TOMCAT_THREADS_MAX: 24, SERVER_TOMCAT_THREADS_MIN_SPARE: 2, SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 5, SPRING_PROFILES_ACTIVE: 'local', SERVER_PORT: 8080, MANAGEMENT_SERVER_PORT: 9090, SPRING_DATASOURCE_URL: `jdbc:postgresql://postgres:5432/${s}`, SPRING_DATASOURCE_USERNAME: 'frontend', MEMBER_LOCAL_TEST_ACCOUNTS_ENABLED: true, MEMBER_JWT_PUBLIC_KEY_SET_LOCATION: 'file:/run/auth/public.jwks', MEMBER_JWT_PRIVATE_KEY_LOCATION: 'file:/run/auth/private.pem', MEMBER_JWT_KEY_ID: config.kid, MEMBER_ACCESS_TOKEN_TTL: 'PT15M', MEMBER_REFRESH_TOKEN_TTL: 'P30D', MEMBER_SESSION_BASE_URL: 'http://member:8080', CATALOG_SALES_CLIENT_BASE_URL: 'http://commercecore:8080', COMMERCECORE_PAYMENT_BASE_URL: 'http://payment:8080', LIVE_PRODUCTS_MODE: 'http', LIVE_PRODUCTS_COMMERCECORE_URL: 'http://commercecore:8080', LIVE_IVS_MODE: 'stub', LIVE_IVS_STUB_READY: true, COMMERCECORE_IMAGE_DIR: '/tmp/images', COMMERCECORE_IMAGE_PUBLIC_BASE_URL: '/api/commercecore', SPRING_DATA_REDIS_HOST: 'redis', SPRING_DATA_REDIS_PORT: 6379, SPRING_KAFKA_BOOTSTRAP_SERVERS: kafkaEnabled ? 'kafka:9092' : '127.0.0.1:1', SPRING_KAFKA_ADMIN_AUTO_CREATE: kafkaEnabled, SPRING_KAFKA_LISTENER_AUTO_STARTUP: kafkaEnabled }
   const secretEnv = Object.keys(config.env).concat('POSTGRES_PASSWORD').map(name => ({ name: name === 'POSTGRES_PASSWORD' ? 'SPRING_DATASOURCE_PASSWORD' : name, valueFrom: { secretKeyRef: { name: 'auth', key: name } } }))
   console.log(apply([deployment(s, image, [...env(values), ...secretEnv], [{ name: 'auth', secret: { secretName: 'auth' } }, { name: 'images', emptyDir: {} }], [{ name: 'auth', mountPath: '/run/auth', readOnly: true }, { name: 'images', mountPath: '/tmp/images' }], true), service(s, 8080)]))
 }

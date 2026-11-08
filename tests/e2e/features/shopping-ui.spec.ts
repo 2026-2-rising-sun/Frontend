@@ -16,7 +16,7 @@ async function setup(page: Page, options: { liveFailure?: boolean; linkedFailure
   const liveRequests: URL[] = []
   const ownedCoupons: unknown[] = []
   await page.route('**/fixtures/*.svg', route => route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="282" height="240"><rect width="282" height="240" fill="#e0f9d1"/></svg>' }))
-  await page.route(/\/api\/(member|shopping|live|commerce|notification)\//, async route => {
+  await page.route(/\/api\/(member|catalog|live|commercecore|notification)\//, async route => {
     const request = route.request()
     const url = new URL(request.url()), path = url.pathname
     const json = (value: unknown) => route.fulfill({ json: value })
@@ -37,7 +37,7 @@ async function setup(page: Page, options: { liveFailure?: boolean; linkedFailure
       ].filter(live => live.status === url.searchParams.get('status'))
       return json({ content, number: 0, size: 3, totalElements: content.length, totalPages: content.length ? 1 : 0 })
     }
-    if (path.endsWith('/shopping/v1/products')) {
+    if (path.endsWith('/catalog/v1/products')) {
       const cursor = url.searchParams.get('cursor'); cursors.push(cursor); productRequests.push(url)
       let items = products.filter(p => p.name.includes(url.searchParams.get('q') ?? '') && (!url.searchParams.has('status') || p.salesStatus === url.searchParams.get('status')))
       const sort = url.searchParams.get('sort')
@@ -45,7 +45,7 @@ async function setup(page: Page, options: { liveFailure?: boolean; linkedFailure
       return json({ items: cursor ? items.slice(2) : items.slice(0, 2), nextCursor: !cursor && items.length > 2 ? 2 : null, hasNext: !cursor && items.length > 2 })
     }
     if (/\/products\/\d+\/coupons$/.test(path)) return json(path.includes('/products/1/') ? [{ couponId: 'coupon-1', name: '라이브 쿠폰', fixedDiscount: 5000, startsAt: '2020-01-01T00:00:00Z', endsAt: '2030-10-31T23:59:59+09:00', expiresAt: '2030-11-07T23:59:59+09:00', soldOut: false }] : [])
-    if (/\/shopping\/v1\/products\/\d+$/.test(path)) {
+    if (/\/catalog\/v1\/products\/\d+$/.test(path)) {
       const id = Number(path.split('/').pop())
       if (id === 99) { await options.delayedMissingProduct; return route.fulfill({ status: 404, json: { message: '상품을 찾을 수 없어요.' } }) }
       return json(products.find(p => p.productId === id))
@@ -112,7 +112,7 @@ test('상세는 쿠폰 수령·수량별 금액·장바구니 요청·구매 진
   await login(page)
   await page.goto('/products/1')
   await page.getByRole('button', { name: '쿠폰 받기', exact: true }).click()
-  expect(api.claims).toEqual(['/api/commerce/v1/coupons/coupon-1/claims'])
+  expect(api.claims).toEqual(['/api/commercecore/v1/coupons/coupon-1/claims'])
   await expect(page.getByText('쿠폰을 받았어요. 주문서에서 선택해 주세요.')).toBeVisible()
   await page.getByRole('button', { name: '수량 늘리기' }).click()
   await expect(page.getByText('258,000원', { exact: true })).toBeVisible()
@@ -235,7 +235,7 @@ test('한 방송 목록이 실패하고 다른 목록이 비어도 방송이 없
 
 test('두 줄 헤더가 상품 설명 바로가기의 제목을 가리지 않는다', async ({ page }) => {
   await setup(page)
-  await page.route('**/api/shopping/v1/products/1', route => route.fulfill({ json: { ...products[0], description: '긴 상품 설명\n'.repeat(120) } }))
+  await page.route('**/api/catalog/v1/products/1', route => route.fulfill({ json: { ...products[0], description: '긴 상품 설명\n'.repeat(120) } }))
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/products/1')
   await page.locator('a[href="#product-description"]').click()

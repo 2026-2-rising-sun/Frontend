@@ -8,7 +8,7 @@ async function signIn(page: Page) {
 }
 const refund = (id = 42, status = 'PROCESSING') => ({ id, paymentGroupNumber: 'PG-R', status, refundAmount: 1000, cumulativeRefundAmount: status === 'SUCCESS' ? 1000 : 0, requestedAt: '2026-10-17T00:00:00Z', resolvedAt: null, targets: [{ orderId: 2, cartItemId: 3, productId: 4, productName: '검증 상품', quantity: 1, refundAmount: 1000 }], recovery: null })
 async function fixtures(page: Page, get: (path: string) => Promise<unknown>) {
-  await page.route(/\/api\/(member|commerce|shopping|notification|live)\//, async route => {
+  await page.route(/\/api\/(member|commercecore|catalog|notification|live)\//, async route => {
     const path = new URL(route.request().url()).pathname
     let data: unknown
     if (path.includes('/auth/')) data = { accessToken: 'token', refreshToken: 'refresh' }

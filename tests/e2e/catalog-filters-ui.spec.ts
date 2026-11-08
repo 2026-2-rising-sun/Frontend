@@ -5,9 +5,9 @@ const envelope = (data: unknown) => ({ success: true, data, error: null })
 
 test('검색·상태·정렬 조건을 서버에 전달하고 더 보기와 조건 변경에서 커서를 관리한다', async ({ page }) => {
   const requests: URL[] = []
-  await page.route(/\/api\/(member|commerce|shopping|live|notification)\//, async route => {
+  await page.route(/\/api\/(member|commercecore|catalog|live|notification)\//, async route => {
     const url = new URL(route.request().url())
-    if (url.pathname.endsWith('/shopping/v1/products')) {
+    if (url.pathname.endsWith('/catalog/v1/products')) {
       requests.push(url)
       const next = url.searchParams.has('cursor')
       return route.fulfill({ json: envelope({ items: [product(next ? 2 : 1, next ? '니트 두 번째' : '니트 첫 번째')], hasNext: !next, nextCursor: next ? null : 'next-cursor' }) })
@@ -35,9 +35,9 @@ test('이전 조건의 지연된 더 보기 응답이 새 목록이나 새 조�
   let release!: () => void
   const held = new Promise<void>(resolve => { release = resolve })
   let oldMore = false
-  await page.route(/\/api\/(member|commerce|shopping|live|notification)\//, async route => {
+  await page.route(/\/api\/(member|commercecore|catalog|live|notification)\//, async route => {
     const url = new URL(route.request().url())
-    if (url.pathname.endsWith('/shopping/v1/products')) {
+    if (url.pathname.endsWith('/catalog/v1/products')) {
       const descending = url.searchParams.get('sort') === 'PRICE_DESC'
       const more = url.searchParams.has('cursor')
       if (more && !descending) { oldMore = true; await held }
@@ -56,13 +56,13 @@ test('이전 조건의 지연된 더 보기 응답이 새 목록이나 새 조�
   await page.getByRole('button', { name: '더 보기', exact: true }).click()
   await expect(page.getByRole('link', { name: /새 목록 다음 상품/ })).toBeVisible()
   release()
-  await page.waitForResponse(response => response.url().includes('/shopping/v1/products') && new URL(response.url()).searchParams.get('sort') === 'LATEST')
+  await page.waitForResponse(response => response.url().includes('/catalog/v1/products') && new URL(response.url()).searchParams.get('sort') === 'LATEST')
   await expect(page.getByRole('link', { name: /이전 조건 늦은 상품/ })).toHaveCount(0)
 })
 
 test('공개 방송 탭은 서버 상태 필터를 사용하고 상태 변경 시 첫 페이지로 돌아간다', async ({ page }) => {
   const requests: URL[] = []
-  await page.route(/\/api\/(member|commerce|shopping|live|notification)\//, async route => {
+  await page.route(/\/api\/(member|commercecore|catalog|live|notification)\//, async route => {
     const url = new URL(route.request().url())
     if (url.pathname.endsWith('/live/v1/broadcasts')) {
       requests.push(url)

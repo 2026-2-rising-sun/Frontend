@@ -17,17 +17,17 @@ async function token(request: APIRequestContext, email: string, password: string
 async function newProduct(request: APIRequestContext) {
   const seller = await token(request, 'seller@local.test', 'seller')
   const name = `판매·환불 검증 ${randomUUID().slice(0, 8)}`
-  const image = await request.post('/api/shopping/v1/seller/product-images', {
+  const image = await request.post('/api/commercecore/v1/seller/product-images', {
     headers: seller, multipart: { file: { name: 'refund.png', mimeType: 'image/png', buffer: png } },
   })
   expect(image.ok(), await image.text()).toBeTruthy()
-  const product = await request.post('/api/shopping/v1/seller/products', {
+  const product = await request.post('/api/commercecore/v1/seller/products', {
     headers: { ...seller, 'X-Idempotency-Key': randomUUID() },
     data: { name, description: '기존 데이터와 분리한 판매 설정·환불 검증 전용 상품', mainImageId: (await image.json()).data.imageId },
   })
   expect(product.ok(), await product.text()).toBeTruthy()
   const productId = Number((await product.json()).data.productId)
-  const sale = await request.post('/api/commerce/v1/sales', {
+  const sale = await request.post('/api/commercecore/v1/sales', {
     headers: seller, data: { productId, price: 1200, initialStock: 7 },
   })
   expect(sale.ok(), await sale.text()).toBeTruthy()
@@ -69,7 +69,7 @@ test('kind: 새 브라우저에서 기존 READY·PRIVATE 상품 가격·재고·
     await expect(fresh.getByRole('button', { name: '비공개로 전환', exact: true })).toBeEnabled()
     await expect.poll(() => fresh.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy()
   } finally { await context.close() }
-  const checkout = await request.get(`/api/commerce/v1/orders/checkout?productId=${f.productId}&quantity=1`, { headers: f.seller })
+  const checkout = await request.get(`/api/commercecore/v1/orders/checkout?productId=${f.productId}&quantity=1`, { headers: f.seller })
   expect(checkout.ok(), await checkout.text()).toBeTruthy()
   expect(await checkout.json()).toMatchObject({ salesId: f.salesId, unitPrice: 1600, available: 10, salesStatus: 'ON_SALE' })
 })

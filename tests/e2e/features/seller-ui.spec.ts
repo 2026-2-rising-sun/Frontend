@@ -22,7 +22,7 @@ const product = (id: number, name: string, status: string, stock: number | null)
 
 test('상품 상태와 검색을 조합하고 다음 페이지를 불러와도 필터를 유지한다', async ({ page }) => {
   let requests = 0
-  await page.route('**/api/shopping/v1/seller/products?**', route => {
+  await page.route('**/api/commercecore/v1/seller/products?**', route => {
     requests++
     const second = new URL(route.request().url()).searchParams.get('page') === '1'
     return route.fulfill({ json: { items: second
@@ -54,7 +54,7 @@ test('상품 상태와 검색을 조합하고 다음 페이지를 불러와도 �
 
 test('다음 페이지에만 일치하는 상품이 있어도 더 보기를 제공하고 조회 실패를 빈 결과와 구분한다', async ({ page }) => {
   let fail = false
-  await page.route('**/api/shopping/v1/seller/products?**', route => fail
+  await page.route('**/api/commercecore/v1/seller/products?**', route => fail
     ? route.fulfill({ status: 503, json: { message: '상품 서버 점검 중' } })
     : route.fulfill({ json: { items: [product(1, '준비할 상품', 'NOT_REGISTERED', null)], page: 0, size: 1, totalElements: 2, totalPages: 2 } }))
   await sellerSession(page)
@@ -68,7 +68,7 @@ test('다음 페이지에만 일치하는 상품이 있어도 더 보기를 제�
 })
 
 test('방송 상태를 서버에 전달하고 진행 중인 방송의 운영·시청 화면을 연결한다', async ({ page }) => {
-  await page.route('**/api/shopping/v1/seller/products?**', route => route.fulfill({ json: { items: [], page: 0, size: 20, totalElements: 0, totalPages: 0 } }))
+  await page.route('**/api/commercecore/v1/seller/products?**', route => route.fulfill({ json: { items: [], page: 0, size: 20, totalElements: 0, totalPages: 0 } }))
   await page.route('**/api/live/v1/seller/broadcasts?**', route => {
     const status = new URL(route.request().url()).searchParams.get('status')
     return route.fulfill({ json: { content: [{ id: 1, title: '라이브 특가 방송', status: status ?? 'LIVE', scheduledAt: '2026-10-17T19:00:00+09:00', startedAt: '2026-10-17T19:00:00+09:00', playbackUrl: null }], number: 0, size: 20, totalElements: 1, totalPages: 1 } })
@@ -83,8 +83,8 @@ test('방송 상태를 서버에 전달하고 진행 중인 방송의 운영·�
 })
 
 test('기본정보만 등록한 상품에서 설정 현황과 가격·재고 바로가기를 제공한다', async ({ page }) => {
-  await page.route('**/api/shopping/v1/seller/products?**', route => route.fulfill({ json: { items: [product(1, '신규 상품', 'NOT_REGISTERED', null)], page: 0, size: 20, totalElements: 1, totalPages: 1 } }))
-  await page.route('**/api/shopping/v1/seller/products/1', route => route.fulfill({ json: product(1, '신규 상품', 'NOT_REGISTERED', null) }))
+  await page.route('**/api/commercecore/v1/seller/products?**', route => route.fulfill({ json: { items: [product(1, '신규 상품', 'NOT_REGISTERED', null)], page: 0, size: 20, totalElements: 1, totalPages: 1 } }))
+  await page.route('**/api/commercecore/v1/seller/products/1', route => route.fulfill({ json: product(1, '신규 상품', 'NOT_REGISTERED', null) }))
   await sellerSession(page)
   await page.getByRole('link', { name: '신규 상품 판매 설정' }).click()
   await expect(page.getByRole('region', { name: '상품 설정 현황' })).toContainText('가격과 재고를 설정한 뒤 판매를 시작해 주세요.')

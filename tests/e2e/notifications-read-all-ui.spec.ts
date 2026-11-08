@@ -17,7 +17,7 @@ async function fixture(page: Page, total = 45) {
     list: null as ((route: Route) => Promise<void>) | null,
     count: null as ((route: Route) => Promise<void>) | null,
   }
-  await page.route(/\/api\/(member|notification|commerce|shopping|live)\//, async route => {
+  await page.route(/\/api\/(member|notification|commercecore|catalog|live)\//, async route => {
     const req = route.request(); const url = new URL(req.url()); const path = url.pathname
     const json = (data: unknown) => route.fulfill({ json: { success: true, data } })
     if (path.endsWith('/auth/login')) state.member = req.postDataJSON().email.startsWith('b@') ? 'B' : 'A'

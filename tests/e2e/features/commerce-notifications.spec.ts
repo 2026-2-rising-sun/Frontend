@@ -26,17 +26,17 @@ async function newBuyer(request: APIRequestContext) {
 async function newProduct(request: APIRequestContext) {
   const seller = await token(request, 'seller@local.test', 'seller')
   const name = `판매·환불 검증 ${randomUUID().slice(0, 8)}`
-  const image = await request.post('/api/shopping/v1/seller/product-images', {
+  const image = await request.post('/api/commercecore/v1/seller/product-images', {
     headers: seller, multipart: { file: { name: 'refund.png', mimeType: 'image/png', buffer: png } },
   })
   expect(image.ok(), await image.text()).toBeTruthy()
-  const product = await request.post('/api/shopping/v1/seller/products', {
+  const product = await request.post('/api/commercecore/v1/seller/products', {
     headers: { ...seller, 'X-Idempotency-Key': randomUUID() },
     data: { name, description: '기존 데이터와 분리한 판매 설정·환불 검증 전용 상품', mainImageId: (await image.json()).data.imageId },
   })
   expect(product.ok(), await product.text()).toBeTruthy()
   const productId = Number((await product.json()).data.productId)
-  const sale = await request.post('/api/commerce/v1/sales', {
+  const sale = await request.post('/api/commercecore/v1/sales', {
     headers: seller, data: { productId, price: 1200, initialStock: 7 },
   })
   expect(sale.ok(), await sale.text()).toBeTruthy()
@@ -65,23 +65,23 @@ test('kind: 쿠폰 발급·구매·환불 결과가 알림함에 전달되고 �
   test.setTimeout(180000)
   const product = await newProduct(request)
   const buyer = await newBuyer(request)
-  const started = await request.patch(`/api/commerce/v1/sales/${product.salesId}/status`, { headers: product.seller, data: { status: 'ON_SALE' } })
+  const started = await request.patch(`/api/commercecore/v1/sales/${product.salesId}/status`, { headers: product.seller, data: { status: 'ON_SALE' } })
   expect(started.ok(), await started.text()).toBeTruthy()
   const now = Date.now()
-  const created = await request.post('/api/commerce/v1/seller/coupons', { headers: product.seller,
+  const created = await request.post('/api/commercecore/v1/seller/coupons', { headers: product.seller,
     data: { name: product.name, fixedDiscount: 100, issuanceLimit: 10, startsAt: new Date(now - 60000).toISOString(), endsAt: new Date(now + 3600000).toISOString(), expiresAt: new Date(now + 7200000).toISOString(), productIds: [product.productId] } })
   expect(created.ok(), await created.text()).toBeTruthy()
   const coupon = (await created.json()).data
-  const claim = await request.post(`/api/commerce/v1/coupons/${coupon.id}/claims`, { headers: buyer.headers })
+  const claim = await request.post(`/api/commercecore/v1/coupons/${coupon.id}/claims`, { headers: buyer.headers })
   expect(claim.ok(), await claim.text()).toBeTruthy()
   const couponNotice = await notification(request, buyer.headers, 'CouponIssued')
   expect(couponNotice.linkType).toBe('COUPON'); expect(couponNotice.body).toContain(product.name)
-  const replay = await request.post(`/api/commerce/v1/coupons/${coupon.id}/claims`, { headers: buyer.headers })
+  const replay = await request.post(`/api/commercecore/v1/coupons/${coupon.id}/claims`, { headers: buyer.headers })
   expect(replay.ok()).toBeTruthy()
   await signIn(page, buyer.email, buyerPassword)
   await openNotification(page, '쿠폰이 발급되었습니다')
   await expect(page).toHaveURL(/\/coupons$/)
-  const added = await request.post('/api/commerce/v1/cart/items', { headers: buyer.headers, data: { productId: product.productId, quantity: 1 } })
+  const added = await request.post('/api/commercecore/v1/cart/items', { headers: buyer.headers, data: { productId: product.productId, quantity: 1 } })
   expect(added.ok(), await added.text()).toBeTruthy()
   const itemId = (await added.json()).id
   await page.goto(`/checkout/cart?itemIds=${itemId}`)
@@ -114,7 +114,7 @@ test('kind: 쿠폰 발급·구매·환불 결과가 알림함에 전달되고 �
   await page.setViewportSize({ width: 390, height: 844 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
   const other = await newBuyer(request)
-  const hidden = await request.get(`/api/commerce/v1/payment-groups/${groupNumber}`, { headers: other.headers })
+  const hidden = await request.get(`/api/commercecore/v1/payment-groups/${groupNumber}`, { headers: other.headers })
   expect(hidden.status()).toBe(404)
   const otherList = await request.get('/api/notification/v1/notifications', { headers: other.headers })
   expect((await otherList.json()).data.items).toHaveLength(0)
@@ -123,7 +123,7 @@ test('kind: 쿠폰 발급·구매·환불 결과가 알림함에 전달되고 �
 test('kind: 결제 전 전체 주문 취소는 취소 알림 한 건과 주문 상세로 연결된다', async ({ page, request }) => {
   const product = await newProduct(request)
   const buyer = await newBuyer(request)
-  const started = await request.patch(`/api/commerce/v1/sales/${product.salesId}/status`, { headers: product.seller, data: { status: 'ON_SALE' } })
+  const started = await request.patch(`/api/commercecore/v1/sales/${product.salesId}/status`, { headers: product.seller, data: { status: 'ON_SALE' } })
   expect(started.ok()).toBeTruthy()
   await signIn(page, buyer.email, buyerPassword)
   await page.goto(`/checkout?productId=${product.productId}&quantity=1`)
@@ -143,16 +143,16 @@ test('kind: 결제 전 전체 주문 취소는 취소 알림 한 건과 주문 �
 test('kind: 재입고 알림은 상품 이름을 표시하고 상품 상세로 연결된다', async ({ page, request }) => {
   const product = await newProduct(request)
   const buyer = await newBuyer(request)
-  const started = await request.patch(`/api/commerce/v1/sales/${product.salesId}/status`, { headers: product.seller, data: { status: 'ON_SALE' } })
+  const started = await request.patch(`/api/commercecore/v1/sales/${product.salesId}/status`, { headers: product.seller, data: { status: 'ON_SALE' } })
   expect(started.ok()).toBeTruthy()
-  const empty = await request.patch(`/api/commerce/v1/sales/${product.salesId}/stock`, { headers: product.seller, data: { delta: -7 } })
+  const empty = await request.patch(`/api/commercecore/v1/sales/${product.salesId}/stock`, { headers: product.seller, data: { delta: -7 } })
   expect(empty.ok()).toBeTruthy()
   for (const status of ['PRIVATE', 'ON_SALE']) {
-    const changed = await request.patch(`/api/commerce/v1/sales/${product.salesId}/status`, { headers: product.seller, data: { status } })
+    const changed = await request.patch(`/api/commercecore/v1/sales/${product.salesId}/status`, { headers: product.seller, data: { status } })
     expect(changed.ok(), await changed.text()).toBeTruthy()
   }
   await expect.poll(async () => (await request.post('/api/notification/v1/restock-alerts', { headers: buyer.headers, data: { productId: product.productId } })).status(), { timeout: 45000 }).toBe(201)
-  const refill = await request.patch(`/api/commerce/v1/sales/${product.salesId}/stock`, { headers: product.seller, data: { delta: 2 } })
+  const refill = await request.patch(`/api/commercecore/v1/sales/${product.salesId}/stock`, { headers: product.seller, data: { delta: 2 } })
   expect(refill.ok()).toBeTruthy()
   const notice = await notification(request, buyer.headers, 'Restocked')
   expect(notice.body).toContain(product.name)

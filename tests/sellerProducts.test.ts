@@ -15,10 +15,10 @@ test('seller basic information uses separate image upload, JSON create, then aut
   const image = new File(['image'], 'image.png', { type: 'image/png' })
   const product = await products.create({ name: '상품', description: '설명', image, idempotencyKey: 'create-key' })
   assert.equal(product.id, '42'); assert.equal(product.status, 'DRAFT')
-  assert.equal(calls[0].path, '/shopping/v1/seller/product-images')
+  assert.equal(calls[0].path, '/commercecore/v1/seller/product-images')
   assert.ok((calls[0].options as { body: unknown }).body instanceof FormData)
   assert.deepEqual(calls[1].options, { method: 'POST', headers: { 'X-Idempotency-Key': 'create-key' }, body: { name: '상품', description: '설명', mainImageId: 9 } })
-  assert.equal(calls[2].path, '/shopping/v1/seller/products/42')
+  assert.equal(calls[2].path, '/commercecore/v1/seller/products/42')
   await assert.rejects(products.create({ name: '상품', description: '설명', idempotencyKey: 'empty-image' }), { code: 'VALIDATION' })
 })
 
@@ -50,12 +50,12 @@ test('새 브라우저와 스토리지 사용 불가 환경에서도 기존 판�
         calls.push(path)
         if (path.includes('/seller/products/')) return { ...existingProduct, salesStatus }
         if (path.endsWith('/stock')) return saleCheckout
-        assert.equal(path, '/commerce/v1/orders/checkout')
+        assert.equal(path, '/commercecore/v1/orders/checkout')
         assert.deepEqual(options, { query: { productId: '42', quantity: 1 } })
         return { ...saleCheckout, salesStatus }
       }) as HttpClient)
       const product = await products.get('42')
-      assert.deepEqual(calls, ['/shopping/v1/seller/products/42', '/commerce/v1/orders/checkout', '/commerce/v1/sales/81/stock'])
+      assert.deepEqual(calls, ['/commercecore/v1/seller/products/42', '/commercecore/v1/orders/checkout', '/commercecore/v1/sales/81/stock'])
       assert.equal(product.salesId, '81')
       assert.equal(product.status, status)
       assert.equal(product.price, 17000)
@@ -79,7 +79,7 @@ test('판매자 본인 상품 조회가 끝나기 전에는 판매정보를 조�
   }) as HttpClient)
   const result = products.get('42')
   await Promise.resolve()
-  assert.deepEqual(calls, ['/shopping/v1/seller/products/42'])
+  assert.deepEqual(calls, ['/commercecore/v1/seller/products/42'])
   resolveOwner(existingProduct)
   assert.equal((await result).salesId, '81')
 })
@@ -91,7 +91,7 @@ test('본인 상품 조회 실패 시 주문서 조회와 판매 조작을 하�
     throw new Error('forbidden')
   }) as HttpClient)
   await assert.rejects(products.changePrice('42', 20000), /forbidden/)
-  assert.deepEqual(calls, ['/shopping/v1/seller/products/42'])
+  assert.deepEqual(calls, ['/commercecore/v1/seller/products/42'])
 })
 
 test('판매정보 지연 중에는 mutation을 보내지 않고 실패하면 기본정보 편집을 유지한다', async () => {
@@ -113,7 +113,7 @@ test('판매정보 지연 중에는 mutation을 보내지 않고 실패하면 �
   assert.equal(product.status, 'UNKNOWN')
   assert.equal(product.salesId, null)
   assert.equal(product.name, '기존 상품')
-  assert.ok(calls.some((call) => call.path === '/shopping/v1/seller/products/42' && call.method === 'PATCH'))
+  assert.ok(calls.some((call) => call.path === '/commercecore/v1/seller/products/42' && call.method === 'PATCH'))
   assert.ok(!calls.some((call) => call.path.includes('/sales/') && call.method === 'PATCH'))
 })
 
@@ -122,7 +122,7 @@ test('판매정보 없는 DRAFT는 주문서 조회 없이 판매 설정을 등�
   let registered = false
   const products = createSellerProducts((async (path: string) => {
     calls.push(path)
-    if (path === '/commerce/v1/sales') { registered = true; return { id: 81 } }
+    if (path === '/commercecore/v1/sales') { registered = true; return { id: 81 } }
     if (path.includes('/seller/products/'))
       return registered ? existingProduct : { ...existingProduct, salesStatus: 'NOT_REGISTERED', price: null, available: null }
     return saleCheckout
@@ -132,7 +132,7 @@ test('판매정보 없는 DRAFT는 주문서 조회 없이 판매 설정을 등�
   const result = await products.setSaleInfo('42', { price: 17000, stock: 7 })
   assert.equal(result.salesId, '81')
   assert.equal(result.status, 'READY')
-  assert.equal(calls.filter((path) => path === '/commerce/v1/orders/checkout').length, 1)
+  assert.equal(calls.filter((path) => path === '/commercecore/v1/orders/checkout').length, 1)
 })
 
 test('판매정보가 확인된 기존 상품의 가격·재고·상태를 서버 salesId로 변경한다', async () => {
@@ -145,9 +145,9 @@ test('판매정보가 확인된 기존 상품의 가격·재고·상태를 서�
   await products.adjustStock('42', 3)
   await products.changeSaleStatus('42', 'HIDE')
   assert.deepEqual(mutations, [
-    { path: '/commerce/v1/sales/81/price', body: { price: 19000 } },
-    { path: '/commerce/v1/sales/81/stock', body: { delta: 3 } },
-    { path: '/commerce/v1/sales/81/status', body: { status: 'PRIVATE' } },
+    { path: '/commercecore/v1/sales/81/price', body: { price: 19000 } },
+    { path: '/commercecore/v1/sales/81/stock', body: { delta: 3 } },
+    { path: '/commercecore/v1/sales/81/status', body: { status: 'PRIVATE' } },
   ])
 })
 
@@ -173,5 +173,5 @@ test('판매자 재고 조회의 판매 가능 수량과 결제 대기 예약 �
   assert.equal(product.stock, 4)
   assert.equal(product.reservedStock, 3)
   assert.equal(product.salesId, '81')
-  assert.equal(calls.at(-1), '/commerce/v1/sales/81/stock')
+  assert.equal(calls.at(-1), '/commercecore/v1/sales/81/stock')
 })

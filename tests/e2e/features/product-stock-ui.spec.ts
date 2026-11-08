@@ -16,10 +16,10 @@ async function fixture(page: Page, options: { currentContract?: boolean; catalog
   const paths: string[] = []
   let failed = !!(options.catalogFailure || options.linkedFailure)
   const items = options.currentContract ? products.map(({ available: _available, ...p }) => p) : products
-  await page.route(/\/api\/(member|shopping|commerce|live|notification)\//, async route => {
+  await page.route(/\/api\/(member|catalog|commercecore|live|notification)\//, async route => {
     const url = new URL(route.request().url()), path = url.pathname
     paths.push(path)
-    if (path.endsWith('/shopping/v1/products')) return options.catalogFailure && failed
+    if (path.endsWith('/catalog/v1/products')) return options.catalogFailure && failed
       ? route.fulfill({ status: 503 }) : route.fulfill({ json: { items, hasNext: false, nextCursor: null } })
     if (path.endsWith('/broadcasts')) {
       const content = lives.filter(live => live.status === url.searchParams.get('status'))
@@ -28,7 +28,7 @@ async function fixture(page: Page, options: { currentContract?: boolean; catalog
     if (/\/broadcasts\/\d+\/products$/.test(path)) return options.linkedFailure && failed
       ? route.fulfill({ status: 503 }) : route.fulfill({ json: path.includes('/11/') ? items : [{ ...products[0], available: 7, status: 'ON_SALE', salesStatus: undefined }] })
     if (/\/products\/\d+\/coupons$/.test(path)) return route.fulfill({ json: [{ couponId: 'coupon-1', name: '상품 쿠폰', fixedDiscount: 1000, startsAt: '2020-01-01T00:00:00Z', endsAt: '2030-01-01T00:00:00Z', expiresAt: '2030-01-01T00:00:00Z', soldOut: false }] })
-    if (path.endsWith('/shopping/v1/products/1')) return route.fulfill({ json: products[0] })
+    if (path.endsWith('/catalog/v1/products/1')) return route.fulfill({ json: products[0] })
     if (path.endsWith('/viewers')) return route.fulfill({ json: { total: 3 } })
     return route.fulfill({ status: 401 })
   })
@@ -101,7 +101,7 @@ test('상품·방송 상품 조회 실패를 품절·재고 0으로 대체하지
 
 test('수량 없는 상품 상세는 품절로 단정하지 않고 구매와 수량 변경을 막는다', async ({ page }) => {
   await fixture(page)
-  await page.route('**/api/shopping/v1/products/1', route => route.fulfill({ json: { ...products[0], available: null } }))
+  await page.route('**/api/catalog/v1/products/1', route => route.fulfill({ json: { ...products[0], available: null } }))
   await page.goto('/products/1')
   await expect(page.getByRole('button', { name: '구매할 수 없어요', exact: true })).toBeDisabled()
   await expect(page.getByRole('button', { name: '수량 늘리기' })).toBeDisabled()

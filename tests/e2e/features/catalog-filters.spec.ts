@@ -9,26 +9,26 @@ test('kind: 구매자는 전체 검색 결과를 가격순으로 이어 보고 �
   expect(login.ok(), await login.text()).toBeTruthy()
   const headers = { Authorization: `Bearer ${(await login.json()).data.accessToken}` }
   const prefix = `목록 검증 ${randomUUID().slice(0, 8)}`
-  const upload = await request.post('/api/shopping/v1/seller/product-images', { headers, multipart: { file: { name: 'catalog.png', mimeType: 'image/png', buffer: png } } })
+  const upload = await request.post('/api/commercecore/v1/seller/product-images', { headers, multipart: { file: { name: 'catalog.png', mimeType: 'image/png', buffer: png } } })
   expect(upload.ok(), await upload.text()).toBeTruthy()
   const imageId = (await upload.json()).data.imageId
   const products: { id: number; name: string; price: number; salesId: number }[] = []
   for (let i = 0; i < 14; i++) {
     const name = `${prefix} ${String(i).padStart(2, '0')}`
-    const response = await request.post('/api/shopping/v1/seller/products', { headers: { ...headers, 'X-Idempotency-Key': randomUUID() }, data: { name, description: '전체 목록 검색·정렬·페이지 이동 검증', mainImageId: imageId } })
+    const response = await request.post('/api/commercecore/v1/seller/products', { headers: { ...headers, 'X-Idempotency-Key': randomUUID() }, data: { name, description: '전체 목록 검색·정렬·페이지 이동 검증', mainImageId: imageId } })
     expect(response.ok(), await response.text()).toBeTruthy()
     const id = (await response.json()).data.productId
     const price = (i % 3 + 1) * 1000
-    const sale = await request.post('/api/commerce/v1/sales', { headers, data: { productId: id, price, initialStock: 1 } })
+    const sale = await request.post('/api/commercecore/v1/sales', { headers, data: { productId: id, price, initialStock: 1 } })
     expect(sale.ok(), await sale.text()).toBeTruthy()
     const salesId = (await sale.json()).id
-    const visible = await request.patch(`/api/commerce/v1/sales/${salesId}/status`, { headers, data: { status: 'ON_SALE' } })
+    const visible = await request.patch(`/api/commercecore/v1/sales/${salesId}/status`, { headers, data: { status: 'ON_SALE' } })
     expect(visible.ok(), await visible.text()).toBeTruthy()
     products.push({ id, name, price, salesId })
   }
   // 판매정보 이벤트가 목록 읽기 모델에 반영된 뒤 사용자 흐름을 시작한다.
   await expect.poll(async () => {
-    const response = await request.get('/api/shopping/v1/products', { params: { q: prefix, sort: 'PRICE_ASC', size: 50 } })
+    const response = await request.get('/api/catalog/v1/products', { params: { q: prefix, sort: 'PRICE_ASC', size: 50 } })
     expect(response.ok(), await response.text()).toBeTruthy()
     return (await response.json()).data.items.length
   }, { timeout: 30000 }).toBe(14)
@@ -45,16 +45,16 @@ test('kind: 구매자는 전체 검색 결과를 가격순으로 이어 보고 �
   await expect(cards.first()).toContainText(products.toSorted((a, b) => b.price - a.price || b.id - a.id)[0].name)
 
   for (const product of products.slice(-2)) {
-    const response = await request.patch(`/api/commerce/v1/sales/${product.salesId}/stock`, { headers, data: { delta: -1 } })
+    const response = await request.patch(`/api/commercecore/v1/sales/${product.salesId}/stock`, { headers, data: { delta: -1 } })
     expect(response.ok(), await response.text()).toBeTruthy()
     // 재고 0인 상품을 다시 공개하면 기존 판매 상태 정책에 따라 SOLD_OUT으로 전환된다.
     for (const status of ['PRIVATE', 'ON_SALE']) {
-      const visibility = await request.patch(`/api/commerce/v1/sales/${product.salesId}/status`, { headers, data: { status } })
+      const visibility = await request.patch(`/api/commercecore/v1/sales/${product.salesId}/status`, { headers, data: { status } })
       expect(visibility.ok(), await visibility.text()).toBeTruthy()
     }
   }
   await expect.poll(async () => {
-    const response = await request.get('/api/shopping/v1/products', { params: { q: prefix, sort: 'LATEST', status: 'SOLD_OUT', size: 50 } })
+    const response = await request.get('/api/catalog/v1/products', { params: { q: prefix, sort: 'LATEST', status: 'SOLD_OUT', size: 50 } })
     return response.ok() ? (await response.json()).data.items.length : -1
   }, { timeout: 30000 }).toBe(2)
   await page.getByRole('button', { name: '품절', exact: true }).click()

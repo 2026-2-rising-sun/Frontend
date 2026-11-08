@@ -19,8 +19,8 @@ test('전체 환불은 본문 없이 Idempotency-Key로 접수하며 숫자 ID�
   }) as HttpClient)
   const result = await api.requestFull('PG/1', 'refund-key')
   assert.deepEqual(calls, [
-    { path: '/commerce/v1/payment-groups/PG%2F1/refunds', options: undefined },
-    { path: '/commerce/v1/payment-groups/PG%2F1/refunds', options: { method: 'POST', headers: { 'Idempotency-Key': 'refund-key' } } },
+    { path: '/commercecore/v1/payment-groups/PG%2F1/refunds', options: undefined },
+    { path: '/commercecore/v1/payment-groups/PG%2F1/refunds', options: { method: 'POST', headers: { 'Idempotency-Key': 'refund-key' } } },
   ])
   assert.equal(result.id, '51')
   assert.equal(result.targets[0].cartItemId, null)
@@ -92,7 +92,7 @@ test('서버의 기한·권한 거절은 그대로 표시할 수 있게 전파�
 
 test('구매자 상세는 결제 묶음과 환불 ID를 함께 사용한다', async () => {
   const api = createRefunds((async (path: string) => {
-    assert.equal(path, '/commerce/v1/payment-groups/PG-1/refunds/51')
+    assert.equal(path, '/commercecore/v1/payment-groups/PG-1/refunds/51')
     return { ...refund, targets: [{ ...refund.targets[0], cartItemId: 101 }] }
   }) as HttpClient)
   assert.equal((await api.get('PG-1', '51')).targets[0].cartItemId, '101')
@@ -131,14 +131,14 @@ test('판매자 목록·상세는 판매자 전용 계약과 페이지를 사용
   assert.equal(detail.targets[0].orderId, '301')
   assert.ok(!('paymentGroupNumber' in detail))
   assert.deepEqual(calls, [
-    { path: '/commerce/v1/seller/refunds', options: { query: { page: 2, size: 20 } } },
-    { path: '/commerce/v1/seller/refunds/51', options: undefined },
+    { path: '/commercecore/v1/seller/refunds', options: { query: { page: 2, size: 20 } } },
+    { path: '/commercecore/v1/seller/refunds/51', options: undefined },
   ])
 })
 
 test('선택 환불 대상은 식별자와 불가 이유를 유지한다', async () => {
   const api = createRefunds((async (path: string) => {
-    assert.equal(path, '/commerce/v1/payment-groups/PG%2F1/refundable-targets')
+    assert.equal(path, '/commercecore/v1/payment-groups/PG%2F1/refundable-targets')
     return [{ orderId: 301, cartItemId: 101, productName: '선택 상품', quantity: 2, refundAmount: 900, refundable: true, unavailableReason: null }, { orderId: 302, cartItemId: null, productName: '직접 주문', quantity: 1, refundAmount: 500, refundable: false, unavailableReason: 'CART_ITEM_UNAVAILABLE' }]
   }) as HttpClient)
   const targets = await api.targets('PG/1')
@@ -150,7 +150,7 @@ test('선택 환불 대상은 식별자와 불가 이유를 유지한다', async
 
 test('선택 환불은 전체 환불과 구분되는 본문과 멱등성 키를 전송한다', async () => {
   const api = createRefunds((async (path: string, options: unknown) => {
-    assert.equal(path, '/commerce/v1/payment-groups/PG-1/refunds')
+    assert.equal(path, '/commercecore/v1/payment-groups/PG-1/refunds')
     assert.deepEqual(options, { method: 'POST', headers: { 'Idempotency-Key': 'selected-key' }, body: { cartItemIds: [101, 102] } })
     return refund
   }) as HttpClient)

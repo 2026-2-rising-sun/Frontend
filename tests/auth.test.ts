@@ -30,13 +30,13 @@ test('local alias uses email API, authenticates /me and passes bearer; 403 retai
   assert.deepEqual(calls[0].body, { email: 'seller@local.test', password: 'seller' })
   assert.equal(calls[0].headers.get('Authorization'), null)
   assert.equal(calls[1].headers.get('Authorization'), 'Bearer signed-token')
-  assert.deepEqual(await request('/shopping/v1/seller/products'), { items: [] })
+  assert.deepEqual(await request('/commercecore/v1/seller/products'), { items: [] })
   assert.equal(calls[2].headers.get('Authorization'), 'Bearer signed-token')
   denied = 403
-  await assert.rejects(request('/shopping/v1/seller/products'), { code: 'FORBIDDEN' })
+  await assert.rejects(request('/commercecore/v1/seller/products'), { code: 'FORBIDDEN' })
   assert.equal(auth.getSession()?.role, 'SELLER')
   denied = 401
-  await assert.rejects(request('/shopping/v1/seller/products'), { code: 'UNAUTHORIZED' })
+  await assert.rejects(request('/commercecore/v1/seller/products'), { code: 'UNAUTHORIZED' })
   assert.equal(auth.getSession(), null)
 })
 
@@ -89,7 +89,7 @@ test('logout clears local state even when session revocation is unavailable; no 
   fail = true
   await assert.rejects(auth.logout(), { code: 'NETWORK' })
   assert.equal(auth.getSession(), null)
-  await request('/shopping/v1/products')
+  await request('/catalog/v1/products')
   assert.equal(lastAuthorization, null)
 })
 
@@ -117,7 +117,7 @@ test('late 401 from the previous account cannot clear a newly authenticated sell
   }
   const { auth, request } = createHttpAuth('/api', true)
   await auth.login('user', 'user')
-  const oldRequest = request('/commerce/v1/cart/items')
+  const oldRequest = request('/commercecore/v1/cart/items')
   await auth.login('seller', 'seller')
   release()
   await assert.rejects(oldRequest, { code: 'UNAUTHORIZED' })
@@ -135,7 +135,7 @@ test('near-expiry access token rotates once for concurrent requests and uses the
     seen.push(new Headers(init?.headers).get('Authorization') ?? ''); return envelope([])
   }
   const { auth, request } = createHttpAuth('/api', true); await auth.login('user', 'user')
-  await Promise.all([request('/commerce/v1/cart/items'), request('/commerce/v1/orders')])
+  await Promise.all([request('/commercecore/v1/cart/items'), request('/commercecore/v1/orders')])
   assert.equal(refreshCalls, 1); assert.deepEqual(seen, ['Bearer ' + next, 'Bearer ' + next])
 })
 

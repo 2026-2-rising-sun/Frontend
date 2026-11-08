@@ -1,3 +1,4 @@
+import { waitForCatalogProduct } from '../support/catalog'
 import { test, expect, type APIRequestContext, type Page } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
 
@@ -25,20 +26,20 @@ async function fixture(request: APIRequestContext) {
   const seller = await token(request, 'seller@local.test', 'seller')
   const suffix = randomUUID().slice(0, 8)
   const name = `알림 이벤트 검증 ${suffix}`
-  const image = await request.post('/api/shopping/v1/seller/product-images', { headers: seller, multipart: { file: { name: 'notification.png', mimeType: 'image/png', buffer: png } } })
+  const image = await request.post('/api/commercecore/v1/seller/product-images', { headers: seller, multipart: { file: { name: 'notification.png', mimeType: 'image/png', buffer: png } } })
   expect(image.ok(), await image.text()).toBeTruthy()
-  const product = await request.post('/api/shopping/v1/seller/products', { headers: { ...seller, 'X-Idempotency-Key': randomUUID() }, data: { name, description: '알림과 프로모션 검증 전용 상품', mainImageId: (await image.json()).data.imageId } })
+  const product = await request.post('/api/commercecore/v1/seller/products', { headers: { ...seller, 'X-Idempotency-Key': randomUUID() }, data: { name, description: '알림과 프로모션 검증 전용 상품', mainImageId: (await image.json()).data.imageId } })
   expect(product.ok(), await product.text()).toBeTruthy()
   const productId = Number((await product.json()).data.productId)
-  const sale = await request.post('/api/commerce/v1/sales', { headers: seller, data: { productId, price: 1000, initialStock: 1 } })
+  const sale = await request.post('/api/commercecore/v1/sales', { headers: seller, data: { productId, price: 1000, initialStock: 1 } })
   expect(sale.ok(), await sale.text()).toBeTruthy()
   const salesId = (await sale.json()).id
-  const startSale = await request.patch(`/api/commerce/v1/sales/${salesId}/status`, { headers: seller, data: { status: 'ON_SALE' } })
+  const startSale = await request.patch(`/api/commercecore/v1/sales/${salesId}/status`, { headers: seller, data: { status: 'ON_SALE' } })
   expect(startSale.ok(), await startSale.text()).toBeTruthy()
-  const soldOut = await request.patch(`/api/commerce/v1/sales/${salesId}/stock`, { headers: seller, data: { delta: -1 } })
+  const soldOut = await request.patch(`/api/commercecore/v1/sales/${salesId}/stock`, { headers: seller, data: { delta: -1 } })
   expect(soldOut.ok(), await soldOut.text()).toBeTruthy()
   for (const status of ['PRIVATE', 'ON_SALE']) {
-    const visibility = await request.patch(`/api/commerce/v1/sales/${salesId}/status`, { headers: seller, data: { status } })
+    const visibility = await request.patch(`/api/commercecore/v1/sales/${salesId}/status`, { headers: seller, data: { status } })
     expect(visibility.ok(), await visibility.text()).toBeTruthy()
   }
   const broadcast = await request.post('/api/live/v1/seller/broadcasts', { headers: { ...seller, 'Idempotency-Key': randomUUID() }, data: { title: name, scheduledAt: new Date(Date.now() + 3600000).toISOString(), channelArn: `arn:aws:ivs:ap-northeast-2:123456789012:channel/${suffix}`, playbackUrl: `https://stub.live-video.net/${suffix}.m3u8` } })
@@ -46,6 +47,7 @@ async function fixture(request: APIRequestContext) {
   const live = (await broadcast.json()).data
   const link = await request.post(`/api/live/v1/seller/broadcasts/${live.id}/products`, { headers: seller, data: { productId, expectedVersion: live.version } })
   expect(link.ok(), await link.text()).toBeTruthy()
+  await waitForCatalogProduct(request, productId, 'SOLD_OUT')
   return { name, productId, salesId, liveId: String(live.id), seller }
 }
 
@@ -139,7 +141,7 @@ test('kind: 재입고 신청 후 실제 재고 복구 이벤트가 모바일 알
   await region.getByRole('button', { name: '알림 신청', exact: true }).click()
   expect((await registration).status()).toBe(201)
   await expect(region.getByText('재입고 알림을 신청했어요.', { exact: true })).toBeVisible()
-  const stock = await request.patch(`/api/commerce/v1/sales/${f.salesId}/stock`, { headers: f.seller, data: { delta: 2 } })
+  const stock = await request.patch(`/api/commercecore/v1/sales/${f.salesId}/stock`, { headers: f.seller, data: { delta: 2 } })
   expect(stock.ok(), await stock.text()).toBeTruthy()
   await expect.poll(async () => {
     const response = await request.get('/api/notification/v1/notifications/unread-count', { headers: user.headers })

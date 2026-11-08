@@ -5,7 +5,7 @@ async function setup(page: Page, role = 'USER') {
   let failLogin = false
   let failName = false
   let withdrawals = 0
-  await page.route(/\/api\/(member|notification|shopping|commerce|live)\//, route => {
+  await page.route(/\/api\/(member|notification|catalog|commercecore|live)\//, route => {
     const request = route.request()
     const path = new URL(request.url()).pathname
     if (path.endsWith('/auth/login') && failLogin) return route.fulfill({ status: 401, json: { code: 'UNAUTHORIZED', message: '아이디와 비밀번호를 확인해 주세요.' } })

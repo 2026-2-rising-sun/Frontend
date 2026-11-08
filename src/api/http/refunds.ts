@@ -17,11 +17,11 @@ const mapRefundSummary = (dto: RefundSummaryDto): RefundSummary => ({
 const mapRefund = (dto: RefundDto): Refund => ({ ...mapRefundSummary(dto), paymentGroupNumber: dto.paymentGroupNumber })
 
 export function createRefunds(request: HttpClient): RefundsPort {
-  const path = (number: string) => `/commerce/v1/payment-groups/${encodeURIComponent(number)}/refunds`
+  const path = (number: string) => `/commercecore/v1/payment-groups/${encodeURIComponent(number)}/refunds`
   const list = async (number: string) => (await request<RefundDto[]>(path(number))).map(mapRefund)
   return {
     list,
-    targets: async (number) => (await request<(Omit<RefundableTarget, 'orderId' | 'cartItemId'> & { orderId: number; cartItemId: number | null })[]>(`/commerce/v1/payment-groups/${encodeURIComponent(number)}/refundable-targets`)).map(target => ({ ...target, orderId: String(target.orderId), cartItemId: target.cartItemId === null ? null : String(target.cartItemId) })),
+    targets: async (number) => (await request<(Omit<RefundableTarget, 'orderId' | 'cartItemId'> & { orderId: number; cartItemId: number | null })[]>(`/commercecore/v1/payment-groups/${encodeURIComponent(number)}/refundable-targets`)).map(target => ({ ...target, orderId: String(target.orderId), cartItemId: target.cartItemId === null ? null : String(target.cartItemId) })),
     async requestSelected(number, cartItemIds, key) {
       if (!cartItemIds.length || cartItemIds.length > 100 || new Set(cartItemIds).size !== cartItemIds.length || cartItemIds.some(id => !/^[1-9]\d*$/.test(id) || !Number.isSafeInteger(Number(id)))) throw new ApiError('VALIDATION', '환불할 상품을 선택해 주세요.')
       return mapRefund(await request<RefundDto>(path(number), { method: 'POST', headers: { 'Idempotency-Key': key }, body: { cartItemIds: cartItemIds.map(Number) } }))
@@ -44,9 +44,9 @@ export function createRefunds(request: HttpClient): RefundsPort {
         throw error
       }
     },
-    listSeller: async (params) => (await request<RefundSummaryDto[]>('/commerce/v1/seller/refunds', {
+    listSeller: async (params) => (await request<RefundSummaryDto[]>('/commercecore/v1/seller/refunds', {
       query: { page: params?.page ?? 0, size: params?.size ?? 20 },
     })).map(mapRefundSummary),
-    getSeller: async (id) => mapRefundSummary(await request<RefundSummaryDto>(`/commerce/v1/seller/refunds/${encodeURIComponent(id)}`)),
+    getSeller: async (id) => mapRefundSummary(await request<RefundSummaryDto>(`/commercecore/v1/seller/refunds/${encodeURIComponent(id)}`)),
   }
 }
