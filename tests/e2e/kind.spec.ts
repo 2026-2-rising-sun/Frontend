@@ -123,7 +123,7 @@ test('kind: direct order, pending cancellation and member ownership', async ({ p
 test('kind: seller Live link/reorder/unlink, SSE chat/likes and end disable participation', async ({ page, request, browser }) => {
   const f = await fixture(request); const f2 = await fixture(request); const title = '연동 방송 ' + randomUUID().slice(0, 8)
   const channelId = randomUUID().slice(0, 8)
-  await login(page, 'seller'); await page.getByRole('link', { name: '방송 관리', exact: true }).click(); await page.getByRole('link', { name: '방송 등록', exact: true }).click()
+  await login(page, 'seller'); await page.getByRole('link', { name: '방송 관리', exact: true }).click(); await page.getByRole('link', { name: '+ 방송 등록', exact: true }).click()
   await page.getByLabel('방송 제목', { exact: true }).fill(title)
   await page.getByLabel('AWS IVS 채널 ARN', { exact: true }).fill('arn:aws:ivs:ap-northeast-2:123456789012:channel/' + channelId)
   await page.getByLabel('예정 시작 시각', { exact: true }).fill('2026-10-06T18:00')
