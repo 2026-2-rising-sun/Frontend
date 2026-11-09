@@ -175,3 +175,17 @@ test('판매자 재고 조회의 판매 가능 수량과 결제 대기 예약 �
   assert.equal(product.salesId, '81')
   assert.equal(calls.at(-1), '/commercecore/v1/sales/81/stock')
 })
+
+
+test('판매자 상태 필터를 서버 계약으로 변환하고 전체는 상태를 생략한다', async () => {
+  const calls: unknown[] = []
+  const products = createSellerProducts((async (_path: string, options: unknown) => {
+    calls.push(options)
+    return { items: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
+  }) as HttpClient)
+  const states = { ALL: undefined, DRAFT: 'NOT_REGISTERED', READY: 'READY', SELLING: 'ON_SALE', SOLD_OUT: 'SOLD_OUT', HIDDEN: 'PRIVATE' } as const
+  for (const status of Object.keys(states) as (keyof typeof states)[]) {
+    await products.list({ page: 0, size: 20, status })
+    assert.deepEqual(calls.at(-1), { query: { page: 0, size: 20, status: states[status] } })
+  }
+})

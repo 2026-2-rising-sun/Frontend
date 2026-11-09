@@ -36,7 +36,7 @@ export function createSellerProducts(request: HttpClient): SellerProductsPort {
   }
   return {
     async list(params) {
-      const value = await request<PageDto<ProductDto>>('/commercecore/v1/seller/products', { query: { page: params?.page, size: params?.size, status: params?.status ? { ALL: undefined, DRAFT: 'NOT_REGISTERED', READY: 'READY', SELLING: 'ON_SALE', SOLD_OUT: 'SOLD_OUT', HIDDEN: 'PRIVATE', UNKNOWN: 'UNKNOWN' }[params.status] : undefined } })
+      const value = await request<PageDto<ProductDto>>('/commercecore/v1/seller/products', { query: { page: params?.page, size: params?.size, status: params?.status ? { ALL: undefined, DRAFT: 'NOT_REGISTERED', READY: 'READY', SELLING: 'ON_SALE', SOLD_OUT: 'SOLD_OUT', HIDDEN: 'PRIVATE' }[params.status] : undefined } })
       const result = page(value, p => sellerProduct(p))
       return result
     }, get,

@@ -116,7 +116,7 @@ export interface CreateOrderInput {
 
 /** 관리용 상품 상태. DRAFT = 기본정보만 등록되고 판매 설정(가격·재고)이 아직 없는 상태. */
 export type SellerProductStatus = 'DRAFT' | 'UNKNOWN' | ProductStatus
-export type SellerProductStatusFilter = 'ALL' | SellerProductStatus
+export type SellerProductStatusFilter = 'ALL' | Exclude<SellerProductStatus, 'UNKNOWN'>
 
 export interface SellerProduct {
   id: string
