@@ -24,14 +24,14 @@ test('일반 목록과 방송 상품은 전달된 수량을 사용하며 상품�
   globalThis.fetch = async url => {
     const path = new URL(String(url)).pathname.replace(/^\/api/, '')
     calls.push(path)
-    return envelope(path === '/shopping/v1/products' ? { items, nextCursor: null, hasNext: false } : items)
+    return envelope(path === '/catalog/v1/products' ? { items, nextCursor: null, hasNext: false } : items)
   }
   const api = createHttpApi('/api')
   const general = await api.products.list()
   const linked = await api.lives.listProducts('11')
   assert.deepEqual(general.items.map(p => p.stock), [null, 0, 7])
   assert.deepEqual(linked.map(p => p.stock), [null, 0, 7])
-  assert.deepEqual(calls, ['/shopping/v1/products', '/live/v1/broadcasts/11/products'])
+  assert.deepEqual(calls, ['/catalog/v1/products', '/live/v1/broadcasts/11/products'])
 })
 
 test('목록 조회 실패와 판매정보 UNKNOWN을 재고 0이나 빈 성공 응답으로 바꾸지 않는다', async () => {

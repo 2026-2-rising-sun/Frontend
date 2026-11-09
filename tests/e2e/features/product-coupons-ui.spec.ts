@@ -8,13 +8,13 @@ async function fixture(page: Page, options: { status?: string; soldOut?: boolean
   let failed = !!options.mineFailure
   let received = false
   const pages: string[] = []
-  await page.route(/\/api\/(member|shopping|commerce|live|notification)\//, async route => {
+  await page.route(/\/api\/(member|catalog|commercecore|live|notification)\//, async route => {
     const request = route.request(), url = new URL(request.url()), path = url.pathname
     if (path.includes('/auth/')) return route.fulfill({ json: { success: true, data: { accessToken: 'token', refreshToken: 'refresh' } } })
     if (path.endsWith('/members/me')) return route.fulfill({ json: { success: true, data: { memberId: 'buyer', displayName: '회원', email: 'buyer@test.dev', roles: ['USER'] } } })
     if (path.endsWith('/unread-count')) return route.fulfill({ json: { unreadCount: 0 } })
-    if (path.endsWith('/shopping/v1/products')) return route.fulfill({ json: { items: [product], nextCursor: null, hasNext: false } })
-    if (path.endsWith('/shopping/v1/products/1')) return route.fulfill({ json: product })
+    if (path.endsWith('/catalog/v1/products')) return route.fulfill({ json: { items: [product], nextCursor: null, hasNext: false } })
+    if (path.endsWith('/catalog/v1/products/1')) return route.fulfill({ json: product })
     if (path.endsWith('/products/1/coupons')) return options.productFailure ? route.fulfill({ status: 503 }) : route.fulfill({ json: options.noCoupons ? [] : [{ ...coupon, soldOut: !!options.soldOut }] })
     if (path.endsWith('/me/coupons')) {
       pages.push(url.searchParams.get('page') ?? '0')
@@ -117,7 +117,7 @@ test('수량 소진·상품 쿠폰 없음·발급 거절 상태를 명확하게 
 test('화면을 열어 둔 동안 사용 기한이 지나면 만료 상태로 갱신한다', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-10-17T00:00:00Z') })
   await fixture(page, { status: 'AVAILABLE' })
-  await page.route('**/api/commerce/v1/me/coupons?**', route => route.fulfill({ json: [{ ...memberCoupon(), expiresAt: '2026-10-17T00:00:03Z' }] }))
+  await page.route('**/api/commercecore/v1/me/coupons?**', route => route.fulfill({ json: [{ ...memberCoupon(), expiresAt: '2026-10-17T00:00:03Z' }] }))
   await login(page); await page.goto('/products/1')
   await expect(page.getByText('보유 · 사용 가능', { exact: true })).toBeVisible()
   await page.clock.fastForward(5000)

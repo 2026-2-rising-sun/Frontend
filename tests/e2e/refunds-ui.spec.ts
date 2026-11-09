@@ -3,7 +3,7 @@ for (const seller of [true, false]) {
   test(`${seller ? '판매자' : '구매자'} 환불 조회가 3초보다 느려도 중복 조회 없이 완료 상태를 반영한다`, async ({ page }) => {
     let requests = 0; let slow = false; let completed = false; let release!: () => void
     const delayed = new Promise<void>(resolve => { release = resolve })
-    await page.route(/\/api\/(member|commerce|shopping|notification)\//, async route => {
+    await page.route(/\/api\/(member|commercecore|catalog|notification)\//, async route => {
       const path = new URL(route.request().url()).pathname
       if (path.includes('/auth/')) return route.fulfill({ json: { success: true, data: { accessToken: 'test-token', refreshToken: 'test-refresh' } } })
       if (path.endsWith('/members/me')) return route.fulfill({ json: { success: true, data: { memberId: '00000000-0000-0000-0000-000000000001', displayName: '회원', email: 'user@test.dev', roles: [seller ? 'SELLER' : 'USER'] } } })
@@ -39,7 +39,7 @@ for (const seller of [true, false]) {
 for (const seller of [false, true]) {
   test(`${seller ? '판매자' : '구매자'} 환불 복구 정보는 처리 중에만 표시하고 완료 시각과 구분한다`, async ({ page }) => {
     let status = 'PROCESSING'; let exhausted = false; let recovery = true
-    await page.route(/\/api\/(member|commerce|shopping|notification|live)\//, async route => {
+    await page.route(/\/api\/(member|commercecore|catalog|notification|live)\//, async route => {
       const path = new URL(route.request().url()).pathname
       let data: unknown
       if (path.includes('/auth/')) data = { accessToken: 'token', refreshToken: 'refresh' }
@@ -76,7 +76,7 @@ for (const seller of [false, true]) {
 
 test('장바구니 삭제·재접속 뒤에도 선택 환불하고 남은 상품을 환불한다', async ({ page }) => {
   let completed = false; const bodies: unknown[] = []
-  await page.route(/\/api\/(member|commerce|shopping|notification|live)\//, async route => {
+  await page.route(/\/api\/(member|commercecore|catalog|notification|live)\//, async route => {
     const path = new URL(route.request().url()).pathname
     let data: unknown
     if (path.includes('/auth/')) data = { accessToken: 'token', refreshToken: 'refresh' }
@@ -119,7 +119,7 @@ test('장바구니 삭제·재접속 뒤에도 선택 환불하고 남은 상품
 
 test('대상 조회 실패 시 선택 환불을 막고 새로고침으로 복구한다', async ({ page }) => {
   let available = false
-  await page.route(/\/api\/(member|commerce|shopping|notification|live)\//, async route => {
+  await page.route(/\/api\/(member|commercecore|catalog|notification|live)\//, async route => {
     const path = new URL(route.request().url()).pathname
     let data: unknown
     if (path.includes('/auth/')) data = { accessToken: 'token', refreshToken: 'refresh' }

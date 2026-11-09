@@ -26,17 +26,17 @@ async function newBuyer(request: APIRequestContext) {
 async function newProduct(request: APIRequestContext) {
   const seller = await token(request, 'seller@local.test', 'seller')
   const name = `판매·환불 검증 ${randomUUID().slice(0, 8)}`
-  const image = await request.post('/api/shopping/v1/seller/product-images', {
+  const image = await request.post('/api/commercecore/v1/seller/product-images', {
     headers: seller, multipart: { file: { name: 'refund.png', mimeType: 'image/png', buffer: png } },
   })
   expect(image.ok(), await image.text()).toBeTruthy()
-  const product = await request.post('/api/shopping/v1/seller/products', {
+  const product = await request.post('/api/commercecore/v1/seller/products', {
     headers: { ...seller, 'X-Idempotency-Key': randomUUID() },
     data: { name, description: '기존 데이터와 분리한 판매 설정·환불 검증 전용 상품', mainImageId: (await image.json()).data.imageId },
   })
   expect(product.ok(), await product.text()).toBeTruthy()
   const productId = Number((await product.json()).data.productId)
-  const sale = await request.post('/api/commerce/v1/sales', {
+  const sale = await request.post('/api/commercecore/v1/sales', {
     headers: seller, data: { productId, price: 1200, initialStock: 7 },
   })
   expect(sale.ok(), await sale.text()).toBeTruthy()
@@ -50,9 +50,9 @@ test('kind: 두 상품을 결제한 뒤 재접속하여 선택 환불하고 남�
   const second = await newProduct(request)
   const member = await newBuyer(request)
   for (const item of [first, second]) {
-    const started = await request.patch(`/api/commerce/v1/sales/${item.salesId}/status`, { headers: item.seller, data: { status: 'ON_SALE' } })
+    const started = await request.patch(`/api/commercecore/v1/sales/${item.salesId}/status`, { headers: item.seller, data: { status: 'ON_SALE' } })
     expect(started.ok(), await started.text()).toBeTruthy()
-    const cart = await request.post('/api/commerce/v1/cart/items', { headers: member.headers, data: { productId: item.productId, quantity: 1 } })
+    const cart = await request.post('/api/commercecore/v1/cart/items', { headers: member.headers, data: { productId: item.productId, quantity: 1 } })
     expect(cart.ok(), await cart.text()).toBeTruthy()
   }
   await signIn(page, member.email, buyerPassword)
@@ -64,14 +64,14 @@ test('kind: 두 상품을 결제한 뒤 재접속하여 선택 환불하고 남�
   await page.getByRole('button', { name: '통합 결제하기', exact: true }).click()
   await expect(page.getByText('통합 결제가 완료되었어요', { exact: true })).toBeVisible({ timeout: 30000 })
   const groupNumber = new URL(page.url()).pathname.split('/').pop()!
-  const cart = await request.get('/api/commerce/v1/cart/items', { headers: member.headers })
+  const cart = await request.get('/api/commercecore/v1/cart/items', { headers: member.headers })
   expect(await cart.json()).toEqual([])
   await page.reload()
   const firstCheckbox = page.getByRole('checkbox', { name: `${first.name} · 1개`, exact: true })
   const secondCheckbox = page.getByRole('checkbox', { name: `${second.name} · 1개`, exact: true })
   await expect(firstCheckbox).toBeEnabled()
   const other = await newBuyer(request)
-  const hidden = await request.get(`/api/commerce/v1/payment-groups/${groupNumber}/refundable-targets`, { headers: other.headers })
+  const hidden = await request.get(`/api/commercecore/v1/payment-groups/${groupNumber}/refundable-targets`, { headers: other.headers })
   expect(hidden.status()).toBe(404)
   const ids: number[] = []
   for (const checkbox of [firstCheckbox, secondCheckbox]) {
@@ -86,19 +86,24 @@ test('kind: 두 상품을 결제한 뒤 재접속하여 선택 환불하고 남�
     expect(refund.targets).toHaveLength(1)
     ids.push(refund.id)
     await expect.poll(async () => {
-      const state = await request.get(`/api/commerce/v1/payment-groups/${groupNumber}/refunds/${refund.id}`, { headers: member.headers })
+      const state = await request.get(`/api/commercecore/v1/payment-groups/${groupNumber}/refunds/${refund.id}`, { headers: member.headers })
       return (await state.json()).data.status
     }, { timeout: 60000, intervals: [1000, 2000, 3000] }).toBe('SUCCESS')
     await page.reload()
     await expect(checkbox).toBeDisabled()
   }
-  const history = await request.get(`/api/commerce/v1/payment-groups/${groupNumber}/refunds`, { headers: member.headers })
+  const history = await request.get(`/api/commercecore/v1/payment-groups/${groupNumber}/refunds`, { headers: member.headers })
   const refunds = (await history.json()).data
   expect(refunds).toHaveLength(2)
   expect(Math.max(...refunds.map((refund: { cumulativeRefundAmount: number }) => refund.cumulativeRefundAmount))).toBe(2400)
-  const duplicate = await request.post(`/api/commerce/v1/payment-groups/${groupNumber}/refunds`, {
+  const duplicate = await request.post(`/api/commercecore/v1/payment-groups/${groupNumber}/refunds`, {
     headers: { ...member.headers, 'Idempotency-Key': randomUUID() }, data: { cartItemIds: [refunds[0].targets[0].cartItemId] },
   })
   expect(duplicate.status()).toBe(409)
   expect(new Set(ids).size).toBe(2)
+  for (const item of [first, second]) {
+    const stock = await request.get(`/api/commercecore/v1/sales/${item.salesId}/stock`, { headers: item.seller })
+    expect(stock.ok(), await stock.text()).toBeTruthy()
+    expect(await stock.json()).toMatchObject({ available: 7, reserved: 0 })
+  }
 })

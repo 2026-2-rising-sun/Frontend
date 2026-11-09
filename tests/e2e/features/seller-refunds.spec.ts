@@ -26,17 +26,17 @@ async function newBuyer(request: APIRequestContext) {
 async function newProduct(request: APIRequestContext) {
   const seller = await token(request, 'seller@local.test', 'seller')
   const name = `판매·환불 검증 ${randomUUID().slice(0, 8)}`
-  const image = await request.post('/api/shopping/v1/seller/product-images', {
+  const image = await request.post('/api/commercecore/v1/seller/product-images', {
     headers: seller, multipart: { file: { name: 'refund.png', mimeType: 'image/png', buffer: png } },
   })
   expect(image.ok(), await image.text()).toBeTruthy()
-  const product = await request.post('/api/shopping/v1/seller/products', {
+  const product = await request.post('/api/commercecore/v1/seller/products', {
     headers: { ...seller, 'X-Idempotency-Key': randomUUID() },
     data: { name, description: '기존 데이터와 분리한 판매 설정·환불 검증 전용 상품', mainImageId: (await image.json()).data.imageId },
   })
   expect(product.ok(), await product.text()).toBeTruthy()
   const productId = Number((await product.json()).data.productId)
-  const sale = await request.post('/api/commerce/v1/sales', {
+  const sale = await request.post('/api/commercecore/v1/sales', {
     headers: seller, data: { productId, price: 1200, initialStock: 7 },
   })
   expect(sale.ok(), await sale.text()).toBeTruthy()
@@ -45,13 +45,14 @@ async function newProduct(request: APIRequestContext) {
 }
 
 test('kind: 실제 결제 묶음을 전체 환불 접수하고 구매자 이력과 판매자 상세를 조회한다', async ({ page, request, browser }) => {
+  test.setTimeout(180000)
   const f = await newProduct(request)
   const member = await newBuyer(request)
-  const started = await request.patch(`/api/commerce/v1/sales/${f.salesId}/status`, {
+  const started = await request.patch(`/api/commercecore/v1/sales/${f.salesId}/status`, {
     headers: f.seller, data: { status: 'ON_SALE' },
   })
   expect(started.ok(), await started.text()).toBeTruthy()
-  const order = await request.post('/api/commerce/v1/orders', {
+  const order = await request.post('/api/commercecore/v1/orders', {
     headers: { ...member.headers, 'X-Idempotency-Key': randomUUID() },
     data: { productId: f.productId, quantity: 2, buyerName: '환불 검증 구매자', buyerPhone: '01012345678', expectedTotalAmount: 2400 },
   })
@@ -84,12 +85,19 @@ test('kind: 실제 결제 묶음을 전체 환불 접수하고 구매자 이력�
   await page.reload()
   await expect(buyerRefund).toBeVisible()
   await expect(refundRegion.getByRole('button', { name: '전체 환불 요청', exact: true })).toHaveCount(0)
-  const history = await request.get(`/api/commerce/v1/payment-groups/${encodeURIComponent(groupNumber)}/refunds`, { headers: member.headers })
+  const history = await request.get(`/api/commercecore/v1/payment-groups/${encodeURIComponent(groupNumber)}/refunds`, { headers: member.headers })
   expect(history.ok(), await history.text()).toBeTruthy()
   const persisted = (await history.json()).data.find((item: { id: number }) => item.id === refund.id)
   expect(persisted).toMatchObject({ id: refund.id, refundAmount: 2400 })
-  // Kafka 유무와 무관하게 접수·영속화가 완료 조건이며 비동기 완료를 강제로 기다리지 않는다.
-  test.info().annotations.push({ type: 'refund-status', description: `접수 및 이력 검증 시점 상태: ${persisted.status}. 비동기 최종 완료는 이 테스트의 필수 조건이 아님.` })
+  // 분리된 Payment 결과가 Kafka를 거쳐 Core 환불·재고에 최종 반영되는지 확인한다.
+  await expect.poll(async () => {
+    const response = await request.get(`/api/commercecore/v1/payment-groups/${encodeURIComponent(groupNumber)}/refunds/${refund.id}`, { headers: member.headers })
+    expect(response.ok(), await response.text()).toBeTruthy()
+    return (await response.json()).data.status
+  }, { timeout: 60000 }).toBe('SUCCESS')
+  const stock = await request.get(`/api/commercecore/v1/sales/${f.salesId}/stock`, { headers: f.seller })
+  expect(stock.ok(), await stock.text()).toBeTruthy()
+  expect(await stock.json()).toMatchObject({ available: 7, reserved: 0 })
 
   const sellerContext = await browser.newContext({ baseURL: new URL(page.url()).origin, viewport: { width: 390, height: 844 } })
   try {

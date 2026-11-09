@@ -1,3 +1,4 @@
+import { waitForCatalogProduct } from './support/catalog'
 import { test, expect, type Page, type APIRequestContext } from '@playwright/test'
 import { randomUUID } from 'node:crypto'
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aF1cAAAAASUVORK5CYII=', 'base64')
@@ -12,18 +13,19 @@ async function bearer(request: APIRequestContext, account = 'seller') {
 }
 async function fixture(request: APIRequestContext) {
   const headers = await bearer(request)
-  const image = await request.post('/api/shopping/v1/seller/product-images', { headers, multipart: { file: { name: 'fixture.png', mimeType: 'image/png', buffer: png } } }); expect(image.ok()).toBeTruthy()
+  const image = await request.post('/api/commercecore/v1/seller/product-images', { headers, multipart: { file: { name: 'fixture.png', mimeType: 'image/png', buffer: png } } }); expect(image.ok()).toBeTruthy()
   const name = 'E2E 상품 ' + randomUUID().slice(0, 8)
-  const created = await request.post('/api/shopping/v1/seller/products', { headers: { ...headers, 'X-Idempotency-Key': randomUUID() }, data: { name, description: '실제 kind API 테스트 상품', mainImageId: (await image.json()).data.imageId } }); expect(created.ok()).toBeTruthy()
+  const created = await request.post('/api/commercecore/v1/seller/products', { headers: { ...headers, 'X-Idempotency-Key': randomUUID() }, data: { name, description: '실제 kind API 테스트 상품', mainImageId: (await image.json()).data.imageId } }); expect(created.ok()).toBeTruthy()
   const productId = String((await created.json()).data.productId)
-  const sale = await request.post('/api/commerce/v1/sales', { headers, data: { productId: Number(productId), price: 10000, initialStock: 20 } }); expect(sale.ok()).toBeTruthy()
+  const sale = await request.post('/api/commercecore/v1/sales', { headers, data: { productId: Number(productId), price: 10000, initialStock: 20 } }); expect(sale.ok()).toBeTruthy()
   const salesId = (await sale.json()).id
-  expect((await request.patch(`/api/commerce/v1/sales/${salesId}/status`, { headers, data: { status: 'ON_SALE' } })).ok()).toBeTruthy()
+  expect((await request.patch(`/api/commercecore/v1/sales/${salesId}/status`, { headers, data: { status: 'ON_SALE' } })).ok()).toBeTruthy()
+  await waitForCatalogProduct(request, productId)
   return { productId, name, headers, salesId }
 }
-test('kind: seller product upload, JSON register, sale configuration and atomic stock delta', async ({ page }) => {
+test('kind: seller product upload, JSON register, sale configuration and atomic stock delta', async ({ page, request }) => {
   const name = '판매자 화면 ' + randomUUID().slice(0, 8)
-  await login(page, 'seller'); await page.getByRole('link', { name: '상품 등록', exact: true }).click()
+  await login(page, 'seller'); await page.getByRole('link', { name: '+ 상품 등록', exact: true }).click()
   await page.getByLabel('상품명', { exact: true }).fill(name); await page.getByLabel('상품 설명', { exact: true }).fill('프론트 연동 확인')
   await page.locator('input[type=file]').setInputFiles({ name: 'product.png', mimeType: 'image/png', buffer: png })
   await page.getByRole('button', { name: '기본정보 등록', exact: true }).click()
@@ -39,7 +41,16 @@ test('kind: seller product upload, JSON register, sale configuration and atomic 
   await page.getByRole('button', { name: '기본정보 저장', exact: true }).click(); await expect(page.getByText('기본정보를 저장했어요.', { exact: true })).toBeVisible()
   await page.getByRole('button', { name: '비공개로 전환' }).click(); await expect(page.getByRole('button', { name: '공개 재개', exact: true })).toBeVisible()
   await page.getByRole('button', { name: '공개 재개', exact: true }).click(); await expect(page.getByRole('button', { name: '비공개로 전환' })).toBeVisible()
+  const productId = new URL(page.url()).pathname.split('/').pop()!
+  // Core 원본 저장과 Catalog 상품·판매 사본 반영은 별도 단계다.
+  await expect.poll(async () => {
+    const response = await request.get(`/api/catalog/v1/products/${productId}`)
+    return response.ok() ? (await response.json()).data : null
+  }, { timeout: 30000 }).toMatchObject({ name, description: '수정한 상품 설명', price: 13000, available: 6, salesStatus: 'ON_SALE' })
   await page.getByRole('link', { name: '공개 상세 보기' }).click(); await expect(page.getByRole('heading', { name, exact: true })).toBeVisible()
+  const publicImage = page.getByRole('img', { name, exact: true })
+  await expect(publicImage).toHaveAttribute('src', /^\/api\/commercecore\/v1\/product-images\//)
+  await expect.poll(() => publicImage.evaluate(image => image instanceof HTMLImageElement && image.complete && image.naturalWidth > 0)).toBe(true)
   await page.screenshot({ path: 'test-artifacts/kind-product-desktop.png', fullPage: true })
   await page.setViewportSize({ width: 390, height: 844 }); await expect(page.getByRole('link', { name: '바로 구매', exact: true })).toBeVisible()
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
@@ -48,7 +59,7 @@ test('kind: seller product upload, JSON register, sale configuration and atomic 
 test('kind: member cart update, selected-item order, payment polling and own history', async ({ page, request }) => {
   const { productId, name } = await fixture(request)
   const other = await fixture(request)
-  expect((await request.post('/api/commerce/v1/cart/items', { headers: await bearer(request, 'user'), data: { productId: Number(other.productId), quantity: 1 } })).ok()).toBeTruthy()
+  expect((await request.post('/api/commercecore/v1/cart/items', { headers: await bearer(request, 'user'), data: { productId: Number(other.productId), quantity: 1 } })).ok()).toBeTruthy()
   await login(page); await page.getByRole('link', { name: '쇼핑', exact: true }).click()
   await page.getByRole('link', { name: new RegExp(name) }).first().click()
   await page.getByRole('button', { name: '장바구니 담기', exact: true }).click(); await expect(page.getByText('장바구니에 담았어요.', { exact: true })).toBeVisible()
@@ -59,10 +70,10 @@ test('kind: member cart update, selected-item order, payment polling and own his
   await expect(row.getByLabel('상품 금액')).toHaveText('10,000원')
   await expect(otherRow.getByLabel('상품 금액')).toHaveText('10,000원')
   const initialTotal = Number((await total.innerText()).replace(/[^0-9]/g, ''))
-  expect((await request.patch(`/api/commerce/v1/sales/${other.salesId}/price`, { headers: other.headers, data: { price: 11000 } })).ok()).toBeTruthy()
+  expect((await request.patch(`/api/commercecore/v1/sales/${other.salesId}/price`, { headers: other.headers, data: { price: 11000 } })).ok()).toBeTruthy()
   await expect(row.getByRole('button', { name: '수량 줄이기' })).toBeDisabled()
   await expect(row.getByRole('button', { name: '수량 저장' })).toHaveCount(0)
-  const refreshed = page.waitForResponse(response => response.url().endsWith('/api/commerce/v1/cart/items') && response.request().method() === 'GET')
+  const refreshed = page.waitForResponse(response => response.url().endsWith('/api/commercecore/v1/cart/items') && response.request().method() === 'GET')
   await row.getByRole('button', { name: '수량 늘리기' }).click(); await refreshed
   await expect(row.locator('output')).toHaveText('2')
   await expect(row.getByLabel('상품 금액')).toHaveText('20,000원')
@@ -91,28 +102,28 @@ test('kind: member cart update, selected-item order, payment polling and own his
   await expect(page.getByText('통합 결제가 완료되었어요', { exact: true })).toBeVisible({ timeout: 30000 })
   const groupNumber = decodeURIComponent(new URL(page.url()).pathname.split('/').pop()!)
   const token = await bearer(request, 'user')
-  const groupResponse = await request.get(`/api/commerce/v1/payment-groups/${encodeURIComponent(groupNumber)}`, { headers: token }); expect(groupResponse.ok()).toBeTruthy()
+  const groupResponse = await request.get(`/api/commercecore/v1/payment-groups/${encodeURIComponent(groupNumber)}`, { headers: token }); expect(groupResponse.ok()).toBeTruthy()
   const group = await groupResponse.json(); const orderNumber = group.orders.find((o: { productName: string }) => o.productName === name).orderNumber
-  const saved = await request.get(`/api/commerce/v1/orders/${encodeURIComponent(orderNumber)}`, { headers: token }); expect(saved.ok()).toBeTruthy()
+  const saved = await request.get(`/api/commercecore/v1/orders/${encodeURIComponent(orderNumber)}`, { headers: token }); expect(saved.ok()).toBeTruthy()
   const order = await saved.json(); expect(order.quantity).toBe(2); expect(order.totalAmount).toBe(20000); expect(order.status).toBe('PAID')
-  const cart = await request.get('/api/commerce/v1/cart/items', { headers: token }); expect((await cart.json()).some((item: { productId: number }) => item.productId === Number(productId))).toBeFalsy()
+  const cart = await request.get('/api/commercecore/v1/cart/items', { headers: token }); expect((await cart.json()).some((item: { productId: number }) => item.productId === Number(productId))).toBeFalsy()
   await page.getByRole('link', { name: '내 주문 목록', exact: true }).click(); await expect(page.getByRole('link', { name, exact: true })).toBeVisible()
 })
 test('kind: direct order, pending cancellation and member ownership', async ({ page, request }) => {
   const f = await fixture(request); const headers = await bearer(request, 'user')
-  const response = await request.post('/api/commerce/v1/orders', { headers: { ...headers, 'X-Idempotency-Key': randomUUID() }, data: { productId: Number(f.productId), quantity: 1, buyerName: '유저', buyerPhone: '01012345678', expectedTotalAmount: 10000 } }); expect(response.ok()).toBeTruthy()
+  const response = await request.post('/api/commercecore/v1/orders', { headers: { ...headers, 'X-Idempotency-Key': randomUUID() }, data: { productId: Number(f.productId), quantity: 1, buyerName: '유저', buyerPhone: '01012345678', expectedTotalAmount: 10000 } }); expect(response.ok()).toBeTruthy()
   const pending = await response.json()
-  const unauthorized = await request.get(`/api/commerce/v1/orders/${pending.orderNumber}`, { headers: f.headers }); expect(unauthorized.status()).toBe(404)
+  const unauthorized = await request.get(`/api/commercecore/v1/orders/${pending.orderNumber}`, { headers: f.headers }); expect(unauthorized.status()).toBe(404)
   await login(page); await page.getByRole('link', { name: '내 주문', exact: true }).first().click()
   await page.getByRole('link', { name: f.name, exact: true }).click()
   await page.getByRole('link', { name: '통합 결제 확인', exact: true }).click()
   await page.getByRole('button', { name: '전체 주문 취소', exact: true }).click(); await expect(page.getByText('주문이 취소되었어요', { exact: true })).toBeVisible()
-  const saved = await request.get(`/api/commerce/v1/orders/${pending.orderNumber}`, { headers }); expect((await saved.json()).status).toBe('CANCELLED')
+  const saved = await request.get(`/api/commercecore/v1/orders/${pending.orderNumber}`, { headers }); expect((await saved.json()).status).toBe('CANCELLED')
 })
 test('kind: seller Live link/reorder/unlink, SSE chat/likes and end disable participation', async ({ page, request, browser }) => {
   const f = await fixture(request); const f2 = await fixture(request); const title = '연동 방송 ' + randomUUID().slice(0, 8)
   const channelId = randomUUID().slice(0, 8)
-  await login(page, 'seller'); await page.getByRole('link', { name: '방송 관리', exact: true }).click(); await page.getByRole('link', { name: '방송 등록', exact: true }).click()
+  await login(page, 'seller'); await page.getByRole('link', { name: '방송 관리', exact: true }).click(); await page.getByRole('link', { name: '+ 방송 등록', exact: true }).click()
   await page.getByLabel('방송 제목', { exact: true }).fill(title)
   await page.getByLabel('AWS IVS 채널 ARN', { exact: true }).fill('arn:aws:ivs:ap-northeast-2:123456789012:channel/' + channelId)
   await page.getByLabel('예정 시작 시각', { exact: true }).fill('2026-10-06T18:00')
@@ -178,7 +189,7 @@ test('kind: frontend direct purchase creates the quoted order and completes paym
   await page.getByRole('button', { name: '통합 결제하기', exact: true }).click()
   await expect(page.getByText('통합 결제가 완료되었어요', { exact: true })).toBeVisible({ timeout: 30000 })
   const number = new URL(page.url()).pathname.split('/').pop()!
-  const saved = await request.get(`/api/commerce/v1/payment-groups/${number}`, { headers: await bearer(request, 'user') })
+  const saved = await request.get(`/api/commercecore/v1/payment-groups/${number}`, { headers: await bearer(request, 'user') })
   const group = await saved.json(); expect(group.orders).toHaveLength(1)
   const order = group.orders[0]; expect(order.productName).toBe(f.name); expect(order.quantity).toBe(1); expect(order.totalAmount).toBe(10000)
 })
@@ -189,7 +200,7 @@ test('kind: USER cannot enter seller console; seller can revoke their own sessio
   await page.getByRole('button', { name: '로그인', exact: true }).click()
   await expect(page.getByText('판매자만 접근할 수 있어요.', { exact: true })).toBeVisible()
   const user = await bearer(request, 'user')
-  expect((await request.get('/api/shopping/v1/seller/products', { headers: user })).status()).toBe(403)
+  expect((await request.get('/api/commercecore/v1/seller/products', { headers: user })).status()).toBe(403)
   await login(page, 'seller')
   const seller = await bearer(request)
   await page.getByRole('link', { name: '← 쇼핑몰로' }).click(); await page.getByRole('link', { name: '내 계정', exact: true }).click()
@@ -206,7 +217,7 @@ test('kind: cart removal deletes only the selected member item', async ({ page, 
   await page.getByRole('link', { name: '장바구니', exact: true }).click()
   const row = page.locator('section').filter({ has: page.getByRole('heading', { name: f.name, exact: true }) })
   await row.getByRole('button', { name: '삭제', exact: true }).click(); await expect(row).toHaveCount(0)
-  const saved = await request.get('/api/commerce/v1/cart/items', { headers: await bearer(request, 'user') })
+  const saved = await request.get('/api/commercecore/v1/cart/items', { headers: await bearer(request, 'user') })
   expect((await saved.json()).some((item: { productId: number }) => item.productId === Number(f.productId))).toBeFalsy()
 })
 
@@ -224,7 +235,7 @@ test('실제 API: 두 상품을 한 번 결제하고 새로고침 후 주문·�
   const first = await fixture(request); const second = await fixture(request)
   const headers = await bearer(request, 'user')
   for (const product of [first, second]) {
-    const response = await request.post('/api/commerce/v1/cart/items', { headers, data: { productId: Number(product.productId), quantity: 1 } })
+    const response = await request.post('/api/commercecore/v1/cart/items', { headers, data: { productId: Number(product.productId), quantity: 1 } })
     expect(response.ok()).toBeTruthy()
   }
   await login(page); await page.goto('/cart')
@@ -244,7 +255,7 @@ test('실제 API: 두 상품을 한 번 결제하고 새로고침 후 주문·�
   const number = new URL(page.url()).pathname.split('/').pop()!
   await page.reload()
   await expect(page.getByText('통합 결제가 완료되었어요', { exact: true })).toBeVisible()
-  const response = await request.get(`/api/commerce/v1/payment-groups/${number}`, { headers })
+  const response = await request.get(`/api/commercecore/v1/payment-groups/${number}`, { headers })
   expect(response.ok()).toBeTruthy()
   const group = await response.json()
   expect(group.orders).toHaveLength(2)
@@ -252,9 +263,9 @@ test('실제 API: 두 상품을 한 번 결제하고 새로고침 후 주문·�
   expect(group.payableAmount).toBe(20000)
   expect(group.orders.every((order: { status: string }) => order.status === 'PAID')).toBeTruthy()
   expect(paymentStarts).toBe(1)
-  const cartResponse = await request.get('/api/commerce/v1/cart/items', { headers })
+  const cartResponse = await request.get('/api/commercecore/v1/cart/items', { headers })
   expect(cartResponse.ok()).toBeTruthy()
   const cart = await cartResponse.json()
   expect(cart.some((item: { productId: number }) => [Number(first.productId), Number(second.productId)].includes(item.productId))).toBeFalsy()
-  expect((await request.get('/api/commerce/v1/payment-groups/active', { headers })).status()).toBe(204)
+  expect((await request.get('/api/commercecore/v1/payment-groups/active', { headers })).status()).toBe(204)
 })

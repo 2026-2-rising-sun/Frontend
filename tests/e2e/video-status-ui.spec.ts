@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 async function fixture(page: Page, snapshot: () => { status?: string; videoStatus: string | null; failed?: boolean }) {
-  await page.route(/\/api\/(member|commerce|shopping|notification|live)\//, async route => {
+  await page.route(/\/api\/(member|commercecore|catalog|notification|live)\//, async route => {
     const path = new URL(route.request().url()).pathname
     let data: unknown
     if (path.endsWith('/broadcasts/42')) {

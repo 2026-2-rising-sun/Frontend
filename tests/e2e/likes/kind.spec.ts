@@ -17,22 +17,22 @@ async function broadcast(request: APIRequestContext) {
   })
   expect(created.ok()).toBeTruthy()
   const dto = (await created.json()).data
-  const image = await request.post('/api/shopping/v1/seller/product-images', {
+  const image = await request.post('/api/commercecore/v1/seller/product-images', {
     headers: seller, multipart: { file: { name: 'like-fixture.png', mimeType: 'image/png',
       buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aF1cAAAAASUVORK5CYII=', 'base64') } },
   })
   expect(image.ok()).toBeTruthy()
-  const product = await request.post('/api/shopping/v1/seller/products', {
+  const product = await request.post('/api/commercecore/v1/seller/products', {
     headers: { ...seller, 'X-Idempotency-Key': randomUUID() },
     data: { name: `좋아요 상품 ${channel}`, description: '좋아요 브라우저 검증', mainImageId: (await image.json()).data.imageId },
   })
   expect(product.ok()).toBeTruthy()
   const productId = (await product.json()).data.productId
-  const sale = await request.post('/api/commerce/v1/sales', {
+  const sale = await request.post('/api/commercecore/v1/sales', {
     headers: seller, data: { productId, price: 10000, initialStock: 10 },
   })
   expect(sale.ok()).toBeTruthy()
-  expect((await request.patch(`/api/commerce/v1/sales/${(await sale.json()).id}/status`, {
+  expect((await request.patch(`/api/commercecore/v1/sales/${(await sale.json()).id}/status`, {
     headers: seller, data: { status: 'ON_SALE' },
   })).ok()).toBeTruthy()
   const linked = await request.post(`/api/live/v1/seller/broadcasts/${dto.id}/products`, {

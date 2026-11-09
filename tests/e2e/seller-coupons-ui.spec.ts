@@ -3,7 +3,7 @@ test('쿠폰 이름만 수정하면 기간의 초 이하와 대상 상품·버�
   const instant = (days: number) => new Date(Date.now() + days * 86400000).toISOString().replace(/\.\d{3}Z$/, '.123456Z')
   const coupon = { id: '42', sellerId: 'seller', name: '원래 쿠폰', fixedDiscount: 1000, issuanceLimit: 20, issuedCount: 0, version: 7, productIds: [12], startsAt: instant(1), endsAt: instant(2), expiresAt: instant(3) }
   let patch: { version: number; settings: typeof coupon } | undefined
-  await page.route(/\/api\/(member|commerce|shopping|notification)\//, async route => {
+  await page.route(/\/api\/(member|commercecore|catalog|notification)\//, async route => {
     const request = route.request(); const path = new URL(request.url()).pathname
     if (path.includes('/auth/')) return route.fulfill({ json: { success: true, data: { accessToken: 'test-token', refreshToken: 'test-refresh' } } })
     if (path.endsWith('/members/me')) return route.fulfill({ json: { success: true, data: { memberId: '00000000-0000-0000-0000-000000000001', displayName: '판매자', email: 'seller@test.dev', roles: ['SELLER'] } } })

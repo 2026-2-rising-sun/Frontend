@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test'
 
 test.beforeEach(async ({ page }) => {
-  await page.route(/\/api\/(live|shopping)\/v1\/(broadcasts|products)\/\d+$/, route => route.fulfill({ status: 404 }))
+  await page.route(/\/api\/(live|catalog)\/v1\/(broadcasts|products)\/\d+$/, route => route.fulfill({ status: 404 }))
 })
 
 for (const succeeds of [true, false]) {
@@ -139,7 +139,7 @@ test('상세 신청 상태 조회 실패를 재시도하고 신청·새로고침
 
 async function namesFixture(page: import('@playwright/test').Page) {
   const state = { productFailed: true, title: '가을 라이브', member: '00000000-0000-0000-0000-000000000001', hold: null as Promise<void> | null, removed: new Set<string>() }
-  await page.route(/\/api\/(member|notification|live|shopping)\//, async route => {
+  await page.route(/\/api\/(member|notification|live|catalog)\//, async route => {
     const url = new URL(route.request().url()); const path = url.pathname
     let data: unknown
     if (path.includes('/auth/')) data = { accessToken: 'token', refreshToken: 'refresh' }

@@ -14,7 +14,6 @@ const FILTERS: { value: SellerProductStatusFilter; label: string }[] = [
   { value: 'SELLING', label: '판매 중' },
   { value: 'SOLD_OUT', label: '품절' },
   { value: 'HIDDEN', label: '비공개' },
-  { value: 'UNKNOWN', label: '확인 필요' },
 ]
 
 const NEXT_ACTION: Record<SellerProductStatus, { label: string; hint: string }> = {
@@ -31,17 +30,14 @@ export function SellerProductListPage() {
   const [params, setParams] = useSearchParams()
   const status = FILTERS.find(f => f.value === params.get('status'))?.value ?? 'ALL'
   const query = params.get('q') ?? ''
-  // 서버의 상품 상태 필터는 페이지 내부에서 적용된다. 전체 페이지를 순서대로 누적한 뒤
-  // 화면에서 필터링하여 상태를 바꿔도 이미 불러온 상품을 잃지 않는다.
-  const products = usePaged((page) => api.seller.products.list({ page, size: 20 }), [api])
+  const products = usePaged((page) => api.seller.products.list({ page, size: 20, status }), [api, status])
   const update = (key: string, value: string) => setParams(prev => {
     const next = new URLSearchParams(prev)
     if (!value || value === 'ALL') next.delete(key)
     else next.set(key, value)
     return next
   }, { replace: true })
-  const filtered = products.items.filter(p => (status === 'ALL' || p.status === status) &&
-    `${p.name} ${p.id}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
+  const filtered = products.items.filter(p => `${p.name} ${p.id}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
   const summary = [
     { value: 'ALL', label: '불러온 상품', count: products.items.length },
     { value: 'SELLING', label: '판매 중', count: products.items.filter(p => p.status === 'SELLING').length },
@@ -65,7 +61,7 @@ export function SellerProductListPage() {
           <span className={styles.summaryLink}>목록 보기 →</span>
         </button>)}
       </div>
-      <p className={styles.scopeNote}>상태 요약과 검색은 불러온 상품 기준이에요. 더 보기로 다음 상품을 확인할 수 있어요.</p>
+      <p className={styles.scopeNote}>상태 필터는 전체 등록 상품에 적용해요. 요약 개수는 현재 상태 조건으로 불러온 목록의 집계이며, 전체 상태별 총계가 아니에요. 검색은 불러온 목록에만 적용해요.</p>
     </section>
 
     <section className={styles.listSection} aria-label="상품 목록">
@@ -77,7 +73,7 @@ export function SellerProductListPage() {
         {FILTERS.map(f => <Chip key={f.value} selected={status === f.value} onClick={() => update('status', f.value)}>{f.label}</Chip>)}
       </div>
       <p className={styles.resultCount} role="status">{products.loading ? '상품을 불러오고 있어요…' : products.error ? '상품을 불러오지 못했어요.' : `불러온 ${products.items.length}개 중 ${filtered.length}개 표시`}</p>
-      <PagedView state={products} skeleton={<Skeleton height={220} radius={14} />} emptyTitle="등록한 상품이 없어요" emptyMessage="첫 상품을 등록하고 판매를 준비해 보세요.">
+      <PagedView state={products} skeleton={<Skeleton height={220} radius={14} />} emptyTitle={status === 'ALL' ? '등록한 상품이 없어요' : '선택한 상태의 상품이 없어요'} emptyMessage={status === 'ALL' ? '첫 상품을 등록하고 판매를 준비해 보세요.' : '다른 판매 상태를 선택해 보세요.'}>
         {() => filtered.length === 0 ? <ResultState type="empty" title="조건에 맞는 상품이 없어요" message={products.hasNext ? '아직 불러오지 않은 상품이 있어요. 아래 더 보기로 확인해 주세요.' : '검색어나 판매 상태를 변경해 보세요.'} action={<Button variant="secondary" onClick={() => setParams({}, { replace: true })}>검색·필터 초기화</Button>} /> : <div className={styles.productList}>
           {filtered.map(p => <article key={p.id} className={styles.productCard}>
             <div className={styles.productIdentity}>
@@ -100,7 +96,7 @@ export function SellerProductListPage() {
           </article>)}
         </div>}
       </PagedView>
-      {!products.loading && !products.error && !products.items.length && !products.hasNext && <ButtonLink to="/seller/products/new" className={styles.emptyAction}>첫 상품 등록</ButtonLink>}
+      {status === 'ALL' && !products.loading && !products.error && !products.items.length && !products.hasNext && <ButtonLink to="/seller/products/new" className={styles.emptyAction}>첫 상품 등록</ButtonLink>}
     </section>
   </>
 }

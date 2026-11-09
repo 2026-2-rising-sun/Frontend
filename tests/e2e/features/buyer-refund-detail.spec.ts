@@ -26,17 +26,17 @@ async function newBuyer(request: APIRequestContext) {
 async function newProduct(request: APIRequestContext) {
   const seller = await token(request, 'seller@local.test', 'seller')
   const name = `판매·환불 검증 ${randomUUID().slice(0, 8)}`
-  const image = await request.post('/api/shopping/v1/seller/product-images', {
+  const image = await request.post('/api/commercecore/v1/seller/product-images', {
     headers: seller, multipart: { file: { name: 'refund.png', mimeType: 'image/png', buffer: png } },
   })
   expect(image.ok(), await image.text()).toBeTruthy()
-  const product = await request.post('/api/shopping/v1/seller/products', {
+  const product = await request.post('/api/commercecore/v1/seller/products', {
     headers: { ...seller, 'X-Idempotency-Key': randomUUID() },
     data: { name, description: '기존 데이터와 분리한 판매 설정·환불 검증 전용 상품', mainImageId: (await image.json()).data.imageId },
   })
   expect(product.ok(), await product.text()).toBeTruthy()
   const productId = Number((await product.json()).data.productId)
-  const sale = await request.post('/api/commerce/v1/sales', {
+  const sale = await request.post('/api/commercecore/v1/sales', {
     headers: seller, data: { productId, price: 1200, initialStock: 7 },
   })
   expect(sale.ok(), await sale.text()).toBeTruthy()
@@ -48,9 +48,9 @@ test('kind: 구매자 환불 상세를 실제 결제·환불 후 직접 링크�
   test.setTimeout(120000)
   const f = await newProduct(request)
   const member = await newBuyer(request)
-  const started = await request.patch(`/api/commerce/v1/sales/${f.salesId}/status`, { headers: f.seller, data: { status: 'ON_SALE' } })
+  const started = await request.patch(`/api/commercecore/v1/sales/${f.salesId}/status`, { headers: f.seller, data: { status: 'ON_SALE' } })
   expect(started.ok(), await started.text()).toBeTruthy()
-  const order = await request.post('/api/commerce/v1/orders', {
+  const order = await request.post('/api/commercecore/v1/orders', {
     headers: { ...member.headers, 'X-Idempotency-Key': randomUUID() },
     data: { productId: f.productId, quantity: 1, buyerName: '환불 상세 검증', buyerPhone: '01012345678', expectedTotalAmount: 1200 },
   })
@@ -76,11 +76,11 @@ test('kind: 구매자 환불 상세를 실제 결제·환불 후 직접 링크�
   await expect(card).toContainText(f.name)
   await page.setViewportSize({ width: 390, height: 844 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
-  const actual = await request.get(`/api/commerce/v1/payment-groups/${groupNumber}/refunds/${refund.id}`, { headers: member.headers })
+  const actual = await request.get(`/api/commercecore/v1/payment-groups/${groupNumber}/refunds/${refund.id}`, { headers: member.headers })
   expect(actual.ok(), await actual.text()).toBeTruthy()
   expect((await actual.json()).data.refundAmount).toBe(1200)
   const other = await newBuyer(request)
-  const forbidden = await request.get(`/api/commerce/v1/payment-groups/${groupNumber}/refunds/${refund.id}`, { headers: other.headers })
+  const forbidden = await request.get(`/api/commercecore/v1/payment-groups/${groupNumber}/refunds/${refund.id}`, { headers: other.headers })
   expect([403, 404]).toContain(forbidden.status())
   await page.getByRole('link', { name: '← 결제·환불 내역' }).click()
   await expect(page).toHaveURL(new RegExp(`/payment-groups/${groupNumber}$`))

@@ -4,7 +4,7 @@ for (const { cart, failure } of [{ cart: false, failure: false }, { cart: true, 
   test(`${cart ? 'cart' : 'direct'} checkout ${failure ? 'blocks lookup failure and retries' : 'only offers applicable coupons'}`, async ({ page }) => {
     let unavailable = false
     let lookupFailure = failure
-    await page.route(/\/api\/(member|commerce|shopping|live|notification)\//, async route => {
+    await page.route(/\/api\/(member|commercecore|catalog|live|notification)\//, async route => {
       const request = route.request(); const url = new URL(request.url()); const path = url.pathname
       const json = (data: unknown) => route.fulfill({ json: { success: true, data } })
       if (path.includes('/auth/')) return json({ accessToken: 'test', refreshToken: 'test' })

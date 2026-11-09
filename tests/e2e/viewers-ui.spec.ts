@@ -1,6 +1,6 @@
 import { test, expect, type Page } from '@playwright/test'
 async function fixture(page: Page, onViewer: (path: string, method: string, body: unknown) => void, failed = false) {
-  await page.route(/\/api\/(member|commerce|shopping|notification|live)\//, async route => {
+  await page.route(/\/api\/(member|commercecore|catalog|notification|live)\//, async route => {
     const path = new URL(route.request().url()).pathname
     let data: unknown
     if (path.includes('/auth/')) data = { accessToken: 'token', refreshToken: 'refresh' }
@@ -18,7 +18,7 @@ async function fixture(page: Page, onViewer: (path: string, method: string, body
     }
     else if (path.endsWith('/broadcasts/42')) data = { id: 42, title: '시청자 검증 방송', status: 'LIVE', scheduledAt: new Date().toISOString(), playbackUrl: null, channelArn: 'arn:test', version: 0 }
     else if (path.endsWith('/products') && path.includes('/broadcasts/')) data = []
-    else if (path === '/api/shopping/v1/products') data = { items: [], nextCursor: null, hasNext: false }
+    else if (path === '/api/catalog/v1/products') data = { items: [], nextCursor: null, hasNext: false }
     else if (path.endsWith('/seller/products')) data = { items: [], page: 0, size: 20, totalElements: 0, totalPages: 0 }
     else if (path.endsWith('/promotions') || path.endsWith('/chats')) data = []
     else if (path.endsWith('/likes/mine')) data = { broadcastId: 42, total: 0, version: 0, liked: false, stateVersion: 0 }

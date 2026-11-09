@@ -15,7 +15,7 @@ async function fixture(page: Page, options: { anonymous?: boolean; liked?: boole
   const snapshot = (id: number) => ({ broadcastId: id, liked: api.liked, total: Number(api.liked), version: api.version, stateVersion: api.version })
   const saved = new Map<string, ReturnType<typeof snapshot>>()
   if (!options.anonymous) await page.addInitScript(() => sessionStorage.setItem('shoppinglive:refresh:' + location.origin + '/api', 'fixture-refresh'))
-  await page.route(/\/api\/(member|commerce|shopping|notification|live)\//, async route => {
+  await page.route(/\/api\/(member|commercecore|catalog|notification|live)\//, async route => {
     const request = route.request(), path = new URL(request.url()).pathname
     const id = Number(path.match(/broadcasts\/(\d+)/)?.[1] ?? 42)
     let data: unknown
