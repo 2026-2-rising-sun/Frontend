@@ -72,7 +72,7 @@ test('kind: 상품 쿠폰 표시, 쿠폰함 수령, 직접 주문 0원 결제를
   }
   const card = page.getByRole('article').filter({ has: page.getByRole('heading', { name: f.name, exact: true }) })
   await card.getByRole('button', { name: '쿠폰 받기', exact: true }).click()
-  await expect(page.getByRole('status')).toContainText('쿠폰을 받았어요')
+  await expect(page.getByRole('status').filter({ hasText: '쿠폰을 받았어요' })).toHaveText('쿠폰을 받았어요. 내 쿠폰에서 확인하세요.')
   await page.getByRole('button', { name: '내 쿠폰', exact: true }).click()
   await expect(card).toContainText('사용 가능')
   await page.goto(`/checkout?productId=${f.productId}&quantity=1`)
