@@ -1,0 +1,17 @@
+.carousel { position: relative; border-radius: var(--radius-xl); overflow: hidden; background: var(--bg-page); }
+/* 모든 슬라이드를 같은 칸에 겹쳐 두고, 높이는 가장 큰 슬라이드에 맞춘다. */
+.track { display: grid; }
+.slide { grid-area: 1 / 1; min-width: 0; opacity: 0; visibility: hidden; transition: opacity 0.6s ease, visibility 0.6s; }
+.active { opacity: 1; visibility: visible; }
+.controls { position: absolute; left: var(--space-6); bottom: var(--space-5); z-index: 2; display: flex; align-items: center; gap: var(--space-2); }
+.control { display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border: 0; border-radius: var(--radius-full); background: rgb(255 255 255 / 0.85); color: var(--text-primary); box-shadow: var(--shadow-sm); cursor: pointer; }
+.control:hover { background: var(--color-neutral-0); }
+.counter { min-width: 44px; color: var(--text-secondary); font: 400 14px/20px var(--font-sans); text-align: center; }
+.counter strong { color: var(--text-primary); font-weight: 600; }
+
+@media (min-width: 768px) {
+  .controls { left: var(--space-10); bottom: var(--space-8); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .slide { transition: none; }
+}
