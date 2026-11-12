@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
 import { Button, Skeleton } from '../../components/ui'
 import type { Product } from '../../domain/types'
 import { useAsync, type AsyncState } from '../../hooks/useAsync'
 import { ProductCard } from '../shopping/components/ProductCard'
+import { RecentRelatedDialog } from './RecentRelatedDialog'
 import styles from './HomePicks.module.css'
 
 const PER_PAGE = 2
@@ -27,22 +28,25 @@ export function HomePicks() {
   }, [api])
   const recommended = useAsync(async () => (await api.products.list({ status: 'SELLING', sort: 'LATEST', size: PER_PAGE * MAX_PAGES })).items, [api])
 
+  const [showRecent, setShowRecent] = useState(false)
+
   return <div className={styles.picks}>
-    <PickColumn id="trending" title="요즘 주목 받는 상품" caption="방송에서 소개 중인 상품" moreTo="/lives" state={trending} emptyMessage="방송에서 소개 중인 상품이 아직 없어요." />
-    <PickColumn id="recommended" title="나를 위한 추천 상품" caption="새로 들어온 판매 상품" moreTo="/ranking" state={recommended} emptyMessage="추천할 상품이 아직 없어요." />
+    <PickColumn id="trending" title="요즘 주목 받는 상품" more={<Link to="/ranking" className={styles.more}>더보기 <span aria-hidden="true">›</span></Link>} state={trending} emptyMessage="방송에서 소개 중인 상품이 아직 없어요." />
+    <PickColumn id="recommended" title="나를 위한 추천 상품" more={<button type="button" className={styles.more} aria-haspopup="dialog" onClick={() => setShowRecent(true)}>더보기 <span aria-hidden="true">›</span></button>} state={recommended} emptyMessage="추천할 상품이 아직 없어요." />
+    {showRecent && <RecentRelatedDialog onClose={() => setShowRecent(false)} />}
   </div>
 }
 
 interface PickColumnProps {
   id: string
   title: string
-  caption: string
-  moreTo: string
+  /** 제목 오른쪽 "더보기" (링크 또는 버튼) */
+  more: ReactNode
   state: AsyncState<Product[]>
   emptyMessage: string
 }
 
-function PickColumn({ id, title, caption, moreTo, state, emptyMessage }: PickColumnProps) {
+function PickColumn({ id, title, more, state, emptyMessage }: PickColumnProps) {
   const [page, setPage] = useState(0)
   const products = state.data ?? []
   const pages = Math.max(1, Math.ceil(products.length / PER_PAGE))
@@ -51,11 +55,8 @@ function PickColumn({ id, title, caption, moreTo, state, emptyMessage }: PickCol
 
   return <section className={styles.column} aria-labelledby={`${id}-heading`}>
     <div className={styles.head}>
-      <div>
-        <h2 id={`${id}-heading`} className={styles.title}>{title}</h2>
-        <p className={styles.caption}>{caption}</p>
-      </div>
-      <Link to={moreTo} className={styles.more}>더보기 <span aria-hidden="true">›</span></Link>
+      <h2 id={`${id}-heading`} className={styles.title}>{title}</h2>
+      {more}
     </div>
     {!state.data && !state.error ? <div className={styles.cards}>{Array.from({ length: PER_PAGE }, (_, i) => <Skeleton key={i} height={280} radius={8} />)}</div>
       : state.error && !state.data ? <div className={styles.empty}><p>상품을 불러오지 못했어요.</p><Button variant="secondary" size="S" onClick={state.reload}>상품 다시 조회</Button></div>

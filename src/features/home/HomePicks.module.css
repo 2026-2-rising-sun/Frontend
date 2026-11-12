@@ -1,9 +1,8 @@
 .picks { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-10); }
 .column { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
-.head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-3); }
+.head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .title { font: 700 22px/32px var(--font-sans); }
-.caption { margin-top: var(--space-1); color: var(--text-tertiary); font: 400 12px/18px var(--font-sans); }
-.more { flex-shrink: 0; color: var(--text-tertiary); font: 400 14px/22px var(--font-sans); }
+.more { flex-shrink: 0; padding: 0; border: 0; background: none; color: var(--text-tertiary); font: 400 14px/22px var(--font-sans); cursor: pointer; }
 .more:hover { color: var(--text-primary); }
 .cards { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); }
 .empty { display: grid; justify-items: start; gap: var(--space-3); padding: var(--space-6); border-radius: var(--radius-lg); background: var(--bg-page); color: var(--text-secondary); }
