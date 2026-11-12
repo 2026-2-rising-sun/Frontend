@@ -7,6 +7,8 @@ const products = [
   { productId: 3, name: '수량 미제공 상품', mainImageUrl: null, price: 25000, salesStatus: 'ON_SALE' },
   { productId: 4, name: '판매 중 예약 소진 상품', mainImageUrl: null, price: 32000, salesStatus: 'ON_SALE', available: 0 },
 ]
+/** 메인 "OO시 기준 판매 인기" 칸 */
+const RANKING = /^오늘 \d+시 기준 판매 인기$/
 const lives = [
   { id: 11, title: '오늘의 라이브', status: 'LIVE', scheduledAt: '2026-10-26T09:00:00Z', playbackUrl: null },
   { id: 12, title: '다음 라이브', status: 'PREPARING', scheduledAt: '2026-10-27T09:00:00Z', playbackUrl: null },
@@ -36,13 +38,12 @@ async function fixture(page: Page, options: { currentContract?: boolean; catalog
 }
 
 for (const width of [1440, 390]) {
-  test(`${width}px 메인의 일반·방송 카드가 실제 수량·0·미제공과 가격·품절·쿠폰을 함께 표시한다`, async ({ page }, testInfo) => {
+  test(`${width}px 메인 판매 인기 카드가 실제 수량·0·미제공과 가격·품절·쿠폰을 함께 표시한다`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 1000 })
     const api = await fixture(page)
     await page.goto('/')
-    const catalog = page.locator('#products')
-    const linked = page.getByRole('region', { name: '방송별 소개 상품', exact: true })
-    for (const section of [catalog, linked]) {
+    const section = page.getByRole('region', { name: RANKING })
+    {
       const selling = section.getByRole('link', { name: /데일리 텀블러/ })
       await expect(selling.getByText('남은 재고 1,234개', { exact: true })).toBeVisible()
       await expect(selling.getByText('18,000원', { exact: true })).toBeVisible()
@@ -66,9 +67,7 @@ for (const width of [1440, 390]) {
     expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(width)
     expect(api.paths.filter(path => /\/products\/\d+$|\/stock$|\/checkout$/.test(path))).toEqual([])
     await page.screenshot({ path: testInfo.outputPath(`stock-${width}.png`), fullPage: true })
-    await linked.getByRole('button', { name: '다음 라이브', exact: true }).click()
-    await expect(linked.getByText('남은 재고 7개', { exact: true })).toBeVisible()
-    await linked.getByRole('link', { name: /데일리 텀블러/ }).click()
+    await section.getByRole('link', { name: /데일리 텀블러/ }).click()
     await expect(page).toHaveURL(/\/products\/1$/)
     await expect(page.getByRole('link', { name: '바로 구매', exact: true })).toBeVisible()
   })
@@ -77,26 +76,23 @@ for (const width of [1440, 390]) {
 test('수량이 누락된 응답에서도 판매 상태를 유지하고 재고를 추정하지 않는다', async ({ page }) => {
   await fixture(page, { currentContract: true })
   await page.goto('/')
-  for (const section of [page.locator('#products'), page.getByRole('region', { name: '방송별 소개 상품', exact: true })]) {
+  {
+    const section = page.getByRole('region', { name: RANKING })
     await expect(section.getByText('재고 확인 필요', { exact: true })).toHaveCount(4)
     await expect(section.getByText(/남은 재고/)).toHaveCount(0)
     await expect(section.getByRole('link', { name: /품절 머그컵/ }).getByText('품절', { exact: true })).toHaveCount(2)
   }
 })
 
-test('상품·방송 상품 조회 실패를 품절·재고 0으로 대체하지 않고 재조회한다', async ({ page }) => {
+test('판매 인기 조회 실패를 품절·재고 0으로 대체하지 않고 재조회한다', async ({ page }) => {
   const api = await fixture(page, { catalogFailure: true, linkedFailure: true })
   await page.goto('/')
-  const catalog = page.locator('#products')
-  const linked = page.getByRole('region', { name: '방송별 소개 상품', exact: true })
-  await expect(catalog.getByText('불러오지 못했어요', { exact: true })).toBeVisible()
-  await expect(linked.getByText('이 방송의 상품을 불러오지 못했어요', { exact: true })).toBeVisible()
+  const catalog = page.getByRole('region', { name: RANKING })
+  await expect(catalog.getByText('판매 인기 상품을 불러오지 못했어요.', { exact: true })).toBeVisible()
   await expect(page.getByText('남은 재고 0개', { exact: true })).toHaveCount(0)
   api.recover()
-  await catalog.getByRole('button', { name: '다시 시도', exact: true }).click()
-  await linked.getByRole('button', { name: '상품 다시 조회', exact: true }).click()
+  await catalog.getByRole('button', { name: '순위 다시 조회', exact: true }).click()
   await expect(catalog.getByText('남은 재고 1,234개', { exact: true })).toBeVisible()
-  await expect(linked.getByText('남은 재고 1,234개', { exact: true })).toBeVisible()
 })
 
 test('수량 없는 상품 상세는 품절로 단정하지 않고 구매와 수량 변경을 막는다', async ({ page }) => {

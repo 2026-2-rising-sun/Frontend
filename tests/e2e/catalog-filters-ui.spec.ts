@@ -48,7 +48,7 @@ test('이전 조건의 지연된 더 보기 응답이 새 목록이나 새 조�
     if (url.pathname.endsWith('/live/v1/broadcasts')) return route.fulfill({ json: envelope({ content: [], totalElements: 0, totalPages: 0, number: 0, size: 6 }) })
     return route.fulfill({ status: 401 })
   })
-  await page.goto('/')
+  await page.goto('/?q=상품')
   await expect(page.locator('#products').getByRole('link', { name: /이전 목록 상품/ })).toBeVisible()
   await page.getByRole('button', { name: '더 보기', exact: true }).click()
   await expect.poll(() => oldMore).toBe(true)

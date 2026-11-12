@@ -44,7 +44,7 @@ async function login(page: Page) {
 
 test('목록의 쿠폰 혜택 표시에서 상세의 로그인·받기 안내로 이어진다', async ({ page }) => {
   await fixture(page)
-  await page.goto('/')
+  await page.goto('/?q=쿠폰')
   const item = page.locator('#products').getByRole('link', { name: /쿠폰 상품/ })
   await expect(item.getByText('쿠폰 혜택', { exact: true })).toBeVisible()
   await item.click()
