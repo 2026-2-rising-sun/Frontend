@@ -1,0 +1,31 @@
+.promo { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); height: 100%; min-height: 320px; overflow: hidden; }
+.berry { background: linear-gradient(120deg, var(--color-primary-50) 0%, var(--color-primary-100) 100%); }
+.raspberry { background: linear-gradient(120deg, var(--color-secondary-50) 0%, var(--color-secondary-100) 100%); }
+.plum { background: linear-gradient(120deg, var(--color-emphasis-50) 0%, var(--color-emphasis-200) 100%); }
+
+/* 아래쪽 여백은 배너 조작 버튼 자리 */
+.text { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); padding: var(--space-8) var(--space-6) calc(var(--space-6) + 56px); }
+.eyebrow { color: var(--text-primary); font: 700 16px/24px var(--font-sans); }
+.rule { width: 16px; height: 2px; background: var(--text-tertiary); }
+.title { display: flex; flex-direction: column; color: var(--text-primary); font: 400 30px/40px var(--font-sans); letter-spacing: -0.01em; }
+.description { color: var(--text-secondary); font: 500 15px/24px var(--font-sans); }
+.cta { margin-top: var(--space-2); }
+
+/* 장식용 원. 사진 대신 브랜드 색으로 분위기만 낸다. */
+.art { position: absolute; inset: 0; pointer-events: none; }
+.art > span { position: absolute; border-radius: var(--radius-full); opacity: 0.55; }
+.berry .art > span { background: var(--color-primary-300); }
+.raspberry .art > span { background: var(--color-secondary-500); opacity: 0.25; }
+.plum .art > span { background: var(--color-emphasis-400); }
+.art > span:nth-child(1) { width: 220px; height: 220px; right: -60px; top: -40px; }
+.art > span:nth-child(2) { width: 120px; height: 120px; right: 120px; bottom: -30px; opacity: 0.35; }
+.art > span:nth-child(3) { width: 56px; height: 56px; right: 60px; top: 50%; opacity: 0.8; }
+
+@media (min-width: 768px) {
+  .promo { min-height: 360px; }
+  .text { justify-content: center; padding: var(--space-10) var(--space-10) calc(var(--space-8) + 64px); }
+  .title { font-size: 48px; line-height: 60px; }
+  .art > span:nth-child(1) { width: 380px; height: 380px; right: 4%; top: -60px; }
+  .art > span:nth-child(2) { width: 200px; height: 200px; right: 30%; bottom: -60px; }
+  .art > span:nth-child(3) { width: 90px; height: 90px; right: 22%; top: 30%; }
+}

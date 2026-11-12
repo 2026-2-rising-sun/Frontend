@@ -14,10 +14,14 @@ import { formatDateTime } from '../../lib/format'
 import { ViewerCount } from '../live/ViewerCount'
 import { ProductCard } from '../shopping/components/ProductCard'
 import { ProductGrid, ProductGridSkeleton } from '../shopping/components/ProductGrid'
+import { HeroCarousel } from './HeroCarousel'
 import { HomePicks } from './HomePicks'
+import { PromoSlide } from './PromoSlide'
+import { PROMOS } from './promos'
 import styles from './HomePage.module.css'
 
 const PRODUCT_PAGE_SIZE = 12
+const PROMO_SLIDES = PROMOS.map(promo => ({ key: `promo-${promo.key}`, node: <PromoSlide promo={promo} /> }))
 const STATUS_OPTIONS: { value: ProductStatusFilter; label: string }[] = [
   { value: 'ALL', label: '전체' },
   { value: 'SELLING', label: '판매 중' },
@@ -58,7 +62,7 @@ export function HomePage() {
   }, [api])
   const products = usePaged((page, cursor) => api.products.list({ cursor, page, size: PRODUCT_PAGE_SIZE, query, status, sort }), [api, query, status, sort])
 
-  // 주목·추천 상품은 방송 배너 바로 아래에 둔다. 방송 조회가 실패해도 따로 보여 준다.
+  // 주목·추천 상품은 메인 배너 바로 아래에 둔다. 방송 조회가 실패해도 기획전 배너와 함께 따로 보여 준다.
   const picks = <HomePicks />
   return <div className={styles.surface}><PageContainer className={styles.page}>
     <SearchBox className={styles.mobileSearch} />
@@ -66,12 +70,13 @@ export function HomePage() {
       {data => <>
         {data.incomplete && <Alert type="warning" title="일부 방송을 확인하지 못했어요"><Button variant="secondary" size="S" onClick={lives.reload}>방송 다시 조회</Button></Alert>}
         {data.items.length ? <LiveDiscovery key={data.items.map(live => live.id).join(':')} lives={data.items} afterHero={picks} /> : <>
+          <HeroCarousel slides={PROMO_SLIDES} />
           {!data.incomplete && <section className={styles.liveEmpty} aria-label="방송 안내"><h2 className="t-h3">새로운 라이브를 준비하고 있어요</h2><p>진행 중이거나 예정된 방송이 없어요. 아래 상품은 바로 둘러볼 수 있어요.</p><Link to="/lives" className={styles.more}>방송 전체 보기 →</Link></section>}
           {picks}
         </>}
       </>}
     </AsyncView>
-    {lives.error && !lives.data && picks}
+    {lives.error && !lives.data && <><HeroCarousel slides={PROMO_SLIDES} />{picks}</>}
 
     <section id="products" className={styles.section} aria-labelledby="product-heading">
       <div className={styles.head}>
@@ -115,7 +120,8 @@ function LiveDiscovery({ lives, afterHero }: { lives: LiveSummary[]; afterHero: 
   const imageFor = (live: LiveSummary) => live.thumbnailUrl ?? groups.data?.find(item => item.live.id === live.id)?.products.find(product => product.imageUrl)?.imageUrl ?? null
 
   return <>
-    <FeaturedLive live={featured} imageUrl={imageFor(featured)} />
+    {/* 메인 배너: 진행·예정 방송 다음에 기획전 배너가 이어지고 자동으로 넘어간다. */}
+    <HeroCarousel slides={[...lives.map(live => ({ key: `live-${live.id}`, node: <FeaturedLive live={live} imageUrl={imageFor(live)} /> })), ...PROMO_SLIDES]} />
     {afterHero}
     <section className={styles.section} aria-labelledby="live-products-heading">
       <div className={styles.head}><div><h2 id="live-products-heading" className="t-h2">방송별 소개 상품</h2><p className={styles.caption}>방송을 선택하고, 방송에서 소개하는 상품을 만나보세요.</p></div></div>
