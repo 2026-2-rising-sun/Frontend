@@ -63,13 +63,9 @@ test('방송 미리보기는 인원을 조회만 하고 예정·종료 방송에
   expect(methods.every(method => method === 'GET')).toBeTruthy()
   await page.setViewportSize({ width: 390, height: 844 })
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
-  const previous = methods.length
-  for (const name of ['예정', '종료']) {
-    await page.getByRole('tab', { name, exact: true }).click()
-    await expect(card).toBeVisible()
-    await expect(card.getByText('현재 시청 약 2명', { exact: true })).toHaveCount(0)
-  }
-  expect(methods).toHaveLength(previous)
+  // 라이브 시간표에는 진행 중과 예정 방송만 나오고, 예정 방송 카드는 인원을 표시하지 않는다.
+  await expect(card).toHaveCount(2)
+  await expect(card.nth(1).getByText('현재 시청 약 2명', { exact: true })).toHaveCount(0)
 })
 test('미리보기 집계 장애에서도 잘못된 0명이나 중첩 버튼 없이 방송으로 이동한다', async ({ page }) => {
   await fixture(page, () => {}, true)
@@ -78,7 +74,7 @@ test('미리보기 집계 장애에서도 잘못된 0명이나 중첩 버튼 없
   await expect(card.getByText('시청자 수 조회 불가')).toBeVisible()
   await expect(card.getByRole('button')).toHaveCount(0)
   await expect(card.getByText('현재 시청 약 0명', { exact: true })).toHaveCount(0)
-  await card.click()
+  await card.first().click()
   await expect(page).toHaveURL(/\/lives\/42$/)
 })
 
