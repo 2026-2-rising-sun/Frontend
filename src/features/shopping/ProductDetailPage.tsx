@@ -10,6 +10,7 @@ import { formatPrice } from '../../lib/format'
 import { ProductCoupons } from '../coupons/ProductCoupons'
 import { AlertSubscription } from '../notifications/AlertSubscription'
 import { useSession } from '../auth/useSession'
+import { recordRecentProduct } from './recentProducts'
 import styles from './ProductDetailPage.module.css'
 
 export function ProductDetailPage() {
@@ -20,8 +21,10 @@ export function ProductDetailPage() {
 function ProductPage({ productId }: { productId: string }) {
   const api = useApi()
   const product = useAsync(() => api.products.get(productId), [api, productId])
+  // 홈의 "최근 본 상품과 연관 추천 상품"에 쓰도록 실제로 조회된 상품만 기록한다.
+  useEffect(() => { if (product.data) recordRecentProduct(product.data.id) }, [product.data])
   return <div className={styles.surface}><PageContainer className={styles.page}>
-    <nav aria-label="현재 위치" className={styles.breadcrumb}><Link to="/">쇼핑</Link><span aria-hidden="true">/</span><span>상품 상세</span></nav>
+    <nav aria-label="현재 위치" className={styles.breadcrumb}><Link to="/">홈</Link><span aria-hidden="true">/</span><span>상품 상세</span></nav>
     <AsyncView state={product} skeleton={<div className={styles.layout}><Skeleton height={0} style={{ aspectRatio: '672 / 520', height: 'auto' }} radius={20} /><Skeleton height={320} radius={14} /></div>}>
       {p => <ProductDetail product={p} />}
     </AsyncView>
