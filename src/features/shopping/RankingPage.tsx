@@ -7,20 +7,16 @@ import { PRODUCT_CATEGORIES, isProductCategory } from '../../domain/types'
 import { useAsync } from '../../hooks/useAsync'
 import { ProductCard } from './components/ProductCard'
 import { ProductGridSkeleton } from './components/ProductGrid'
+import { loadRanking } from './rankingProducts'
 import styles from './RankingPage.module.css'
 
-const RANK_SIZE = 20
-
-/**
- * 랭킹 화면. 판매량·조회수 집계 API가 아직 없어 판매 중인 최신 상품 순서를 순위로 보여 준다.
- * 집계 API가 생기면 이 화면의 조회만 바꾼다.
- */
+/** 랭킹 화면. 순위 기준은 loadRanking 을 따른다. */
 export function RankingPage() {
   const api = useApi()
   const [params, setParams] = useSearchParams()
   const raw = params.get('category')?.toUpperCase()
   const category = isProductCategory(raw) ? raw : undefined
-  const ranking = useAsync(async () => (await api.products.list({ status: 'SELLING', sort: 'LATEST', size: RANK_SIZE, category })).items, [api, category])
+  const ranking = useAsync(() => loadRanking(api, category), [api, category])
   const select = (value?: string) => setParams(value ? { category: value.toLowerCase() } : {})
 
   return <PageContainer>
