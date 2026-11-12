@@ -4,9 +4,8 @@
 .form > p[role='alert'] { color: var(--danger-text); }
 .loginCard { width: 100%; padding: var(--space-8); display: grid; gap: var(--space-8); background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-xl); }
 .heading { display: grid; gap: var(--space-3); }
-.heading > p { color: var(--text-secondary); }
-.brand { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-4); color: var(--text-brand); font-weight: 700; }
-.brand > span { width: 20px; height: 20px; border-radius: var(--radius-full); background: var(--brand-default); }
+/* 로고 문구는 "로그인" 제목(--text-primary)보다 한 단계 연한 검정 */
+.brand { display: block; margin-bottom: var(--space-4); color: var(--color-neutral-700); font-weight: 700; }
 .loginForm { display: grid; gap: var(--space-5); }
 .passwordField { position: relative; }
 .passwordToggle { position: absolute; right: 0; top: -10px; min-height: 44px; padding: 0 var(--space-2); border: 0; background: transparent; color: var(--text-brand); font: 500 12px/18px var(--font-sans); cursor: pointer; }

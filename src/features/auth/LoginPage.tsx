@@ -30,9 +30,8 @@ export function LoginPage() {
   return <PageContainer narrow>
     <section className={styles.loginCard} aria-labelledby="login-title">
       <header className={styles.heading}>
-        <span className={styles.brand}><span aria-hidden="true" />BERRY ON</span>
+        <span className={styles.brand}>BERRY ON</span>
         <h1 id="login-title" className="t-h1">로그인</h1>
-        <p>로그인하고 쇼핑과 라이브를 이어가세요.</p>
       </header>
       <form className={styles.loginForm} onSubmit={submit} aria-label="로그인">
         <Input label={auth.testAccounts ? '아이디 또는 이메일' : '이메일'} autoComplete="username" maxLength={254} value={username}
