@@ -1,0 +1,5 @@
+.list { display: grid; gap: var(--space-3); padding: 0; list-style: none; }
+.card { display: grid; gap: var(--space-3); padding: var(--space-5); background: var(--bg-surface); border: 1px solid var(--border-default); border-radius: var(--radius-lg); overflow-wrap: anywhere; }
+.unread { border-color: var(--brand-border); background: var(--brand-subtle); }
+.row { display: flex; align-items: center; gap: var(--space-3); flex-wrap: wrap; }
+.meta { color: var(--text-secondary); font-size: 13px; }

@@ -7,18 +7,35 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "dev:api": "vite --mode api",
+    "test": "tsx --test tests/*.test.ts",
+    "e2e:prism": "E2E_MODE=prism playwright test",
+    "e2e:checkout-ui": "playwright test --config playwright.checkout.config.ts",
+    "e2e:coupons-ui": "playwright test --config playwright.coupons.config.ts",
+    "e2e:refunds-ui": "playwright test --config playwright.refunds.config.ts",
+    "e2e:notifications-ui": "playwright test --config playwright.notifications.config.ts",
+    "e2e:kind": "playwright test",
+    "e2e:features": "E2E_MODE=features playwright test",
+    "local:kind": "node scripts/kind-local.mjs",
+    "local:frontend": "node scripts/local-frontend.mjs",
+    "local:down": "node scripts/kind-local.mjs down"
   },
   "dependencies": {
+    "hls.js": "^1.7.3",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
+    "@stoplight/prism-cli": "^5.16.0",
     "@types/node": "^24.13.3",
     "@types/react": "^19.2.18",
     "@types/react-dom": "^19.2.7",
     "@vitejs/plugin-react": "^6.1.1",
     "oxlint": "^1.81.0",
+    "tsx": "^4.23.15",
     "typescript": "~6.0.2",
     "vite": "^8.3.0"
   }

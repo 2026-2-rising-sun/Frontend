@@ -1,0 +1,24 @@
+.root { display: inline-flex; align-items: center; gap: 10px; cursor: pointer; }
+
+.input { position: absolute; opacity: 0; width: 20px; height: 20px; margin: 0; cursor: pointer; }
+
+.box {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 20px;
+  height: 20px;
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface);
+  color: transparent;
+}
+
+.input:checked + .box { background: var(--brand-default); border-color: var(--brand-default); color: var(--text-on-brand); }
+.input:focus-visible + .box { box-shadow: var(--focus-ring); }
+.input:disabled + .box { background: var(--disabled-bg); border-color: var(--border-default); }
+.input:disabled:checked + .box { background: var(--border-strong); color: var(--text-on-strong); }
+
+.label { font: 400 14px/22px var(--font-sans); color: var(--text-primary); }
+.input:disabled ~ .label { color: var(--text-disabled); }

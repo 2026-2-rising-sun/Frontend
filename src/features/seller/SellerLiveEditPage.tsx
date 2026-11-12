@@ -1,0 +1,319 @@
+import { ViewerCount } from '../live/ViewerCount'
+import { PromotionPanel } from './PromotionPanel'
+import { useState, type FormEvent } from 'react'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useApi } from '../../app/apiContext'
+import { AsyncView } from '../../components/AsyncView'
+import { ChevronDownIcon } from '../../components/icons'
+import { Alert, Button, ButtonLink, ImageUpload, Input, Textarea, Thumbnail, Select, Skeleton, StatusBadge, liveBadge, productBadge } from '../../components/ui'
+import { LIVE_TITLE_MAX } from '../../domain/constraints'
+import type { SellerLive } from '../../domain/types'
+import { useIdempotencyKey } from '../../hooks/useIdempotencyKey'
+import { useAsync } from '../../hooks/useAsync'
+import { usePaged } from '../../hooks/usePaged'
+import { formatPrice, fromKstInputValue, toKstInputValue } from '../../lib/format'
+import { ActionAlert } from './components/ActionAlert'
+import { SellerSection } from './components/SellerSection'
+import { useAction } from './useAction'
+import styles from './seller.module.css'
+
+/** 방송 등록(/seller/lives/new) 과 편집(/seller/lives/:id) 을 한 화면으로 처리한다. */
+export function SellerLiveEditPage() {
+  const { liveId } = useParams()
+  const api = useApi()
+  const location = useLocation()
+  const [flash, setFlash] = useState<string | null>((location.state as { notice?: string } | null)?.notice ?? null)
+  const live = useAsync(() => (liveId ? api.seller.lives.get(liveId) : Promise.resolve(null)), [api, liveId])
+
+  return (
+    <>
+      <div className={styles.pageHead}>
+        <Link to="/seller/lives" className={styles.back}>
+          ← 방송 목록
+        </Link>
+        <div className={styles.pageTitle}>
+          <h1 className="t-h1">{liveId ? '방송 편집' : '방송 등록'}</h1>
+          {live.data && <StatusBadge status={liveBadge(live.data.status)} label={live.data.status === 'READY' ? '준비 중' : undefined} />}
+        </div>
+      </div>
+      {flash && <Alert type="success" title={flash} />}
+      <AsyncView state={live} skeleton={<Skeleton height={320} radius={14} />}>
+        {(l) => <LiveEditor key={`${l?.id ?? 'new'}:${l?.status ?? ''}`} live={l} reload={live.reload} onDone={setFlash} />}
+      </AsyncView>
+    </>
+  )
+}
+
+interface EditorProps {
+  reload: () => void
+  onDone: (message: string | null) => void
+}
+
+function LiveEditor({ live, reload, onDone }: EditorProps & { live: SellerLive | null }) {
+  return (
+    <>
+      {live && live.status !== 'READY' && (
+        <Alert type="info" title={live.status === 'LIVE' ? '진행 중인 방송이에요' : '종료된 방송이에요'}>
+          {live.status === 'LIVE' ? '기본정보는 수정할 수 없고, 상품 연결과 노출 순서는 바꿀 수 있어요. 마지막 연결 상품은 해제할 수 없어요.' : '종료된 방송은 조회만 할 수 있어요.'}
+        </Alert>
+      )}
+      {live && <ViewerCount liveId={live.id} status={live.status} watching={false} />}
+      <BasicSection key={live?.version ?? 0} live={live} reload={reload} onDone={onDone} />
+      {live && <ProductsSection live={live} reload={reload} onDone={onDone} />}
+      {live && <PromotionPanel liveId={live.id} status={live.status} />}
+      {live && <ControlSection live={live} reload={reload} onDone={onDone} />}
+    </>
+  )
+}
+
+function BasicSection({ live, reload, onDone }: EditorProps & { live: SellerLive | null }) {
+  const api = useApi()
+  const navigate = useNavigate()
+  const { busy, error, run } = useAction()
+  const editable = !live || live.status === 'READY'
+  const [title, setTitle] = useState(live?.title ?? '')
+  const [hostName, setHostName] = useState(live?.hostName ?? '')
+  const [description, setDescription] = useState(live?.description ?? '')
+  const [thumbnail, setThumbnail] = useState<File | null>(null)
+  const [thumbnailId, setThumbnailId] = useState(live?.thumbnailId ?? '')
+  const [channelArn, setChannelArn] = useState(live?.channelArn ?? '')
+  const keyFor = useIdempotencyKey()
+  const [scheduled, setScheduled] = useState(live ? toKstInputValue(live.scheduledAt) : '')
+  const [playbackUrl, setPlaybackUrl] = useState(live?.playbackUrl ?? '')
+  const [attempted, setAttempted] = useState(false)
+
+  const errors = {
+    title: !title.trim() ? '방송 제목을 입력해 주세요.' : title.length > LIVE_TITLE_MAX ? `${LIVE_TITLE_MAX}자 이하로 입력해 주세요.` : '',
+    channelArn: !channelArn.trim() || channelArn.length > 255 ? 'IVS 채널 ARN을 255자 이하로 입력해 주세요.' : '',
+    scheduled: !scheduled ? '예정 시작 시각을 입력해 주세요.' : '',
+    playbackUrl: !playbackUrl.trim() ? '시청 연결 정보를 입력해 주세요.' : !/^https?:\/\//i.test(playbackUrl.trim()) ? 'http(s):// 로 시작하는 재생 주소를 입력해 주세요.' : '',
+  }
+  const show = (key: keyof typeof errors) => (attempted && errors[key] ? errors[key] : undefined)
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    setAttempted(true)
+    onDone(null)
+    if (Object.values(errors).some(Boolean)) return
+    const input = { title, channelArn, scheduledAt: fromKstInputValue(scheduled), playbackUrl, hostName, description, thumbnailId, thumbnail }
+    if (!live) {
+      let createdId = ''
+      const ok = await run('save', async () => {
+        createdId = (await api.seller.lives.create({ ...input, idempotencyKey: keyFor({ ...input, thumbnail: thumbnail ? [thumbnail.name, thumbnail.size, thumbnail.lastModified] : null }) })).id
+      })
+      // 상품 연결 없이도 준비 중 방송은 저장할 수 있다. 이어서 같은 방송에서 상품을 연결한다.
+      if (ok) navigate(`/seller/lives/${createdId}`, { replace: true, state: { notice: '방송을 등록했어요(준비 중). 이어서 상품을 연결해 주세요.' } })
+    } else if (await run('save', () => api.seller.lives.update(live.id, { ...input, version: live.version }))) {
+      onDone('방송 기본정보를 저장했어요.')
+      reload()
+    }
+  }
+
+  return (
+    <SellerSection title="기본정보" description="방송 제목·예정 시각·시청 연결 정보. 방송을 등록해도 영상 송출이 시작되는 것은 아니에요.">
+      <form className={styles.form} onSubmit={submit} noValidate>
+        <ActionAlert error={error} onReload={reload} />
+        <Input label="방송 제목" value={title} onChange={(e) => setTitle(e.target.value)} disabled={!editable} error={show('title')} placeholder="예: 가을 신상 이어폰 특가 라이브" />
+        <Input label="공개 진행자 이름" value={hostName} onChange={event => setHostName(event.target.value)} maxLength={80} disabled={!editable || busy !== null} helper="시청 화면에 공개할 이름을 입력해 주세요." />
+        <Textarea label="방송 소개" value={description} onChange={event => setDescription(event.target.value)} maxLength={2000} disabled={!editable || busy !== null} />
+        <ImageUpload label="방송 썸네일" file={thumbnail} onChange={setThumbnail} registered={!!thumbnailId} disabled={!editable || busy !== null} accept="image/png,image/jpeg" validateFile={file => !['image/png', 'image/jpeg'].includes(file.type) || file.size > 2 * 1024 * 1024 || file.size === 0 ? '2MB 이하 PNG·JPEG 이미지를 선택해 주세요.' : undefined} note="최대 2MB, 4096×4096 픽셀. 선택한 이미지는 저장할 때 업로드돼요." />
+        {live?.thumbnailUrl && thumbnailId && !thumbnail && <Thumbnail src={live.thumbnailUrl} alt="등록된 방송 썸네일" ratio="16 / 9" />}
+        {thumbnailId && editable && <Button type="button" variant="secondary" disabled={busy !== null} onClick={() => { setThumbnailId(''); setThumbnail(null) }}>등록된 썸네일 제거</Button>}
+        <Input label="AWS IVS 채널 ARN" value={channelArn} onChange={(e) => setChannelArn(e.target.value)} maxLength={255} disabled={!editable} error={show('channelArn')} />
+        <Input
+          label="예정 시작 시각"
+          type="datetime-local"
+          value={scheduled}
+          onChange={(e) => setScheduled(e.target.value)}
+          disabled={!editable}
+          error={show('scheduled')}
+          helper="한국 시간 기준이에요. 예정 시각이 되어도 자동으로 시작되지 않아요."
+        />
+        <Input
+          label="AWS IVS 시청 연결 정보"
+          value={playbackUrl}
+          onChange={(e) => setPlaybackUrl(e.target.value)}
+          disabled={!editable}
+          error={show('playbackUrl')}
+          placeholder="https://….playback.live-video.net/api/video/v1/….m3u8"
+          helper="IVS 채널의 재생(Playback) URL을 입력하세요. 스트림 키 같은 송출용 비밀 정보는 입력하지 않아요."
+        />
+        {editable && (
+          <div className={styles.actions}>
+            <Button type="submit" disabled={busy !== null}>
+              {busy === 'save' ? '저장 중…' : live ? '기본정보 저장' : '방송 등록'}
+            </Button>
+          </div>
+        )}
+      </form>
+    </SellerSection>
+  )
+}
+
+function ProductsSection({ live, reload, onDone }: EditorProps & { live: SellerLive }) {
+  const api = useApi()
+  const { busy, error, run } = useAction()
+  const canLink = live.status !== 'ENDED'
+  const canReorder = live.status !== 'ENDED'
+  const [selected, setSelected] = useState('')
+
+  const candidates = usePaged((page, cursor) => canLink ? api.products.list({ size: 50, page, cursor }) : Promise.resolve({ items: [], page: 0, size: 50, totalCount: 0, hasNext: false }), [api, canLink])
+  const options = candidates.items.filter((p) => !live.products.some((l) => l.id === p.id))
+
+  const finish = async (key: string, fn: () => Promise<unknown>, message: string) => {
+    onDone(null)
+    if (await run(key, fn)) {
+      onDone(message)
+      reload()
+    }
+  }
+
+  const move = (index: number, delta: -1 | 1) => {
+    const ids = live.products.map((p) => p.linkId!)
+    const [item] = ids.splice(index, 1)
+    ids.splice(index + delta, 0, item)
+    void finish('reorder', () => api.seller.lives.reorderProducts(live.id, ids, live.version), '노출 순서를 저장했어요.')
+  }
+
+  return (
+    <SellerSection
+      title="연결 상품"
+      description="방송에서 소개할 상품과 노출 순서. 판매 중·품절인 공개 상품만 연결할 수 있고, 연결해도 상품·재고는 복제되지 않아요."
+      aside={<span className={styles.hint}>{live.products.length}개</span>}
+    >
+      <div className={styles.form}>
+        <ActionAlert error={error} onReload={reload} />
+
+        {live.products.length === 0 ? (
+            <p className={styles.hint}>연결된 상품이 없어요. 상품 없이도 준비 중 방송으로 저장할 수 있지만, 방송을 시작하려면 판매 중 또는 품절 상품이 1개 이상 필요해요.</p>
+        ) : (
+          <div className={styles.notice}>
+            {live.products.map((p, i) => (
+              <div key={p.id} className={styles.linked}>
+                <span className={styles.linkedIndex}>{i + 1}</span>
+                <div className={styles.linkedText}>
+                  <span className={styles.rowName}>{p.name}</span>
+                  <span className={styles.rowMeta}>{formatPrice(p.price)}</span>
+                </div>
+                <StatusBadge status={productBadge(p.status)} />
+                {canReorder && (
+                  <>
+                    <button type="button" className={`${styles.iconBtn} ${styles.flip}`} aria-label={`${p.name} 위로`} disabled={busy !== null || i === 0} onClick={() => move(i, -1)}>
+                      <ChevronDownIcon size={16} />
+                    </button>
+                    <button type="button" className={styles.iconBtn} aria-label={`${p.name} 아래로`} disabled={busy !== null || i === live.products.length - 1} onClick={() => move(i, 1)}>
+                      <ChevronDownIcon size={16} />
+                    </button>
+                  </>
+                )}
+                {canLink && (
+                  <Button size="S" variant="secondary" disabled={busy !== null || (live.status === 'LIVE' && live.products.length === 1)} onClick={() => finish('unlink', () => api.seller.lives.unlinkProduct(live.id, p.linkId!, live.version), `'${p.name}' 연결을 해제했어요.`)}>
+                    해제
+                  </Button>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+
+        {canLink && (
+          <div className={styles.addRow}>
+            <Select
+              aria-label="연결할 상품"
+              value={selected}
+              onChange={setSelected}
+              options={[{ value: '', label: candidates.loading ? '불러오는 중…' : '연결할 상품 선택' }, ...options.map((p) => ({ value: p.id, label: `${p.name} (${productBadgeLabel(p.status)})` }))]}
+            />
+            <Button
+              variant="tonal"
+              disabled={busy !== null || !selected || live.products.length >= 100}
+              onClick={() => finish('link', () => api.seller.lives.linkProduct(live.id, selected, live.version), '상품을 연결했어요.').then(() => setSelected(''))}
+            >
+              상품 연결
+            </Button>
+          </div>
+        )}
+        {canLink && candidates.hasNext && <Button variant="secondary" disabled={candidates.loadingMore} onClick={candidates.loadMore}>{candidates.loadingMore ? '불러오는 중…' : '연결할 상품 더 불러오기'}</Button>}
+        {canLink && (candidates.error || candidates.moreError) && <Alert type="warning" title="연결 가능한 상품을 불러오지 못했어요"><Button variant="secondary" onClick={candidates.error ? candidates.reload : candidates.loadMore}>다시 조회</Button></Alert>}
+      </div>
+    </SellerSection>
+  )
+}
+
+const productBadgeLabel = (status: 'READY' | 'SELLING' | 'SOLD_OUT' | 'HIDDEN') => (status === 'SOLD_OUT' ? '품절' : '판매 중')
+
+function ControlSection({ live, reload, onDone }: EditorProps & { live: SellerLive }) {
+  const api = useApi()
+  const { busy, error, run } = useAction()
+  const [confirmEnd, setConfirmEnd] = useState(false)
+
+  const sellable = live.products.some((p) => p.status === 'SELLING' || p.status === 'SOLD_OUT')
+  const hasPlayback = !!live.playbackUrl
+
+  const act = async (key: 'start' | 'end') => {
+    onDone(null)
+    if (await run(key, () => (key === 'start' ? api.seller.lives.start(live.id, live.version) : api.seller.lives.end(live.id)))) {
+      onDone(key === 'start' ? '방송을 시작했어요. 이제 공개 방송 목록에서 진행 중으로 보여요.' : '방송을 종료했어요. 소개된 상품은 계속 구매할 수 있어요.')
+      reload()
+    }
+  }
+
+  return (
+    <SellerSection title="방송 진행">
+      <div className={styles.form}>
+        <ActionAlert error={error} onReload={reload} />
+
+        {live.status === 'READY' && (
+          <>
+            <ul className={styles.notice}>
+              <li className={styles.hint}>{hasPlayback ? '✓' : '✗'} 시청 연결 정보 입력</li>
+              <li className={styles.hint}>{sellable ? '✓' : '✗'} 판매 중 또는 품절 연결 상품 1개 이상</li>
+            </ul>
+            <div className={styles.actions}>
+              <Button disabled={busy !== null} onClick={() => act('start')}>
+                {busy === 'start' ? '시작하는 중…' : '방송 시작'}
+              </Button>
+            </div>
+            <p className={styles.hint}>서비스의 진행 상태만 바뀌며, 실제 영상 송출 시작·중단은 IVS 쪽에서 따로 확인해요.</p>
+          </>
+        )}
+
+        {live.status === 'LIVE' && (
+          <>
+            <div className={styles.actions}>
+              <ButtonLink to={`/lives/${live.id}`} variant="tonal">
+                시청 화면 열기
+              </ButtonLink>
+              {!confirmEnd && (
+                <Button variant="danger" disabled={busy !== null} onClick={() => setConfirmEnd(true)}>
+                  방송 종료
+                </Button>
+              )}
+            </div>
+            {confirmEnd && (
+              <Alert type="warning" title="방송을 종료할까요?">
+                종료하면 다시 시작할 수 없어요. 상품 판매·기존 주문에는 영향이 없어요.
+                <div className={styles.actions} style={{ marginTop: 8 }}>
+                  <Button variant="danger" size="S" disabled={busy !== null} onClick={() => act('end')}>
+                    {busy === 'end' ? '종료하는 중…' : '종료 확정'}
+                  </Button>
+                  <Button variant="secondary" size="S" disabled={busy !== null} onClick={() => setConfirmEnd(false)}>
+                    취소
+                  </Button>
+                </div>
+              </Alert>
+            )}
+          </>
+        )}
+
+        {live.status === 'ENDED' && (
+          <div className={styles.actions}>
+            <ButtonLink to={`/lives/${live.id}`} variant="tonal">
+              공개 화면에서 보기
+            </ButtonLink>
+          </div>
+        )}
+      </div>
+    </SellerSection>
+  )
+}

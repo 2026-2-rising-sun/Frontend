@@ -1,0 +1,100 @@
+import { execFileSync } from 'node:child_process'
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs'
+import { resolve } from 'node:path'
+import { generateKeyPairSync, randomBytes, randomUUID } from 'node:crypto'
+import { servicePorts } from './services.ts'
+const root = resolve(import.meta.dirname, '..')
+const backend = resolve(process.env.BACKEND_DIR ?? root + '/../Backend')
+const namespace = process.env.KIND_NAMESPACE ?? 'shoppinglive-service-split-local'
+const context = process.env.KIND_CONTEXT ?? 'kind-shoppinglive-dev'
+if (!context.startsWith('kind-')) throw new Error('kind 컨텍스트가 필요합니다')
+const run = (name, args, options = {}) => execFileSync(name, args, { encoding: 'utf8', ...options })
+const k = args => ['--context', context, '-n', namespace, ...args]
+const work = root + '/test-artifacts/kind'; mkdirSync(work, { recursive: true })
+const services = Object.keys(servicePorts)
+const kafkaEnabled = process.env.KIND_KAFKA !== 'false'
+if (!kafkaEnabled) throw new Error('Catalog 사본과 Payment 결과 반영에는 Kafka가 필요합니다. KIND_KAFKA=false는 지원하지 않습니다.')
+const labels = { 'app.kubernetes.io/managed-by': 'shoppinglive-frontend-local' }
+const meta = name => ({ name, namespace, labels })
+const apply = objects => run('kubectl', k(['apply', '-f', '-']), { input: JSON.stringify({ apiVersion: 'v1', kind: 'List', items: objects }) })
+if (process.argv[2] === 'down') {
+  const record = JSON.parse(run('kubectl', ['--context', context, 'get', 'namespace', namespace, '-o', 'json']))
+  if (record.metadata.labels['app.kubernetes.io/managed-by'] !== labels['app.kubernetes.io/managed-by']) throw new Error('네임스페이스 소유자가 일치하지 않습니다')
+  console.log(run('kubectl', ['--context', context, 'delete', 'namespace', namespace])); process.exit(0)
+}
+const sha = run('git', ['rev-parse', 'HEAD'], { cwd: backend }).trim()
+if (run('git', ['status', '--porcelain', '--untracked-files=no'], { cwd: backend }).trim()) throw new Error('통합 이미지를 빌드하기 전에 백엔드 추적 파일의 변경을 커밋해야 합니다')
+console.log('기존 백엔드 커밋으로 빌드: ' + sha)
+run(resolve(backend, 'gradlew'), ['--no-daemon', '--max-workers=2', ...services.map(s => `:services:${s}-service:bootJar`)], { cwd: backend, stdio: 'inherit' })
+try {
+  const current = JSON.parse(run('kubectl', ['--context', context, 'get', 'namespace', namespace, '-o', 'json'], { stdio: ['ignore', 'pipe', 'ignore'] }))
+  if (current.metadata.labels['app.kubernetes.io/managed-by'] !== labels['app.kubernetes.io/managed-by']) throw new Error('네임스페이스 소유자가 일치하지 않습니다')
+} catch (e) { if (e.message === '네임스페이스 소유자가 일치하지 않습니다') throw e }
+console.log(apply([{ apiVersion: 'v1', kind: 'Namespace', metadata: { name: namespace, labels } }]))
+let config
+const credentialsFile = work + '/credentials.json'
+if (existsSync(credentialsFile)) config = JSON.parse(readFileSync(credentialsFile, 'utf8'))
+else {
+  const { privateKey, publicKey } = generateKeyPairSync('rsa', { modulusLength: 2048 }); const kid = 'frontend-local-' + randomUUID()
+  config = { kid, password: randomBytes(24).toString('base64url'), private: privateKey.export({ type: 'pkcs8', format: 'pem' }), public: JSON.stringify({ keys: [{ ...publicKey.export({ format: 'jwk' }), kid, alg: 'RS256', use: 'sig' }] }), env: {} }
+}
+for (const pair of ['CATALOG_MEMBER', 'COMMERCECORE_MEMBER', 'PAYMENT_MEMBER', 'LIVE_MEMBER', 'LIVE_COMMERCECORE', 'CATALOG_COMMERCECORE', 'COMMERCECORE_PAYMENT', 'PAYMENT_COMMERCECORE', 'NOTIFICATION_MEMBER']) config.env[pair + '_SERVICE_TOKEN'] ??= randomBytes(32).toString('base64url')
+writeFileSync(credentialsFile, JSON.stringify(config), { mode: 0o600 })
+const deployment = (name, image, env = [], volumes = [], mounts = [], probes = false) => ({ apiVersion: 'apps/v1', kind: 'Deployment', metadata: meta(name), spec: { replicas: 1, strategy: { type: 'Recreate' }, selector: { matchLabels: { app: name } }, template: { metadata: { labels: { app: name, ...labels } }, spec: { volumes, containers: [{ name, image, imagePullPolicy: 'IfNotPresent', env, ports: [{ containerPort: 8080 }, { containerPort: 9090 }], volumeMounts: mounts, ...(probes ? { resources: { requests: { memory: '160Mi', cpu: '50m' }, limits: { memory: '640Mi' } }, startupProbe: { httpGet: { path: '/actuator/health/readiness', port: 9090 }, failureThreshold: 90, periodSeconds: 2 }, readinessProbe: { httpGet: { path: '/actuator/health/readiness', port: 9090 }, periodSeconds: 3 } } : {}) }] } } } })
+const service = (name, port, targetPort = port) => ({ apiVersion: 'v1', kind: 'Service', metadata: meta(name), spec: { selector: { app: name }, ports: [{ port, targetPort }] } })
+const env = record => Object.entries(record).map(([name, value]) => ({ name, value: String(value) }))
+// Kafka는 이 네임스페이스에 격리하며 기존 클러스터와 토픽을 재사용하지 않는다.
+const kafkaDeployment = () => ({
+  apiVersion: 'apps/v1', kind: 'Deployment', metadata: meta('kafka'),
+  spec: { replicas: 1, strategy: { type: 'Recreate' }, selector: { matchLabels: { app: 'kafka' } }, template: {
+    metadata: { labels: { app: 'kafka', ...labels } },
+    spec: { securityContext: { fsGroup: 1000 }, volumes: [{ name: 'data', emptyDir: {} }], containers: [{
+      name: 'kafka', image: 'apache/kafka:4.0.0', imagePullPolicy: 'IfNotPresent',
+      env: env({
+        KAFKA_HEAP_OPTS: '-Xms256m -Xmx256m', KAFKA_NODE_ID: 1, KAFKA_PROCESS_ROLES: 'broker,controller',
+        KAFKA_CONTROLLER_QUORUM_VOTERS: '1@localhost:9093', KAFKA_LISTENERS: 'PLAINTEXT://:9092,CONTROLLER://:9093',
+        KAFKA_ADVERTISED_LISTENERS: 'PLAINTEXT://kafka:9092', KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: 'CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT',
+        KAFKA_CONTROLLER_LISTENER_NAMES: 'CONTROLLER', KAFKA_INTER_BROKER_LISTENER_NAME: 'PLAINTEXT',
+        KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1, KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1,
+        KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1, KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0,
+        KAFKA_AUTO_CREATE_TOPICS_ENABLE: true, KAFKA_LOG_DIRS: '/var/lib/kafka/data',
+      }),
+      ports: [{ containerPort: 9092 }], volumeMounts: [{ name: 'data', mountPath: '/var/lib/kafka/data' }],
+      resources: { requests: { memory: '384Mi', cpu: '100m' }, limits: { memory: '768Mi' } },
+      startupProbe: { tcpSocket: { port: 9092 }, failureThreshold: 60, periodSeconds: 2 },
+      readinessProbe: { tcpSocket: { port: 9092 }, periodSeconds: 3 },
+    }] },
+  } },
+})
+const initSql = services.map(s => `CREATE DATABASE ${s};`).join('\n')
+console.log(apply([
+  { apiVersion: 'v1', kind: 'Secret', metadata: meta('auth'), stringData: { 'private.pem': config.private, 'public.jwks': config.public, ...config.env, POSTGRES_PASSWORD: config.password } },
+  { apiVersion: 'v1', kind: 'ConfigMap', metadata: meta('db-init'), data: { 'init.sql': initSql } },
+  deployment('postgres', 'postgres:16-alpine', [...env({ POSTGRES_USER: 'frontend', POSTGRES_DB: 'postgres' }), { name: 'POSTGRES_PASSWORD', valueFrom: { secretKeyRef: { name: 'auth', key: 'POSTGRES_PASSWORD' } } }], [{ name: 'init', configMap: { name: 'db-init' } }, { name: 'data', emptyDir: {} }], [{ name: 'init', mountPath: '/docker-entrypoint-initdb.d' }, { name: 'data', mountPath: '/var/lib/postgresql/data' }]), service('postgres', 5432),
+  deployment('redis', 'redis:7-alpine'), service('redis', 6379),
+  ...(kafkaEnabled ? [kafkaDeployment(), service('kafka', 9092)] : [])
+]))
+// 초기화 SQL은 기존 PostgreSQL에 다시 적용되지 않으므로 없는 DB만 추가한다.
+console.log(run('kubectl', k(['rollout', 'status', 'deployment/postgres', '--timeout=180s'])))
+run('kubectl', k(['exec', 'deployment/postgres', '--', 'sh', '-c', 'for i in $(seq 1 60); do pg_isready -h 127.0.0.1 -U frontend -d postgres && exit 0; sleep 1; done; exit 1']))
+const missingDatabasesSql = `SELECT format('CREATE DATABASE %I', name) FROM (VALUES ${services.map(s => `('${s}')`).join(', ')}) AS required(name) WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = required.name)
+\\gexec
+`
+run('kubectl', k(['exec', '-i', 'deployment/postgres', '--', 'sh', '-c', 'PGPASSWORD="$POSTGRES_PASSWORD" exec psql -h 127.0.0.1 -U frontend -d postgres -v ON_ERROR_STOP=1']), { input: missingDatabasesSql })
+for (const s of services) {
+  const jars = readdirSync(backend + `/services/${s}-service/build/libs`).filter(n => n.endsWith('.jar') && !n.endsWith('-plain.jar'))
+  if (jars.length !== 1) throw new Error('실행용 JAR 파일이 하나여야 하는 서비스: ' + s)
+  const dir = work + '/' + s; mkdirSync(dir, { recursive: true })
+  writeFileSync(dir + '/app.jar', readFileSync(backend + `/services/${s}-service/build/libs/` + jars[0]))
+  writeFileSync(dir + '/Dockerfile', 'FROM eclipse-temurin:21-jdk\nCOPY app.jar /app.jar\nENTRYPOINT ["java","-jar","/app.jar"]\n')
+  const image = `shoppinglive-frontend-local/${s}:${sha.slice(0, 12)}`
+  run('docker', ['build', '-t', image, dir], { stdio: 'inherit' })
+  run('kind', ['load', 'docker-image', image, '--name', context.slice(5)], { stdio: 'inherit' })
+  const values = { JAVA_TOOL_OPTIONS: '-Xmx128m -XX:MaxMetaspaceSize=192m -XX:ReservedCodeCacheSize=48m -XX:MaxDirectMemorySize=32m -XX:ActiveProcessorCount=2 -Xss512k', SERVER_TOMCAT_THREADS_MAX: 24, SERVER_TOMCAT_THREADS_MIN_SPARE: 2, SPRING_DATASOURCE_HIKARI_MAXIMUM_POOL_SIZE: 5, SPRING_PROFILES_ACTIVE: 'local', SERVER_PORT: 8080, MANAGEMENT_SERVER_PORT: 9090, SPRING_DATASOURCE_URL: `jdbc:postgresql://postgres:5432/${s}`, SPRING_DATASOURCE_USERNAME: 'frontend', MEMBER_LOCAL_TEST_ACCOUNTS_ENABLED: true, MEMBER_JWT_PUBLIC_KEY_SET_LOCATION: 'file:/run/auth/public.jwks', MEMBER_JWT_PRIVATE_KEY_LOCATION: 'file:/run/auth/private.pem', MEMBER_JWT_KEY_ID: config.kid, MEMBER_ACCESS_TOKEN_TTL: 'PT15M', MEMBER_REFRESH_TOKEN_TTL: 'P30D', MEMBER_SESSION_BASE_URL: 'http://member:8080', CATALOG_SALES_CLIENT_BASE_URL: 'http://commercecore:8080', COMMERCECORE_PAYMENT_BASE_URL: 'http://payment:8080', LIVE_PRODUCTS_MODE: 'http', LIVE_PRODUCTS_COMMERCECORE_URL: 'http://commercecore:8080', LIVE_IVS_MODE: 'stub', LIVE_IVS_STUB_READY: true, COMMERCECORE_IMAGE_DIR: '/tmp/images', COMMERCECORE_IMAGE_PUBLIC_BASE_URL: '/api/commercecore', SPRING_DATA_REDIS_HOST: 'redis', SPRING_DATA_REDIS_PORT: 6379, SPRING_KAFKA_BOOTSTRAP_SERVERS: kafkaEnabled ? 'kafka:9092' : '127.0.0.1:1', SPRING_KAFKA_ADMIN_AUTO_CREATE: kafkaEnabled, SPRING_KAFKA_LISTENER_AUTO_STARTUP: kafkaEnabled }
+  const secretEnv = Object.keys(config.env).concat('POSTGRES_PASSWORD').map(name => ({ name: name === 'POSTGRES_PASSWORD' ? 'SPRING_DATASOURCE_PASSWORD' : name, valueFrom: { secretKeyRef: { name: 'auth', key: name } } }))
+  console.log(apply([deployment(s, image, [...env(values), ...secretEnv], [{ name: 'auth', secret: { secretName: 'auth' } }, { name: 'images', emptyDir: {} }], [{ name: 'auth', mountPath: '/run/auth', readOnly: true }, { name: 'images', mountPath: '/tmp/images' }], true), service(s, 8080)]))
+}
+if (kafkaEnabled) console.log(run('kubectl', k(['rollout', 'status', 'deployment/kafka', '--timeout=180s'])))
+for (const s of services) console.log(run('kubectl', k(['rollout', 'status', 'deployment/' + s, '--timeout=180s'])))
+writeFileSync(work + '/state.json', JSON.stringify({ context, namespace, backendSha: sha, services, kafkaEnabled, createdAt: new Date().toISOString() }, null, 2))
+console.log('준비 완료. npm run local:frontend를 실행하면 서비스 포트 전달과 프런트엔드를 http://localhost:5174에서 유지합니다.')

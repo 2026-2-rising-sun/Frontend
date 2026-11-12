@@ -1,0 +1,26 @@
+.root {
+  display: flex;
+  gap: var(--space-1);
+  padding: var(--space-1);
+  background: var(--bg-muted);
+  border-radius: var(--radius-md);
+}
+
+.item {
+  flex: 1;
+  min-height: 36px;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font: 400 14px/20px var(--font-sans);
+  cursor: pointer;
+}
+
+.selected { background: var(--bg-surface); color: var(--text-primary); font-weight: 500; box-shadow: var(--shadow-sm); }
+
+@media (min-width: 768px) {
+  .root { display: inline-flex; }
+  .item { flex: none; min-width: 84px; }
+}

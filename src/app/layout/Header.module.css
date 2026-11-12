@@ -1,0 +1,52 @@
+.header { position: sticky; top: 0; z-index: 100; background: var(--bg-surface); }
+
+/* 맨 위 계정 메뉴: 작은 글씨, 오른쪽 정렬, 항목 사이 세로 구분선 */
+.utility { background: var(--bg-surface); }
+.utilityInner { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; width: 100%; max-width: calc(var(--container-max) + 2 * var(--space-6)); min-height: 32px; margin: 0 auto; padding: 0 var(--space-4); }
+.utilityLink { display: inline-flex; align-items: center; padding: 0 var(--space-3); border: 0; background: none; color: var(--text-secondary); font: 400 12px/18px var(--font-sans); cursor: pointer; }
+.utilityLink + .utilityLink, .utilityBadge + .utilityLink, .utilityLink + .utilityBadge { border-left: 1px solid var(--border-default); }
+.utilityLink:hover { color: var(--text-primary); }
+.utilityBadge { display: inline-flex; align-items: center; padding: 0 var(--space-3); }
+/* 알림 링크도 다른 계정 메뉴와 같은 작은 글씨로 맞춘다 */
+.utilityBadge > a { color: var(--text-secondary); font: 400 12px/18px var(--font-sans); }
+.utilityBadge > a:hover { color: var(--text-primary); }
+.utilityBadge > a > span { font: 500 10px/14px var(--font-sans); }
+
+/* 로고·검색 줄 */
+.inner { display: flex; align-items: center; gap: var(--space-4); width: 100%; max-width: calc(var(--container-max) + 2 * var(--space-6)); min-height: 64px; margin: 0 auto; padding: var(--space-2) var(--space-4); }
+.logo { flex-shrink: 0; color: var(--text-primary); font: italic 800 24px/1 var(--font-logo); letter-spacing: 0.01em; white-space: nowrap; }
+.search { display: none; min-width: 0; }
+
+/* 카테고리·랭킹·방송 줄 */
+.navigation { border-top: 1px solid var(--border-default); border-bottom: 2px solid var(--text-primary); }
+.nav { display: flex; align-items: stretch; gap: var(--space-5); width: 100%; max-width: calc(var(--container-max) + 2 * var(--space-6)); margin: 0 auto; padding: 0 var(--space-4); }
+.links { display: flex; flex: 1; gap: var(--space-5); min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.links::-webkit-scrollbar { display: none; }
+.link { display: inline-flex; align-items: center; flex-shrink: 0; min-height: 44px; color: var(--text-primary); font: 700 15px/22px var(--font-sans); }
+.link:hover { color: var(--text-brand); }
+.active { color: var(--text-brand); }
+
+.category { position: relative; display: flex; }
+.categoryButton { display: inline-flex; align-items: center; gap: var(--space-3); min-height: 44px; padding: 0 var(--space-4) 0 0; border: 0; background: none; color: var(--text-primary); font: 700 15px/22px var(--font-sans); cursor: pointer; }
+.burger { display: inline-flex; flex-direction: column; justify-content: space-between; width: 18px; height: 14px; }
+.burger > span { display: block; height: 2px; border-radius: 1px; background: currentColor; }
+.categoryPanel { position: absolute; top: 100%; left: 0; z-index: 10; display: flex; flex-direction: column; min-width: 200px; margin: 2px 0 0; padding: var(--space-3) 0; list-style: none; background: var(--color-neutral-500); box-shadow: var(--shadow-md, 0 8px 24px rgb(0 0 0 / 0.12)); }
+.categoryPanel a { display: block; padding: var(--space-2) var(--space-6); color: var(--color-neutral-0); font: 500 15px/22px var(--font-sans); }
+.categoryPanel a:hover { background: rgb(255 255 255 / 0.12); }
+
+@media (min-width: 768px) {
+  .utilityInner { padding: 0 var(--space-6); }
+  .inner { display: grid; grid-template-columns: 1fr minmax(240px, 440px) 1fr; gap: var(--space-6); min-height: 88px; padding: var(--space-3) var(--space-6); }
+  .logo { font-size: 36px; }
+  .search { display: flex; width: 100%; height: 48px; background: var(--bg-surface); border: 1.5px solid var(--text-primary); }
+  .nav { gap: var(--space-12); padding: 0 var(--space-6); }
+  .links { gap: var(--space-12); }
+  .link, .categoryButton { min-height: 52px; font-size: 17px; }
+  .categoryButton { min-width: 224px; padding: 0 var(--space-6); border-left: 1px solid var(--border-default); border-right: 1px solid var(--border-default); }
+  .categoryOpen { background: var(--color-neutral-500); color: var(--color-neutral-0); }
+  .categoryPanel { min-width: 100%; margin-top: 0; }
+}
+@media (max-width: 374px) {
+  .utilityLink, .utilityBadge { padding: 0 var(--space-2); }
+  .logo { font-size: 20px; }
+}
