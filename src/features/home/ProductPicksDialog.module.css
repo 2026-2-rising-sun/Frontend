@@ -7,7 +7,8 @@
 .body { overflow-y: auto; padding: var(--space-6) var(--space-5); }
 .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6) var(--space-4); margin: 0; padding: 0; list-style: none; }
 .item { position: relative; min-width: 0; }
-.tag { position: absolute; top: var(--space-2); left: var(--space-2); z-index: 1; padding: 2px var(--space-2); border-radius: var(--radius-full); background: var(--brand-default); color: var(--text-on-brand); font: 700 11px/16px var(--font-sans); }
+.tag { position: absolute; top: var(--space-2); left: var(--space-2); z-index: 1; min-width: 24px; padding: 2px var(--space-2); border-radius: var(--radius-full); background: var(--color-neutral-700); color: var(--color-neutral-0); font: 700 11px/16px var(--font-sans); text-align: center; }
+.strong { background: var(--brand-default); color: var(--text-on-brand); }
 
 @media (min-width: 768px) {
   .head { margin: 0 var(--space-8); padding-top: var(--space-6); }

@@ -1,11 +1,12 @@
 import { useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
 import { Button, Skeleton } from '../../components/ui'
 import type { Product } from '../../domain/types'
 import { useAsync, type AsyncState } from '../../hooks/useAsync'
 import { ProductCard } from '../shopping/components/ProductCard'
-import { RecentRelatedDialog } from './RecentRelatedDialog'
+import { loadRecentAndRelated } from '../shopping/recentProducts'
+import { loadRanking } from '../shopping/rankingProducts'
+import { ProductPicksDialog } from './ProductPicksDialog'
 import styles from './HomePicks.module.css'
 
 const PER_PAGE = 2
@@ -28,12 +29,21 @@ export function HomePicks() {
   }, [api])
   const recommended = useAsync(async () => (await api.products.list({ status: 'SELLING', sort: 'LATEST', size: PER_PAGE * MAX_PAGES })).items, [api])
 
-  const [showRecent, setShowRecent] = useState(false)
+  const [dialog, setDialog] = useState<'trending' | 'recommended' | null>(null)
+  const more = (target: 'trending' | 'recommended') => <button type="button" className={styles.more} aria-haspopup="dialog" onClick={() => setDialog(target)}>더보기 <span aria-hidden="true">›</span></button>
 
   return <div className={styles.picks}>
-    <PickColumn id="trending" title="요즘 주목 받는 상품" more={<Link to="/ranking" className={styles.more}>더보기 <span aria-hidden="true">›</span></Link>} state={trending} emptyMessage="방송에서 소개 중인 상품이 아직 없어요." />
-    <PickColumn id="recommended" title="나를 위한 추천 상품" more={<button type="button" className={styles.more} aria-haspopup="dialog" onClick={() => setShowRecent(true)}>더보기 <span aria-hidden="true">›</span></button>} state={recommended} emptyMessage="추천할 상품이 아직 없어요." />
-    {showRecent && <RecentRelatedDialog onClose={() => setShowRecent(false)} />}
+    <PickColumn id="trending" title="요즘 주목 받는 상품" more={more('trending')} state={trending} emptyMessage="방송에서 소개 중인 상품이 아직 없어요." />
+    <PickColumn id="recommended" title="나를 위한 추천 상품" more={more('recommended')} state={recommended} emptyMessage="추천할 상품이 아직 없어요." />
+    {dialog === 'trending' && <ProductPicksDialog title="요즘 주목 받는 상품" onClose={() => setDialog(null)}
+      emptyTitle="순위에 올릴 상품이 아직 없어요" emptyMessage="판매 상품이 등록되면 이곳에 보여드려요."
+      load={async () => (await loadRanking(api)).map((product, index) => ({ product, tag: String(index + 1), strong: index < 3 }))} />}
+    {dialog === 'recommended' && <ProductPicksDialog title="최근 본 상품과 연관 추천 상품" onClose={() => setDialog(null)}
+      emptyTitle="보여드릴 상품이 아직 없어요" emptyMessage="상품을 둘러보면 비슷한 상품을 추천해 드려요."
+      load={async () => {
+        const { recent, related } = await loadRecentAndRelated(api)
+        return [...recent.map(product => ({ product, tag: '최근 본', strong: true })), ...related.map(product => ({ product }))]
+      }} />}
   </div>
 }
 
