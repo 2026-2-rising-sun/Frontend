@@ -39,3 +39,4 @@ export const PlayIcon = (p: IconProps) => <Icon {...p}><polygon points="6 4 20 1
 export const ShoppingIcon = (p: IconProps) => <Icon {...p}><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 0 1-8 0" /></Icon>
 export const VideoIcon = (p: IconProps) => <Icon {...p}><rect x="2" y="6" width="14" height="12" rx="2" /><path d="M22 8l-6 4 6 4V8z" /></Icon>
 export const ReceiptIcon = (p: IconProps) => <Icon {...p}><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 3 2V2l-3 2-3-2-3 2-3-2-3 2z" /><path d="M8 8h8M8 12h8" /></Icon>
+export const RankingIcon = (p: IconProps) => <Icon {...p}><path d="M6 20V12M12 20V4M18 20v-8" /></Icon>

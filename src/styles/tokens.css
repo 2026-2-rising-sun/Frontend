@@ -175,7 +175,9 @@
 
   /* ── 배치 ─────────────────────────────────── */
   --font-sans: 'Noto Sans KR', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* 로고 전용: 굵은 기울임 산세리프 */
+  --font-logo: 'Montserrat', 'Noto Sans KR', system-ui, sans-serif;
   --container-max: 1200px;
-  --header-height: 110px; /* 상단 64px + 탐색 44px + 경계선 2px */
+  --header-height: 176px; /* 계정 메뉴 32px + 로고·검색 88px + 탐색 52px + 경계선 3px */
   --bottom-nav-height: 0px; /* 모바일에서 base.css 가 덮어쓴다 */
 }

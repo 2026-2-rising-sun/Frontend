@@ -1,11 +1,12 @@
 import { NavLink } from 'react-router-dom'
-import { ReceiptIcon, ShoppingIcon, VideoIcon } from '../../components/icons'
+import { RankingIcon, ShoppingIcon, UserIcon, VideoIcon } from '../../components/icons'
 import styles from './BottomNav.module.css'
 
 const ITEMS = [
-  { to: '/', label: '쇼핑', end: true, Icon: ShoppingIcon },
+  { to: '/', label: '홈', end: true, Icon: ShoppingIcon },
+  { to: '/ranking', label: '랭킹', end: false, Icon: RankingIcon },
   { to: '/lives', label: '방송', end: false, Icon: VideoIcon },
-  { to: '/orders/lookup', label: '내 주문', end: false, Icon: ReceiptIcon },
+  { to: '/account', label: '마이페이지', end: false, Icon: UserIcon },
 ] as const
 
 /** 모바일(<768px) 전용 하단 탭. 데스크톱은 Header 내비게이션을 사용한다. */
