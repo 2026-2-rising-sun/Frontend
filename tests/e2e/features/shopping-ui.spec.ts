@@ -1,4 +1,4 @@
-import { expect, test, type Page } from '@playwright/test'
+import { expect, test, type Locator, type Page } from '@playwright/test'
 
 const products = [
   { productId: 1, name: '무선 헤드폰', description: '헤드폰 상품 설명\n두 번째 줄', price: 129000, available: 24, salesStatus: 'ON_SALE', mainImageUrl: '/fixtures/product-1.svg' },
@@ -39,7 +39,7 @@ async function setup(page: Page, options: { liveFailure?: boolean; linkedFailure
     }
     if (path.endsWith('/catalog/v1/products')) {
       const cursor = url.searchParams.get('cursor'); cursors.push(cursor); productRequests.push(url)
-      let items = products.filter(p => p.name.includes(url.searchParams.get('q') ?? '') && (!url.searchParams.has('status') || p.salesStatus === url.searchParams.get('status')))
+      let items = products.filter(p => `${p.name} ${p.description}`.includes(url.searchParams.get('q') ?? '') && (!url.searchParams.has('status') || p.salesStatus === url.searchParams.get('status')))
       const sort = url.searchParams.get('sort')
       if (sort === 'PRICE_ASC' || sort === 'PRICE_DESC') items = items.toSorted((a, b) => sort === 'PRICE_ASC' ? a.price - b.price : b.price - a.price)
       return json({ items: cursor ? items.slice(2) : items.slice(0, 2), nextCursor: !cursor && items.length > 2 ? 2 : null, hasNext: !cursor && items.length > 2 })
@@ -60,6 +60,12 @@ async function setup(page: Page, options: { liveFailure?: boolean; linkedFailure
   })
   return { cart, claims, restocks, cursors, productRequests, liveRequests, recoverLinked: () => { failLinked = false }, failCart: () => { failCart = true } }
 }
+/** 메인 칸 */
+/** 픽스처 방송(10월 17, 18일)이 이번 주에 들도록 고정하는 시각. 한국 시간 2026-10-17(토) 12:00 */
+const FIXTURE_NOW = new Date('2026-10-17T12:00:00+09:00')
+const exclusive = (page: Page) => page.getByRole('region', { name: '오직 베리온에서만', exact: true })
+const productLinks = (section: Locator) => section.locator('a[href^="/products/"]')
+const ranking = (page: Page) => page.getByRole('region', { name: /^오늘 \d+시 기준 판매 인기$/ })
 async function login(page: Page) {
   await page.goto('/login')
   await page.getByLabel('아이디 또는 이메일').fill('user@test.dev')
@@ -68,34 +74,38 @@ async function login(page: Page) {
   await expect(page.getByRole('heading', { name: '내 계정', exact: true })).toBeVisible()
 }
 
-test('홈은 실제 연결 상품 사진을 사용하고 검색·커서 추가 조회·정렬을 유지한다', async ({ page }) => {
+test('홈은 실제 연결 상품 사진을 사용하고 검색 결과는 커서 추가 조회·정렬을 유지한다', async ({ page }) => {
   const api = await setup(page)
   await page.goto('/')
   await expect(page.getByRole('region', { name: '진행 중인 방송' }).getByAltText('오늘의 라이브')).toHaveAttribute('src', '/fixtures/product-3.svg')
+  await expect(page.locator('#products')).toHaveCount(0)
+  const search = page.getByRole('searchbox', { name: '상품 검색' })
+  await search.fill('상품'); await search.press('Enter')
   const section = page.locator('#products')
-  await expect(section.getByRole('link')).toHaveCount(2)
-  await page.getByRole('searchbox', { name: '상품 검색' }).fill('스피커')
-  await page.getByRole('searchbox', { name: '상품 검색' }).press('Enter')
-  await expect(section.getByRole('link', { name: /포터블 스피커/ })).toBeVisible()
-  expect(api.productRequests.at(-1)?.searchParams.get('q')).toBe('스피커')
-  await page.getByRole('button', { name: '전체 상품 보기', exact: true }).click()
-  await expect(section.getByRole('link')).toHaveCount(2)
+  await expect(productLinks(section)).toHaveCount(2)
   await page.getByRole('button', { name: '더 보기', exact: true }).click()
-  await expect(section.getByRole('link')).toHaveCount(3)
+  await expect(productLinks(section)).toHaveCount(3)
   expect(api.cursors).toContain('2')
   await page.getByRole('combobox', { name: '정렬 기준' }).selectOption('PRICE_ASC')
-  await expect(section.getByRole('link').first()).toContainText('데일리 텀블러')
+  await expect(productLinks(section).first()).toContainText('데일리 텀블러')
   await page.getByRole('group', { name: '판매 상태' }).getByRole('button', { name: '판매 중', exact: true }).click()
-  await expect(section.getByRole('link')).toHaveCount(2)
-  expect(await page.getByRole('heading', { name: '추천 라이브', exact: true }).evaluate(el => el.getBoundingClientRect().top)).toBeLessThan(await section.evaluate(el => el.getBoundingClientRect().top))
+  await expect(productLinks(section)).toHaveCount(2)
+  await search.fill('스피커'); await search.press('Enter')
+  await expect.poll(() => api.productRequests.at(-1)?.searchParams.get('q')).toBe('스피커')
+  await expect(productLinks(section)).toHaveCount(1)
+  await expect(section.getByRole('link', { name: /포터블 스피커/ })).toBeVisible()
+  await page.getByRole('link', { name: '홈으로', exact: true }).click()
+  await expect(section).toHaveCount(0)
+  await expect(exclusive(page)).toBeVisible()
 })
 
-test('방송 조회 장애는 상품 탐색을 막지 않는다', async ({ page }) => {
+test('방송 조회 장애는 기획전 배너와 상품 칸을 막지 않는다', async ({ page }) => {
   await setup(page, { liveFailure: true })
   await page.goto('/')
-  await expect(page.locator('#products').getByRole('link')).toHaveCount(2)
+  await expect(productLinks(ranking(page))).toHaveCount(2)
   await expect(page.getByRole('region', { name: '진행 중인 방송' })).not.toBeVisible()
-  await expect(page.getByRole('button', { name: '다시 시도', exact: true })).toBeVisible()
+  await expect(page.getByRole('region', { name: /^기획전:/ }).first()).toBeVisible()
+  await expect(exclusive(page).getByRole('button', { name: '방송 다시 조회', exact: true })).toBeVisible()
 })
 
 test('방송 상품 사진이 없어도 라이브 진입과 모바일 목록을 유지한다', async ({ page }) => {
@@ -103,7 +113,7 @@ test('방송 상품 사진이 없어도 라이브 진입과 모바일 목록을 
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto('/')
   await expect(page.getByRole('link', { name: '라이브 보러가기 →' })).toHaveAttribute('href', '/lives/11')
-  await expect(page.locator('#products').getByRole('link')).toHaveCount(2)
+  await expect(productLinks(ranking(page))).toHaveCount(2)
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
 })
 
@@ -166,49 +176,62 @@ test('다른 상품으로 이동하는 동안 이전 상품의 구매 버튼을 
 })
 
 
-test('방송별 상품은 실제 연결을 따라 바뀌고 추천과 상품 상세로 각각 이동한다', async ({ page }) => {
+test('오직 베리온에서만은 일주일 날짜 칸과 고른 날의 예정 방송을, 판매 인기는 정시 기준 순위를 보여준다', async ({ page }) => {
+  await page.clock.setFixedTime(FIXTURE_NOW)
   const api = await setup(page)
   await page.goto('/')
-  const section = page.getByRole('region', { name: '방송별 소개 상품', exact: true })
-  await expect(section.getByRole('link', { name: /포터블 스피커/ })).toHaveAttribute('href', '/products/3')
-  await expect(section.getByRole('link', { name: /무선 헤드폰/ })).toHaveCount(0)
-  await section.getByRole('button', { name: '다음 라이브', exact: true }).click()
-  await expect(section.getByRole('link', { name: /무선 헤드폰/ })).toHaveAttribute('href', '/products/1')
-  await expect(section.getByRole('link', { name: /포터블 스피커/ })).toHaveCount(0)
-  await expect(section.getByRole('link', { name: '다음 라이브 →', exact: true })).toHaveAttribute('href', '/lives/12')
-  const recommendations = page.getByRole('region', { name: '추천 라이브', exact: true })
-  await expect(recommendations.getByRole('link', { name: /오늘의 라이브/ })).toHaveAttribute('href', '/lives/11')
-  await expect(recommendations.getByRole('link', { name: /다음 라이브/ })).toHaveAttribute('href', '/lives/12')
-  expect([...new Set(api.liveRequests.map(url => url.searchParams.get('status')))].sort()).toEqual(['LIVE', 'PREPARING'])
+  const lives = exclusive(page)
+  const days = lives.getByRole('group', { name: '방송 날짜' })
+  await expect(days.getByRole('button')).toHaveCount(7)
+  await expect(days.getByRole('button', { name: '오늘 17일 방송 없음' })).toBeDisabled()
+  await expect(days.getByRole('button', { name: '내일 18일 방송 1개' })).toHaveAttribute('aria-pressed', 'true')
+  const list = lives.getByRole('list', { name: '내일 18일 방송' })
+  await expect(list.getByRole('link', { name: /10\. 18\(일\) 오후 8:00.*다음 라이브/ })).toHaveAttribute('href', '/lives/12')
+  await expect(list.getByRole('link', { name: /오늘의 라이브/ })).toHaveCount(0)
+  // 대표 상품 129,000원에 5,000원 쿠폰
+  const product = list.getByRole('link', { name: /무선 헤드폰/ })
+  await expect(product).toHaveAttribute('href', '/products/1')
+  await expect(product).toContainText('4%124,000원')
+  await expect(list.getByRole('button', { name: '알림받기' })).toBeDisabled()
+  expect(api.liveRequests.some(url => url.searchParams.get('status') === 'PREPARING' && url.searchParams.get('size') === '50')).toBe(true)
+  const top = ranking(page)
+  await expect(top.getByLabel('1위', { exact: true })).toBeVisible()
+  const info = top.getByRole('button', { name: '판매 인기 기준 안내' })
+  await info.hover()
+  await expect(top.getByRole('tooltip')).toHaveText('라이브 진행 중인 상품의 구매자수와 구매 금액이 높은 기준으로 시간마다 업데이트됩니다.')
+  await top.getByRole('tooltip').hover()
+  await expect(top.getByRole('tooltip')).toBeVisible()
+  await top.getByRole('button', { name: '안내 닫기' }).click()
+  await expect(top.getByRole('tooltip')).toHaveCount(0)
+  await expect(page.getByRole('region', { name: '방송별 소개 상품', exact: true })).toHaveCount(0)
+  await expect(page.getByRole('region', { name: '추천 라이브', exact: true })).toHaveCount(0)
 })
 
 test('진행 중인 방송이 없어도 예정 방송의 배너·추천·연결 상품을 보여준다', async ({ page }) => {
+  await page.clock.setFixedTime(FIXTURE_NOW)
   await setup(page, { upcomingOnly: true })
   await page.goto('/')
   const hero = page.getByRole('region', { name: '추천 예정 방송', exact: true })
   await expect(hero).toContainText('방송 예정')
   await expect(hero.getByRole('link', { name: '방송 미리보기 →' })).toHaveAttribute('href', '/lives/12')
   await expect(page.getByRole('region', { name: '진행 중인 방송', exact: true })).toHaveCount(0)
-  await expect(page.getByRole('region', { name: '방송별 소개 상품', exact: true }).getByRole('link', { name: /무선 헤드폰/ })).toBeVisible()
+  await expect(exclusive(page).getByRole('link', { name: /다음 라이브/ })).toBeVisible()
 })
 
-test('일부 방송 조회가 실패해도 정상 방송을 유지하고 소개 상품 실패는 재조회한다', async ({ page }) => {
-  const api = await setup(page, { readyFailure: true, linkedFailure: true })
+test('예정 방송 조회가 실패해도 진행 중 배너를 유지하고 예정 칸은 재조회한다', async ({ page }) => {
+  await setup(page, { readyFailure: true, linkedFailure: true })
   await page.goto('/')
-  await expect(page.getByText('일부 방송을 확인하지 못했어요', { exact: true })).toBeVisible()
   await expect(page.getByRole('region', { name: '진행 중인 방송' })).toBeVisible()
-  await expect(page.getByText('이 방송의 상품을 불러오지 못했어요', { exact: true })).toBeVisible()
-  await expect(page.locator('#products').getByRole('link')).toHaveCount(2)
-  api.recoverLinked()
-  await page.getByRole('button', { name: '상품 다시 조회', exact: true }).click()
-  await expect(page.getByRole('region', { name: '방송별 소개 상품', exact: true }).getByRole('link', { name: /포터블 스피커/ })).toBeVisible()
+  await expect(exclusive(page).getByText('예정된 방송을 불러오지 못했어요.', { exact: true })).toBeVisible()
+  await expect(exclusive(page).getByRole('button', { name: '방송 다시 조회', exact: true })).toBeVisible()
+  await expect(productLinks(ranking(page))).toHaveCount(2)
 })
 
 test('방송이 없으면 빈 상태를 표시하고 두 줄 헤더는 검색·메뉴·모바일 폭을 유지한다', async ({ page }) => {
   await setup(page, { emptyLives: true })
   await page.goto('/')
-  await expect(page.getByRole('region', { name: '방송 안내' })).toBeVisible()
-  await expect(page.locator('#products').getByRole('link')).toHaveCount(2)
+  await expect(exclusive(page).getByText('이번 주에 예정된 방송이 아직 없어요.', { exact: true })).toBeVisible()
+  await expect(productLinks(ranking(page))).toHaveCount(2)
   await page.setViewportSize({ width: 1440, height: 1000 })
   const header = page.getByRole('banner')
   const search = header.getByRole('searchbox', { name: '상품 검색' })
@@ -227,10 +250,9 @@ test('방송이 없으면 빈 상태를 표시하고 두 줄 헤더는 검색·�
 test('한 방송 목록이 실패하고 다른 목록이 비어도 방송이 없다고 단정하지 않는다', async ({ page }) => {
   await setup(page, { emptyLives: true, readyFailure: true })
   await page.goto('/')
-  await expect(page.getByText('일부 방송을 확인하지 못했어요', { exact: true })).toBeVisible()
-  await expect(page.getByRole('button', { name: '방송 다시 조회', exact: true })).toBeVisible()
-  await expect(page.getByRole('region', { name: '방송 안내' })).toHaveCount(0)
-  await expect(page.locator('#products').getByRole('link')).toHaveCount(2)
+  await expect(exclusive(page).getByRole('button', { name: '방송 다시 조회', exact: true })).toBeVisible()
+  await expect(exclusive(page).getByText('이번 주에 예정된 방송이 아직 없어요.', { exact: true })).toHaveCount(0)
+  await expect(productLinks(ranking(page))).toHaveCount(2)
 })
 
 test('두 줄 헤더가 상품 설명 바로가기의 제목을 가리지 않는다', async ({ page }) => {
