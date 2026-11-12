@@ -1,0 +1,14 @@
+.schedule { display: flex; flex-direction: column; gap: var(--space-10); }
+.day { display: flex; flex-direction: column; gap: var(--space-4); }
+.dayTitle { padding-bottom: var(--space-2); border-bottom: 1px solid var(--border-default); font: 700 18px/26px var(--font-sans); }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-5); margin: 0; padding: 0; list-style: none; }
+.item { position: relative; min-width: 0; }
+.rank { position: absolute; top: 0; right: 0; z-index: 1; display: flex; align-items: center; justify-content: center; min-width: 32px; height: 32px; padding: 0 var(--space-2); border-top-right-radius: var(--radius-lg); background: var(--color-neutral-700); color: var(--color-neutral-0); font: 700 15px/1 var(--font-sans); }
+.top { background: var(--text-brand); }
+
+@media (min-width: 768px) {
+  .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-6); }
+}
+@media (min-width: 1024px) {
+  .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
