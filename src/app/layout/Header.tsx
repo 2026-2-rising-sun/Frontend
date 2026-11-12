@@ -13,9 +13,10 @@ const NAV = [
   { to: '/ranking', label: '랭킹' },
   { to: '/sale', label: '세일' },
   { to: '/cart', label: '장바구니' },
+  { to: '/account', label: '마이페이지' },
 ] as const
 
-/** 맨 위는 작은 계정 메뉴, 가운데는 로고와 검색, 아래는 카테고리, 오특, 라이브, 랭킹, 세일, 장바구니 메뉴로 구성한다. */
+/** 맨 위는 로그인 상태 메뉴(로그인, 회원가입 또는 로그아웃, 알림), 가운데는 로고와 검색, 아래는 탐색 메뉴로 구성한다. */
 export function Header() {
   const session = useSession()
   const { auth } = useApi()
@@ -27,13 +28,13 @@ export function Header() {
     <header className={styles.header}>
       <div className={styles.utility}>
         <nav className={styles.utilityInner} aria-label="계정 메뉴">
-          {session ? <button type="button" className={styles.utilityLink} onClick={() => { void logout().catch(() => {}) }}>로그아웃</button>
-            : <><Link to="/login" className={styles.utilityLink}>로그인</Link><Link to="/signup" className={styles.utilityLink}>회원가입</Link></>}
-          <Link to="/account" className={styles.utilityLink}>마이페이지</Link>
-          <Link to="/cart" className={styles.utilityLink}>장바구니</Link>
-          <Link to="/orders/lookup" className={styles.utilityLink}>주문배송</Link>
-          {session && <span className={styles.utilityBadge}><NotificationBadge /></span>}
-          {session?.role === 'SELLER' && <Link to="/seller/products" className={styles.utilityLink}>판매자 콘솔</Link>}
+          {session ? <>
+            <button type="button" className={styles.utilityLink} onClick={() => { void logout().catch(() => {}) }}>로그아웃</button>
+            <span className={styles.utilityBadge}><NotificationBadge /></span>
+          </> : <>
+            <Link to="/login" className={styles.utilityLink}>로그인</Link>
+            <Link to="/signup" className={styles.utilityLink}>회원가입</Link>
+          </>}
         </nav>
       </div>
       <div className={styles.inner}>
@@ -43,11 +44,14 @@ export function Header() {
       <div className={styles.navigation}>
         <nav className={styles.nav} aria-label="주요 메뉴">
           <CategoryMenu />
-          {NAV.map(item => (
-            <NavLink key={item.to} to={item.to} className={({ isActive }) => [styles.link, isActive && styles.active].filter(Boolean).join(' ')}>
-              {item.label}
-            </NavLink>
-          ))}
+          {/* 좁은 화면에서는 카테고리 버튼을 고정하고 나머지 메뉴만 가로로 밀어 본다. */}
+          <div className={styles.links}>
+            {NAV.map(item => (
+              <NavLink key={item.to} to={item.to} className={({ isActive }) => [styles.link, isActive && styles.active].filter(Boolean).join(' ')}>
+                {item.label}
+              </NavLink>
+            ))}
+          </div>
         </nav>
       </div>
     </header>

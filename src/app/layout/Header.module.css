@@ -7,6 +7,10 @@
 .utilityLink + .utilityLink, .utilityBadge + .utilityLink, .utilityLink + .utilityBadge { border-left: 1px solid var(--border-default); }
 .utilityLink:hover { color: var(--text-primary); }
 .utilityBadge { display: inline-flex; align-items: center; padding: 0 var(--space-3); }
+/* 알림 링크도 다른 계정 메뉴와 같은 작은 글씨로 맞춘다 */
+.utilityBadge > a { color: var(--text-secondary); font: 400 12px/18px var(--font-sans); }
+.utilityBadge > a:hover { color: var(--text-primary); }
+.utilityBadge > a > span { font: 500 10px/14px var(--font-sans); }
 
 /* 로고·검색 줄 */
 .inner { display: flex; align-items: center; gap: var(--space-4); width: 100%; max-width: calc(var(--container-max) + 2 * var(--space-6)); min-height: 64px; margin: 0 auto; padding: var(--space-2) var(--space-4); }
@@ -16,6 +20,8 @@
 /* 카테고리·랭킹·방송 줄 */
 .navigation { border-top: 1px solid var(--border-default); border-bottom: 2px solid var(--text-primary); }
 .nav { display: flex; align-items: stretch; gap: var(--space-5); width: 100%; max-width: calc(var(--container-max) + 2 * var(--space-6)); margin: 0 auto; padding: 0 var(--space-4); }
+.links { display: flex; flex: 1; gap: var(--space-5); min-width: 0; overflow-x: auto; scrollbar-width: none; }
+.links::-webkit-scrollbar { display: none; }
 .link { display: inline-flex; align-items: center; flex-shrink: 0; min-height: 44px; color: var(--text-primary); font: 700 15px/22px var(--font-sans); }
 .link:hover { color: var(--text-brand); }
 .active { color: var(--text-brand); }
@@ -34,6 +40,7 @@
   .logo { font-size: 36px; }
   .search { display: flex; width: 100%; height: 48px; background: var(--bg-surface); border: 1.5px solid var(--text-primary); }
   .nav { gap: var(--space-12); padding: 0 var(--space-6); }
+  .links { gap: var(--space-12); }
   .link, .categoryButton { min-height: 52px; font-size: 17px; }
   .categoryButton { min-width: 224px; padding: 0 var(--space-6); border-left: 1px solid var(--border-default); border-right: 1px solid var(--border-default); }
   .categoryOpen { background: var(--color-neutral-500); color: var(--color-neutral-0); }
