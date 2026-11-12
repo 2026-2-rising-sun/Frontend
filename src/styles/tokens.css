@@ -6,23 +6,23 @@
  */
 :root {
   /* ── 기본값 ─────────────────────────────── */
-  /* Primary · Light Green (주 색상 · CTA·선택) */
-  --color-primary-50: #f2fdec;
-  --color-primary-100: #e0f9d1;
-  --color-primary-200: #c8f4b0;
-  --color-primary-300: #b0ef92;
-  --color-primary-400: #a0ec7f;
-  --color-primary-500: #8de969;
-  --color-primary-600: #5fc63b;
-  --color-primary-700: #2e6b1b;
-  --color-primary-900: #1b3d10;
+  /* Primary · Berry Purple (주 색상 · CTA·선택). 500 위 흰 글씨 대비 7.5:1 */
+  --color-primary-50: #f7effa;
+  --color-primary-100: #eeddf4;
+  --color-primary-200: #dcb9e8;
+  --color-primary-300: #c38dd7;
+  --color-primary-400: #a35ec0;
+  --color-primary-500: #7e2fa0;
+  --color-primary-600: #66217f;
+  --color-primary-700: #4e1862;
+  --color-primary-900: #2d0d39;
 
-  /* Secondary · Lemon Lime (주 색상 · 하이라이트) */
-  --color-secondary-50: #fafde6;
-  --color-secondary-100: #f2fac0;
-  --color-secondary-500: #cbef43;
-  --color-secondary-600: #a9cc1f;
-  --color-secondary-700: #6c7f10;
+  /* Secondary · Raspberry (주 색상 · 하이라이트). 500 위 흰 글씨 대비 5.7:1 */
+  --color-secondary-50: #fdeef4;
+  --color-secondary-100: #fad4e3;
+  --color-secondary-500: #c2255c;
+  --color-secondary-600: #a31d4d;
+  --color-secondary-700: #8e1544;
 
   /* Neutral · Graphite (글씨·보더·배경) */
   --color-neutral-0: #ffffff;
@@ -37,16 +37,16 @@
   --color-neutral-800: #2f282c;
   --color-neutral-900: #1e191c;
 
-  /* Emphasis · Muted Teal (강조: 탭·가격·링크·포커스) */
-  --color-emphasis-50: #f1f8f4;
-  --color-emphasis-100: #e0eee7;
-  --color-emphasis-200: #c6dfd2;
-  --color-emphasis-300: #a9cdbb;
-  --color-emphasis-400: #8fbaa4;
-  --color-emphasis-500: #72a98f;
-  --color-emphasis-600: #558b71;
-  --color-emphasis-700: #416f58;
-  --color-emphasis-900: #24463a;
+  /* Emphasis · Deep Berry (강조: 탭·가격·링크·포커스). 700 글씨는 흰 배경 대비 10.9:1 */
+  --color-emphasis-50: #f6f0fa;
+  --color-emphasis-100: #ebddf4;
+  --color-emphasis-200: #d7bfe6;
+  --color-emphasis-300: #bc94d3;
+  --color-emphasis-400: #a270c2;
+  --color-emphasis-500: #8b4fb0;
+  --color-emphasis-600: #6e3591;
+  --color-emphasis-700: #57276f;
+  --color-emphasis-900: #321440;
 
   /* Info · Blue Slate (안내·영상 배경) */
   --color-info-50: #eef2f5;
@@ -85,8 +85,8 @@
   --disabled-bg: var(--color-neutral-100);
 
   --brand-default: var(--color-primary-500);
-  --brand-hover: var(--color-primary-400);
-  --brand-pressed: var(--color-primary-600);
+  --brand-hover: var(--color-primary-600); /* 진한 보라 버튼은 눌렀을 때처럼 더 진하게 */
+  --brand-pressed: var(--color-primary-700);
   --brand-subtle: var(--color-primary-50);
   --brand-subtle-strong: var(--color-primary-100);
   --brand-border: var(--color-primary-200);
@@ -108,7 +108,8 @@
   --text-secondary: var(--color-neutral-600);
   --text-tertiary: var(--color-neutral-400);
   --text-disabled: var(--color-neutral-300);
-  --text-on-brand: var(--color-neutral-900); /* 연두 위에서는 어두운 글씨 */
+  --text-on-brand: var(--color-neutral-0); /* 보라 위에서는 흰 글씨 */
+  --text-on-secondary: var(--color-neutral-0); /* 라즈베리 위에서는 흰 글씨 */
   --text-on-strong: var(--color-neutral-0); /* 진한 배경(LIVE·위험) 위의 흰 글씨 */
   --text-brand: var(--emphasis-text);
 

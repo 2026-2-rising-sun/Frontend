@@ -15,5 +15,6 @@
 .selected:hover {
   background: var(--secondary-default);
   border-color: var(--secondary-default);
+  color: var(--text-on-secondary);
   font-weight: 500;
 }
