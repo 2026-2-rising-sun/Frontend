@@ -114,7 +114,7 @@ test('kind: direct order, pending cancellation and member ownership', async ({ p
   const response = await request.post('/api/commercecore/v1/orders', { headers: { ...headers, 'X-Idempotency-Key': randomUUID() }, data: { productId: Number(f.productId), quantity: 1, buyerName: '유저', buyerPhone: '01012345678', expectedTotalAmount: 10000 } }); expect(response.ok()).toBeTruthy()
   const pending = await response.json()
   const unauthorized = await request.get(`/api/commercecore/v1/orders/${pending.orderNumber}`, { headers: f.headers }); expect(unauthorized.status()).toBe(404)
-  await login(page); await page.getByRole('link', { name: '주문배송', exact: true }).first().click()
+  await login(page); await page.getByRole('region', { name: '나의 쇼핑' }).getByRole('link', { name: /내 주문/ }).click()
   await page.getByRole('link', { name: f.name, exact: true }).click()
   await page.getByRole('link', { name: '통합 결제 확인', exact: true }).click()
   await page.getByRole('button', { name: '전체 주문 취소', exact: true }).click(); await expect(page.getByText('주문이 취소되었어요', { exact: true })).toBeVisible()
