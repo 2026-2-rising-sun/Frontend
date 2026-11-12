@@ -26,6 +26,6 @@ test('Prism: public Live DTO and reads render without login', async ({ page, req
 test('Prism: member order history and logout', async ({ page }) => {
   await page.goto('/login'); await page.getByLabel('아이디 또는 이메일').fill('user'); await page.getByLabel('비밀번호', { exact: true }).fill('user')
   await page.getByRole('button', { name: '로그인', exact: true }).click(); await expect(page.getByRole('heading', { name: '내 계정' })).toBeVisible()
-  await page.getByRole('link', { name: '내 주문', exact: true }).first().click(); await expect(page.getByRole('heading', { name: '내 주문', exact: true })).toBeVisible()
-  await page.getByRole('button', { name: '로그아웃', exact: true }).click(); await expect(page.getByRole('heading', { name: '로그인', exact: true })).toBeVisible()
+  await page.getByRole('link', { name: '주문배송', exact: true }).first().click(); await expect(page.getByRole('heading', { name: '내 주문', exact: true })).toBeVisible()
+  await page.getByRole('banner').getByRole('button', { name: '로그아웃', exact: true }).click(); await expect(page.getByRole('heading', { name: '로그인', exact: true })).toBeVisible()
 })

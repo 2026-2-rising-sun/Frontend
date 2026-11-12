@@ -60,7 +60,7 @@ test('kind: member cart update, selected-item order, payment polling and own his
   const { productId, name } = await fixture(request)
   const other = await fixture(request)
   expect((await request.post('/api/commercecore/v1/cart/items', { headers: await bearer(request, 'user'), data: { productId: Number(other.productId), quantity: 1 } })).ok()).toBeTruthy()
-  await login(page); await page.getByRole('link', { name: '쇼핑', exact: true }).click()
+  await login(page); await page.getByRole('link', { name: 'BERRY ON 홈', exact: true }).click()
   await page.getByRole('link', { name: new RegExp(name) }).first().click()
   await page.getByRole('button', { name: '장바구니 담기', exact: true }).click(); await expect(page.getByText('장바구니에 담았어요.', { exact: true })).toBeVisible()
   await page.getByRole('link', { name: '장바구니', exact: true }).click()
@@ -114,7 +114,7 @@ test('kind: direct order, pending cancellation and member ownership', async ({ p
   const response = await request.post('/api/commercecore/v1/orders', { headers: { ...headers, 'X-Idempotency-Key': randomUUID() }, data: { productId: Number(f.productId), quantity: 1, buyerName: '유저', buyerPhone: '01012345678', expectedTotalAmount: 10000 } }); expect(response.ok()).toBeTruthy()
   const pending = await response.json()
   const unauthorized = await request.get(`/api/commercecore/v1/orders/${pending.orderNumber}`, { headers: f.headers }); expect(unauthorized.status()).toBe(404)
-  await login(page); await page.getByRole('link', { name: '내 주문', exact: true }).first().click()
+  await login(page); await page.getByRole('link', { name: '주문배송', exact: true }).first().click()
   await page.getByRole('link', { name: f.name, exact: true }).click()
   await page.getByRole('link', { name: '통합 결제 확인', exact: true }).click()
   await page.getByRole('button', { name: '전체 주문 취소', exact: true }).click(); await expect(page.getByText('주문이 취소되었어요', { exact: true })).toBeVisible()
@@ -211,7 +211,7 @@ test('kind: USER cannot enter seller console; seller can revoke their own sessio
 
 test('kind: cart removal deletes only the selected member item', async ({ page, request }) => {
   const f = await fixture(request)
-  await login(page); await page.getByRole('link', { name: '쇼핑', exact: true }).click()
+  await login(page); await page.getByRole('link', { name: 'BERRY ON 홈', exact: true }).click()
   await page.getByRole('link', { name: new RegExp(f.name) }).first().click()
   await page.getByRole('button', { name: '장바구니 담기', exact: true }).click(); await expect(page.getByText('장바구니에 담았어요.', { exact: true })).toBeVisible()
   await page.getByRole('link', { name: '장바구니', exact: true }).click()
