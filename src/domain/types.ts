@@ -22,7 +22,23 @@ export interface Product {
   status: ProductStatus
   /** 이 상품을 소개한 방송 (있는 경우) */
   featuredLive?: { id: string; title: string } | null
+  /** 1단계 상품 분류. null 은 미분류. */
+  category?: ProductCategory | null
 }
+
+/** Catalog 공개 목록의 1단계 상품 분류 (catalog-service.yaml ProductCategory) */
+export type ProductCategory = 'FASHION' | 'BEAUTY' | 'FOOD' | 'LIVING' | 'DIGITAL' | 'KIDS' | 'ETC'
+export const PRODUCT_CATEGORIES: { value: ProductCategory; label: string }[] = [
+  { value: 'BEAUTY', label: '뷰티' },
+  { value: 'FASHION', label: '패션' },
+  { value: 'FOOD', label: '식품' },
+  { value: 'LIVING', label: '리빙' },
+  { value: 'DIGITAL', label: '디지털' },
+  { value: 'KIDS', label: '키즈' },
+  { value: 'ETC', label: '기타' },
+]
+export const isProductCategory = (value: string | null | undefined): value is ProductCategory =>
+  PRODUCT_CATEGORIES.some(category => category.value === value)
 
 export type ProductSort = 'LATEST' | 'PRICE_ASC' | 'PRICE_DESC'
 export type ProductStatusFilter = 'ALL' | 'SELLING' | 'SOLD_OUT'
@@ -48,6 +64,8 @@ export interface ProductListParams extends PageParams {
   sort?: ProductSort
   /** 상품명 검색어 */
   query?: string
+  /** 생략하면 미분류를 포함한 전체 */
+  category?: ProductCategory
 }
 
 /** 방송 상태. READY = 준비 중(예정), LIVE = 진행 중, ENDED = 종료 */
