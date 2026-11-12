@@ -27,6 +27,8 @@ import { HomePage } from '../features/home/HomePage'
 import { LiveListPage } from '../features/live/LiveListPage'
 import { LiveWatchPage } from '../features/live/LiveWatchPage'
 import { ProductDetailPage } from '../features/shopping/ProductDetailPage'
+import { CategoryPage } from '../features/shopping/CategoryPage'
+import { RankingPage } from '../features/shopping/RankingPage'
 import { ApiContext } from './apiContext'
 import { AppLayout } from './layout/AppLayout'
 import { NotFoundPage } from './NotFoundPage'
@@ -58,6 +60,8 @@ function App({ api }: AppProps) {
             <Route path="notifications/subscriptions" element={<RequireSession><AlertSubscriptionsPage /></RequireSession>} />
             <Route path="notifications" element={<RequireSession><NotificationsPage /></RequireSession>} />
             <Route path="products/:productId" element={<ProductDetailPage />} />
+            <Route path="categories/:category" element={<CategoryPage />} />
+            <Route path="ranking" element={<RankingPage />} />
             <Route path="lives" element={<LiveListPage />} />
             <Route path="lives/:liveId" element={<LiveWatchPage />} />
             <Route path="coupons" element={<RequireSession><CouponsPage /></RequireSession>} />
