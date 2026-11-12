@@ -1,0 +1,43 @@
+/* 일주일 날짜 칸 */
+.days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--space-1); }
+.day { justify-self: center; width: min(100%, 88px); display: flex; flex-direction: column; align-items: center; gap: var(--space-1); padding: var(--space-2) 0; border: 0; border-radius: var(--radius-lg); background: none; color: var(--text-primary); cursor: pointer; }
+.day:hover:not(:disabled):not([aria-pressed="true"]) { background: var(--bg-page); }
+.day[aria-pressed="true"] { background: var(--bg-inverse); color: var(--color-neutral-0); }
+.day:disabled { color: var(--text-disabled); cursor: default; }
+.dayLabel { font: 500 13px/18px var(--font-sans); color: var(--text-tertiary); }
+.day[aria-pressed="true"] .dayLabel { color: inherit; }
+.day:disabled .dayLabel { color: inherit; }
+.dayDate { font: 700 20px/26px var(--font-sans); }
+
+/* 고른 날의 방송 */
+.list { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-5); margin: 0; padding: 0; list-style: none; }
+.item { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: var(--space-4); min-width: 0; }
+.poster { display: block; min-width: 0; border-radius: var(--radius-md); overflow: hidden; }
+.placeholder { display: flex; align-items: center; justify-content: center; aspect-ratio: 2 / 3; background: var(--brand-subtle); color: var(--text-brand); }
+.body { display: flex; flex-direction: column; align-items: flex-start; min-width: 0; }
+.headline { display: flex; flex-direction: column; gap: var(--space-1); width: 100%; padding-bottom: var(--space-3); border-bottom: 1px solid var(--border-default); }
+.headline:hover .liveTitle { text-decoration: underline; }
+.time { color: var(--text-primary); font: 700 17px/24px var(--font-sans); }
+.liveTitle { margin-top: var(--space-1); color: var(--text-primary); font: 400 15px/22px var(--font-sans); overflow-wrap: anywhere; }
+.host { color: var(--text-brand); font: 400 14px/20px var(--font-sans); }
+.product { display: flex; align-items: center; gap: var(--space-3); width: 100%; padding-top: var(--space-3); }
+.productThumb { flex: none; width: 56px; border-radius: var(--radius-sm); }
+.productText { display: flex; flex-direction: column; min-width: 0; }
+.productName { overflow: hidden; color: var(--text-primary); font: 400 14px/20px var(--font-sans); text-overflow: ellipsis; white-space: nowrap; }
+.price { display: flex; gap: var(--space-2); color: var(--text-primary); font: 700 17px/24px var(--font-sans); }
+.percent { color: var(--danger-default); font-style: normal; }
+.alarm { display: inline-flex; align-items: center; gap: var(--space-1); margin-top: var(--space-4); min-height: 40px; padding: 0 var(--space-5); border: 1px solid var(--text-primary); border-radius: var(--radius-full); background: var(--bg-surface); color: var(--text-primary); font: 600 15px/22px var(--font-sans); }
+.alarm:disabled { opacity: 0.45; cursor: not-allowed; }
+.soon { margin-top: var(--space-1); color: var(--text-tertiary); font: 400 12px/18px var(--font-sans); }
+
+@media (min-width: 768px) {
+  .days { gap: var(--space-3); }
+  .dayDate { font-size: 24px; line-height: 30px; }
+  .item { grid-template-columns: 180px minmax(0, 1fr); gap: var(--space-5); }
+  .time { font-size: 20px; line-height: 28px; }
+  .liveTitle { font-size: 17px; line-height: 26px; }
+  .productThumb { width: 64px; }
+}
+@media (min-width: 1024px) {
+  .list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8) var(--space-10); }
+}
