@@ -8,11 +8,14 @@ import { useApi } from '../apiContext'
 import styles from './Header.module.css'
 
 const NAV = [
+  { to: '/today', label: '오특' },
+  { to: '/lives', label: '라이브' },
   { to: '/ranking', label: '랭킹' },
-  { to: '/lives', label: '방송' },
+  { to: '/sale', label: '세일' },
+  { to: '/cart', label: '장바구니' },
 ] as const
 
-/** 맨 위는 작은 계정 메뉴, 가운데는 로고·검색, 아래는 카테고리·랭킹·방송 탐색 메뉴로 구성한다. */
+/** 맨 위는 작은 계정 메뉴, 가운데는 로고와 검색, 아래는 카테고리, 오특, 라이브, 랭킹, 세일, 장바구니 메뉴로 구성한다. */
 export function Header() {
   const session = useSession()
   const { auth } = useApi()

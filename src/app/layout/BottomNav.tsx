@@ -4,8 +4,9 @@ import styles from './BottomNav.module.css'
 
 const ITEMS = [
   { to: '/', label: '홈', end: true, Icon: ShoppingIcon },
+  { to: '/today', label: '오특', end: false, Icon: VideoIcon },
+  { to: '/lives', label: '라이브', end: false, Icon: VideoIcon },
   { to: '/ranking', label: '랭킹', end: false, Icon: RankingIcon },
-  { to: '/lives', label: '방송', end: false, Icon: VideoIcon },
   { to: '/account', label: '마이페이지', end: false, Icon: UserIcon },
 ] as const
 

@@ -29,6 +29,7 @@ import { LiveWatchPage } from '../features/live/LiveWatchPage'
 import { ProductDetailPage } from '../features/shopping/ProductDetailPage'
 import { CategoryPage } from '../features/shopping/CategoryPage'
 import { RankingPage } from '../features/shopping/RankingPage'
+import { SalePage } from '../features/shopping/SalePage'
 import { ApiContext } from './apiContext'
 import { AppLayout } from './layout/AppLayout'
 import { NotFoundPage } from './NotFoundPage'
@@ -62,6 +63,8 @@ function App({ api }: AppProps) {
             <Route path="products/:productId" element={<ProductDetailPage />} />
             <Route path="categories/:category" element={<CategoryPage />} />
             <Route path="ranking" element={<RankingPage />} />
+            <Route path="sale" element={<SalePage />} />
+            <Route path="today" element={<LiveListPage todayOnly />} />
             <Route path="lives" element={<LiveListPage />} />
             <Route path="lives/:liveId" element={<LiveWatchPage />} />
             <Route path="coupons" element={<RequireSession><CouponsPage /></RequireSession>} />
