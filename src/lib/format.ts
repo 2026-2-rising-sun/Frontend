@@ -51,3 +51,11 @@ export const toKstInputValue = (iso: string) => {
 
 /** <input type="datetime-local"> 값(한국 시간으로 입력) → ISO 8601. 값이 비었으면 빈 문자열. */
 export const fromKstInputValue = (value: string) => (value ? new Date(`${value}:00+09:00`).toISOString() : '')
+
+const scheduleFormatter = new Intl.DateTimeFormat('ko-KR', { timeZone: KST, month: 'numeric', day: 'numeric', weekday: 'short', hour: 'numeric', minute: '2-digit', hour12: true })
+
+/** 한국 시간 기준 방송 편성 시각. 예: 11. 15(일) 오후 7:00 */
+export const formatScheduleTime = (iso: string) => {
+  const p = Object.fromEntries(scheduleFormatter.formatToParts(new Date(iso)).map((x) => [x.type, x.value]))
+  return `${p.month}. ${p.day}(${p.weekday}) ${p.dayPeriod} ${p.hour}:${p.minute}`
+}
