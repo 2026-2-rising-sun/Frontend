@@ -176,7 +176,7 @@ test('다른 상품으로 이동하는 동안 이전 상품의 구매 버튼을 
 })
 
 
-test('오직 베리온에서만은 일주일 날짜 칸과 고른 날의 예정 방송을, 판매 인기는 정시 기준 순위를 보여준다', async ({ page }) => {
+test('오직 베리온에서만은 일주일 날짜 칸과 일주일치 예정 방송을, 판매 인기는 정시 기준 순위를 보여준다', async ({ page }) => {
   await page.clock.setFixedTime(FIXTURE_NOW)
   const api = await setup(page)
   await page.goto('/')
@@ -184,8 +184,15 @@ test('오직 베리온에서만은 일주일 날짜 칸과 고른 날의 예정 
   const days = lives.getByRole('group', { name: '방송 날짜' })
   await expect(days.getByRole('button')).toHaveCount(7)
   await expect(days.getByRole('button', { name: '오늘 17일 방송 없음' })).toBeDisabled()
-  await expect(days.getByRole('button', { name: '내일 18일 방송 1개' })).toHaveAttribute('aria-pressed', 'true')
-  const list = lives.getByRole('list', { name: '내일 18일 방송' })
+  const tomorrow = days.getByRole('button', { name: '내일 18일 방송 1개' })
+  await expect(tomorrow).toHaveAttribute('aria-pressed', 'true')
+  const list = lives.getByRole('list', { name: '이번 주 예정 방송' })
+  // 날짜를 누르면 그날 첫 방송이 날짜 칸 바로 아래로 올라온다
+  await tomorrow.click()
+  await expect.poll(async () => {
+    const [bar, item] = await Promise.all([days.boundingBox(), list.getByRole('listitem').first().boundingBox()])
+    return bar && item ? Math.round(item.y - (bar.y + bar.height)) : null
+  }).toBe(16)
   await expect(list.getByRole('link', { name: /10\. 18\(일\) 오후 8:00.*다음 라이브/ })).toHaveAttribute('href', '/lives/12')
   await expect(list.getByRole('link', { name: /오늘의 라이브/ })).toHaveCount(0)
   // 대표 상품 129,000원에 5,000원 쿠폰

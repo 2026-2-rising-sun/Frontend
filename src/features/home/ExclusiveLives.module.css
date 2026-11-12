@@ -1,5 +1,5 @@
-/* 일주일 날짜 칸 */
-.days { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--space-1); }
+/* 일주일 날짜 칸. 스크롤해도 머리글 아래에 붙어 있다. top 은 머리글 높이로 코드에서 넣는다. */
+.days { position: sticky; z-index: 2; margin: 0 calc(-1 * var(--space-2)); padding: var(--space-2); background: var(--bg-surface); display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: var(--space-1); }
 .day { justify-self: center; width: min(100%, 88px); display: flex; flex-direction: column; align-items: center; gap: var(--space-1); padding: var(--space-2) 0; border: 0; border-radius: var(--radius-lg); background: none; color: var(--text-primary); cursor: pointer; }
 .day:hover:not(:disabled):not([aria-pressed="true"]) { background: var(--bg-page); }
 .day[aria-pressed="true"] { background: var(--bg-inverse); color: var(--color-neutral-0); }
@@ -9,7 +9,7 @@
 .day:disabled .dayLabel { color: inherit; }
 .dayDate { font: 700 20px/26px var(--font-sans); }
 
-/* 고른 날의 방송 */
+/* 일주일치 방송 */
 .list { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-5); margin: 0; padding: 0; list-style: none; }
 .item { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: var(--space-4); min-width: 0; }
 .poster { display: block; min-width: 0; border-radius: var(--radius-md); overflow: hidden; }
@@ -39,5 +39,5 @@
   .productThumb { width: 64px; }
 }
 @media (min-width: 1024px) {
-  .list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-8) var(--space-10); }
+  .list { gap: var(--space-8); }
 }
