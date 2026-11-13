@@ -38,7 +38,7 @@ export function SalePage() {
         {item.label}{!item.enabled && <span className={styles.soon}> 준비 중</span>}
       </Chip>)}
     </div>
-    <PagedView state={sale} skeleton={<ProductGridSkeleton />} emptyTitle="지금 세일 중인 상품이 없어요" emptyMessage="쿠폰 행사가 열리면 이곳에 모아 보여드려요.">
+    <PagedView infinite state={sale} skeleton={<ProductGridSkeleton />} emptyTitle="지금 세일 중인 상품이 없어요" emptyMessage="쿠폰 행사가 열리면 이곳에 모아 보여드려요.">
       {items => <ul className={styles.grid}>
         {items.map(({ product, discount }) => <li key={product.id} className={styles.item}>
           <span className={styles.discount}>{formatPrice(discount)} 할인</span>

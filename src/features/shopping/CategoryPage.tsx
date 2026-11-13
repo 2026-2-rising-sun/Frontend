@@ -37,7 +37,7 @@ function CategoryProducts({ value, label }: { value: (typeof PRODUCT_CATEGORIES)
         <SortButton sort={filter.sort} onChange={sort => update({ ...filter, sort })} />
       </div>
       <FilterChips filter={filter} onChange={update} />
-      <PagedView state={products} skeleton={<ProductGridSkeleton />}
+      <PagedView infinite state={products} skeleton={<ProductGridSkeleton />}
         emptyTitle={filter.freeShipping || filter.minPrice !== undefined || filter.maxPrice !== undefined ? '조건에 맞는 상품이 없어요' : `${label} 상품이 아직 없어요`}
         emptyMessage={filter.freeShipping || filter.minPrice !== undefined || filter.maxPrice !== undefined ? '필터를 바꿔 보세요.' : '다른 카테고리를 둘러보세요.'}>
         {items => <ProductGrid products={items} />}
