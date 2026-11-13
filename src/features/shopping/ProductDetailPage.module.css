@@ -21,7 +21,6 @@
 .deal { margin-right: var(--space-1); color: var(--text-brand); }
 .summary { color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
 .summary:hover { color: var(--text-brand); }
-.stock { color: var(--warning-text); font: 500 12px/18px var(--font-sans); }
 .live { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius-md); background: var(--bg-page); color: var(--text-secondary); font: 400 12px/18px var(--font-sans); }
 .live:hover { text-decoration: underline; }
 .actions { position: fixed; left: 0; right: 0; bottom: 0; z-index: 100; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom)); border-top: 1px solid var(--border-default); background: var(--bg-surface); }
@@ -30,6 +29,7 @@
 .qtyRow > span { display: none; }
 .totalRow { display: flex; flex-direction: column; align-items: flex-end; color: var(--text-secondary); font: 400 12px/18px var(--font-sans); }
 .totalRow > strong { color: var(--text-brand); font-size: 20px; line-height: 28px; }
+.picked { color: var(--text-secondary); font: 400 13px/20px var(--font-sans); }
 .buttons { display: flex; gap: var(--space-3); }
 .buttons > * { flex: 1; min-width: 0; padding-left: var(--space-3); padding-right: var(--space-3); }
 .description { display: flex; flex-direction: column; gap: var(--space-4); border-top: 1px solid var(--border-default); padding-top: var(--space-6); margin-top: var(--space-6); scroll-margin-top: calc(var(--header-height) + var(--space-4)); }
