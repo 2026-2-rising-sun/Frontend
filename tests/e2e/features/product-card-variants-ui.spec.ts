@@ -1,13 +1,17 @@
 import { expect, test, type Page } from '@playwright/test'
 
-// 화면마다 상품 카드 종류가 다르다: 식품, 생활은 가성비형, 가전, 뷰티, 패션은 기본형, 세일은 특가형.
-const base = { mainImageUrl: null, salesStatus: 'ON_SALE', available: 10, satisfaction: { veryGood: 70, good: 20, bad: 6, veryBad: 4 } }
+// 홈과 카테고리는 상품 번호로 카드 종류를 섞는다(1 기본형, 2, 3 가성비형, 5 간결형, 6 특가형).
+// 모든 카드에 만족도와 주문중이 있고, 구경중은 베리특가(라이브 한정 쿠폰 기간)일 때만, 단위가격은 식품에만 붙는다.
+const liveDeal = { broadcastId: 7, broadcastTitle: '겨울 특가 라이브', discount: 2000, startsAt: '2020-01-01T00:00:00Z', endsAt: '2099-01-01T00:00:00Z' }
+const base = { mainImageUrl: null, salesStatus: 'ON_SALE', available: 10, satisfaction: { veryGood: 70, good: 20, bad: 6, veryBad: 4 }, orderingCount: 120, viewingCount: 340 }
 const products = [
-  { ...base, productId: 1, name: '짜장 라면 140g X 5팩', price: 5300, category: 'FOOD', brandName: '진한식품', originalPrice: 8000, freeShipping: true, freeReturn: true,
-    deliveryType: 'DAWN', netContent: { amount: 700, unit: 'g' }, packCount: 5, orderingCount: 120 },
-  { ...base, productId: 2, name: '울 하프코트', price: 99000, category: 'FASHION', brandName: '라온', originalPrice: 150000, freeShipping: true, freeReturn: true, deliveryType: 'TODAY', orderingCount: 80 },
+  { ...base, productId: 1, name: '울 하프코트', price: 99000, originalPrice: 150000, category: 'FASHION', brandName: '라온', liveDeal },
+  { ...base, productId: 5, name: '니트 장갑', price: 19000, category: 'FASHION', deliveryType: 'TODAY', liveDeal },
+  { ...base, productId: 6, name: '램스울 머플러', price: 39000, originalPrice: 60000, category: 'FASHION', liveDeal },
+  { ...base, productId: 4, name: '데님 팬츠', price: 49000, category: 'FASHION' },
+  { ...base, productId: 2, name: '짜장 라면 140g X 5팩', price: 5300, category: 'FOOD', freeShipping: true, freeReturn: true, deliveryType: 'DAWN', netContent: { amount: 700, unit: 'g' }, packCount: 5 },
+  { ...base, productId: 3, name: '호텔 수건 5장', price: 25000, category: 'LIVING', freeReturn: true, netContent: { amount: 5, unit: '개' }, packCount: 5 },
 ]
-const coupon = { couponId: 'c1', name: '상품 할인 쿠폰', fixedDiscount: 3000, startsAt: '2020-01-01T00:00:00Z', endsAt: '2099-12-01T00:00:00Z', expiresAt: '2099-12-31T00:00:00Z', soldOut: false }
 
 async function fixture(page: Page) {
   await page.route(/\/api\/(member|catalog|commercecore|live|notification)\//, route => {
@@ -16,41 +20,43 @@ async function fixture(page: Page) {
       const category = url.searchParams.get('category')
       return route.fulfill({ json: { items: products.filter(p => !category || p.category === category), hasNext: false, nextCursor: null } })
     }
-    if (/\/products\/\d+\/coupons$/.test(url.pathname)) return route.fulfill({ json: url.pathname.includes('/products/2/') ? [coupon] : [] })
+    if (/\/products\/\d+\/coupons$/.test(url.pathname)) return route.fulfill({ json: [] })
     return route.fulfill({ status: 401 })
   })
 }
+const card = (page: Page, name: string) => page.getByRole('link', { name: new RegExp(name) })
 
-test('식품 카테고리는 가성비형 카드로 묶음 수, 단위가격, 빠른 배송, 무료배송과 무료반품을 보인다', async ({ page }) => {
-  await fixture(page)
-  await page.goto('/categories/food')
-  const card = page.getByRole('link', { name: /짜장 라면/ })
-  await expect(card).toHaveAttribute('data-variant', 'value')
-  await expect(card.getByText('5개', { exact: true })).toBeVisible()
-  await expect(card.getByText('(100g당 757원)', { exact: true })).toBeVisible()
-  for (const label of ['새벽도착', '무료배송', '무료반품']) await expect(card.getByText(label, { exact: true })).toBeVisible()
-  await expect(card.getByText('90% 만족', { exact: true })).toBeVisible()
-  await expect(card.getByText(/진한식품|주문중/)).toHaveCount(0) // 브랜드와 주문중은 기본형에만 있다
-})
-
-test('패션 카테고리는 기본형 카드로 브랜드와 주문중을 보이고, 단위가격과 빠른 배송은 숨긴다', async ({ page }) => {
+test('카테고리 카드는 상품마다 종류가 섞이고, 모든 카드에 만족도와 주문중이 있으며 구경중은 베리특가일 때만 있다', async ({ page }) => {
   await fixture(page)
   await page.goto('/categories/fashion')
-  const card = page.getByRole('link', { name: /울 하프코트/ })
-  await expect(card).toHaveAttribute('data-variant', 'standard')
-  await expect(card.getByText('라온', { exact: true })).toBeVisible()
-  await expect(card.getByText('주문중 80', { exact: true })).toBeVisible()
-  await expect(card.getByText(/당 .*원\)|오늘출발|무료반품/)).toHaveCount(0)
+  for (const [name, variant] of [['울 하프코트', 'standard'], ['니트 장갑', 'compact'], ['램스울 머플러', 'deal'], ['데님 팬츠', 'standard']]) {
+    const item = card(page, name)
+    await expect(item).toHaveAttribute('data-variant', variant)
+    await expect(item.getByText('주문중 120', { exact: true })).toBeVisible()
+    await expect(item.getByText(/90%/).first()).toBeVisible()
+  }
+  for (const name of ['울 하프코트', '니트 장갑', '램스울 머플러']) {
+    await expect(card(page, name).getByText('구경중 340', { exact: true })).toBeVisible()
+  }
+  await expect(card(page, '데님 팬츠').getByText(/구경중|베리특가/)).toHaveCount(0)
+  await expect(card(page, '램스울 머플러').getByText(/^베리특가/)).toBeVisible() // 특가형 맨 위 문구
+  await expect(card(page, '니트 장갑').getByText('오늘출발', { exact: true })).toBeVisible()
+  for (const name of ['울 하프코트', '니트 장갑']) await expect(card(page, name).getByText('베리특가', { exact: true })).toBeVisible()
 })
 
-test('세일은 특가형 카드로 할인율과 쿠폰 할인을 앞세운다', async ({ page }) => {
+test('가성비형 카드는 묶음 수와 혜택을 보이고, 100g당 같은 단위가격은 식품에만 붙인다', async ({ page }) => {
   await fixture(page)
-  await page.goto('/sale')
-  const card = page.getByRole('link', { name: /울 하프코트/ })
-  await expect(card).toHaveAttribute('data-variant', 'deal')
-  await expect(card.getByText('지금 34% 할인 중', { exact: true })).toBeVisible()
-  await expect(card.getByText('34%', { exact: true })).toBeVisible()
-  await expect(card.getByText('쿠폰 3,000원 할인', { exact: true })).toBeVisible()
-  await expect(card.getByLabel('90% 만족, 리뷰 100')).toBeVisible()
-  await expect(page.getByRole('link', { name: /짜장 라면/ })).toHaveCount(0) // 쿠폰 없는 상품은 세일에 없다
+  await page.goto('/categories/food')
+  const food = card(page, '짜장 라면')
+  await expect(food).toHaveAttribute('data-variant', 'value')
+  await expect(food.getByText('5개', { exact: true })).toBeVisible()
+  await expect(food.getByText('(100g당 757원)', { exact: true })).toBeVisible()
+  for (const label of ['새벽도착', '무료배송', '무료반품', '주문중 120', '90% 만족']) await expect(food.getByText(label, { exact: true })).toBeVisible()
+  await expect(food.getByText('구경중', { exact: false })).toHaveCount(0)
+
+  await page.goto('/categories/living')
+  const living = card(page, '호텔 수건')
+  await expect(living).toHaveAttribute('data-variant', 'value')
+  await expect(living.getByText('5개', { exact: true })).toBeVisible()
+  await expect(living.getByText(/당 .*원\)/)).toHaveCount(0)
 })

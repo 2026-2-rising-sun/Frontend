@@ -1,7 +1,7 @@
 import { strict as assert } from 'node:assert'
 import { test } from 'node:test'
 import { mockProducts, readContent } from '../scripts/mockCatalog'
-import { dealRemaining, discountRate, unitPriceLabel } from '../src/features/shopping/productCardInfo'
+import { CARD_VARIANTS, dealRemaining, discountRate, randomCardVariant, unitPriceLabel } from '../src/features/shopping/productCardInfo'
 
 const at = (iso: string) => Date.parse(iso)
 
@@ -41,4 +41,11 @@ test('모의 상품마다 카드 종류별 표시값이 있고, 빠른 배송은
   assert.ok(products.some(p => p.deliveryType === 'DAWN') && products.some(p => p.deliveryType === 'TODAY'))
   assert.ok(products.some(p => p.freeReturn) && products.some(p => !p.freeReturn))
   assert.ok(products.filter(p => p.category === 'FOOD' && p.netContent).length >= 5)
+})
+
+test('카드 종류는 상품 번호로 섞어 고르고, 같은 상품은 늘 같은 카드다', () => {
+  const ids = mockProducts().map(p => String(p.productId))
+  assert.deepEqual(ids.map(randomCardVariant), ids.map(randomCardVariant))
+  const counts = CARD_VARIANTS.map(variant => ids.filter(id => randomCardVariant(id) === variant).length)
+  assert.ok(counts.every(n => n >= ids.length / 8), `카드 종류가 한쪽으로 몰렸다: ${counts}`)
 })

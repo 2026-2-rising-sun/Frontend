@@ -1,5 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
+// 홈 목록 카드는 상품 번호로 종류가 정해진다. 1, 4, 7번은 기본형이다.
 // 브랜드, 원가(베리특가), 만족도, 무료배송, 옵션은 아직 Backend 계약에 없는 표시용 필드다. 값이 있을 때와 없을 때를 함께 본다.
 const products = [
   { productId: 1, name: '바른 도가니탕 500g X 4팩', mainImageUrl: null, price: 11900, salesStatus: 'ON_SALE', available: 30, category: 'FOOD', subcategory: 'processed', brandName: '진한식품', originalPrice: 27600,
@@ -9,9 +10,9 @@ const products = [
       { name: '컬러', values: [{ label: '블랙', extraPrice: 0, soldOut: false }, { label: '화이트', extraPrice: 0, soldOut: true }] },
       { name: '구성', values: [{ label: '1개', extraPrice: 0, soldOut: false }, { label: '2개 세트', extraPrice: 10000, soldOut: false }] },
     ] },
-  { productId: 2, name: '필드 없는 상품', mainImageUrl: null, price: 18000, salesStatus: 'ON_SALE', available: 5 },
+  { productId: 4, name: '필드 없는 상품', mainImageUrl: null, price: 18000, salesStatus: 'ON_SALE', available: 5 },
   // 라이브 할인이 끝난 상품: 베리특가, 구경중 없이 주문중만 보인다.
-  { productId: 3, name: '할인 끝난 상품', mainImageUrl: null, price: 20000, salesStatus: 'ON_SALE', available: 5, originalPrice: 25000, orderingCount: 120, viewingCount: 300,
+  { productId: 7, name: '할인 끝난 상품', mainImageUrl: null, price: 20000, salesStatus: 'ON_SALE', available: 5, originalPrice: 25000, orderingCount: 120, viewingCount: 300,
     liveDeal: { broadcastId: 11, broadcastTitle: '지난 라이브', discount: 2000, startsAt: '2020-01-01T00:00:00Z', endsAt: '2020-01-03T00:00:00Z' } },
 ]
 
@@ -67,10 +68,10 @@ test('상품 상세의 상품 만족도는 만족 비율과 4단계 비율을 �
   }
   await section.getByRole('button', { name: '상품 만족도 기준 안내' }).hover()
   await expect(section.getByRole('tooltip')).toContainText('매우 만족해요')
-  await page.goto('/products/2')
+  await page.goto('/products/4')
   await expect(page.getByRole('heading', { name: '필드 없는 상품' })).toBeVisible()
   await expect(page.getByRole('region', { name: '상품 만족도' })).toHaveCount(0)
-  await page.goto('/products/3')
+  await page.goto('/products/7')
   await expect(page.getByText('120개 주문중', { exact: true })).toBeVisible()
   await expect(page.getByText(/구경중|베리특가/)).toHaveCount(0)
 })
@@ -89,7 +90,7 @@ test('옵션이 있는 상품은 모든 옵션을 골라야 구매할 수 있고
   await expect(page.getByText('21,900원', { exact: true }).last()).toBeVisible() // 11,900원 + 10,000원
   await expect(page.getByRole('link', { name: '바로 구매', exact: true })).toBeVisible()
   await expect(page.getByText(/재고/)).toHaveCount(0)
-  await page.goto('/products/2')
+  await page.goto('/products/4')
   await expect(page.getByRole('group', { name: '옵션 선택' })).toHaveCount(0)
   await expect(page.getByRole('link', { name: '바로 구매', exact: true })).toBeVisible()
 })
@@ -117,6 +118,6 @@ test('상단 카테고리를 누르면 전체 분류가 펼쳐지고, 상품 상
   await expect(page).toHaveURL(/\/categories\/living\?sub=kitchen$/)
   await expect(panel).toHaveCount(0)
   await expect(page.getByRole('navigation', { name: '주요 메뉴' }).getByRole('link', { name: '생활', exact: true })).toHaveClass(/active/)
-  await page.goto('/products/2')
+  await page.goto('/products/4')
   await expect(page.getByRole('navigation', { name: '현재 위치' })).toContainText('상품 상세')
 })
