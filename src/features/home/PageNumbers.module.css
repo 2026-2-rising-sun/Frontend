@@ -1,0 +1,6 @@
+.pages { display: flex; align-items: center; gap: var(--space-1); }
+.page { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 0; border-radius: var(--radius-full); background: none; color: var(--text-tertiary); font: 700 14px/1 var(--font-sans); cursor: pointer; }
+.page:hover { color: var(--text-primary); }
+.page:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+.current { background: var(--bg-inverse); color: var(--text-on-strong); }
+.current:hover { color: var(--text-on-strong); }

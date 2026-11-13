@@ -40,3 +40,5 @@ export const ShoppingIcon = (p: IconProps) => <Icon {...p}><path d="M6 2L3 6v14a
 export const VideoIcon = (p: IconProps) => <Icon {...p}><rect x="2" y="6" width="14" height="12" rx="2" /><path d="M22 8l-6 4 6 4V8z" /></Icon>
 export const ReceiptIcon = (p: IconProps) => <Icon {...p}><path d="M4 2v20l3-2 3 2 3-2 3 2 3-2 3 2V2l-3 2-3-2-3 2-3-2-3 2z" /><path d="M8 8h8M8 12h8" /></Icon>
 export const RankingIcon = (p: IconProps) => <Icon {...p}><path d="M6 20V12M12 20V4M18 20v-8" /></Icon>
+export const RefreshIcon = (p: IconProps) => <Icon {...p}><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" /></Icon>
+export const EyeIcon = (p: IconProps) => <Icon {...p}><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></Icon>

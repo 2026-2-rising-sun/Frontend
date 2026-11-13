@@ -11,12 +11,14 @@ import { usePaged } from '../../hooks/usePaged'
 import { formatDateTime } from '../../lib/format'
 import { ViewerCount } from '../live/ViewerCount'
 import { ProductGrid, ProductGridSkeleton } from '../shopping/components/ProductGrid'
+import { ExclusiveAds } from './ExclusiveAds'
 import { ExclusiveLives } from './ExclusiveLives'
 import { HeroCarousel } from './HeroCarousel'
 import { HomePicks } from './HomePicks'
 import { HourlyRanking } from './HourlyRanking'
 import { PromoSlide } from './PromoSlide'
 import { PROMOS } from './promos'
+import { TrendingViews } from './TrendingViews'
 import styles from './HomePage.module.css'
 
 const PRODUCT_PAGE_SIZE = 12
@@ -33,7 +35,7 @@ const SORT_OPTIONS: { value: ProductSort; label: string }[] = [
 ]
 
 /**
- * 메인. 배너, 주목·추천 상품, "라이브 예고", 시간별 판매 인기 순서로 보여 준다.
+ * 메인. 배너, 주목, 추천 상품, "라이브 예고", "오직 베리온에서만" 광고, 시간별 판매 인기, "조회 급상승, 인기템" 순서로 보여 준다.
  * 헤더 검색어(?q=)가 있으면 그 자리에 검색 결과 목록을 보여 준다.
  */
 export function HomePage() {
@@ -45,7 +47,9 @@ export function HomePage() {
       <HomeHero />
       <HomePicks />
       <ExclusiveLives />
+      <ExclusiveAds />
       <HourlyRanking />
+      <TrendingViews />
     </>}
   </PageContainer></div>
 }
