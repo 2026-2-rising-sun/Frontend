@@ -1,0 +1,8 @@
+.wrap { display: inline-flex; }
+.info { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; border: 1.5px solid var(--text-tertiary); border-radius: var(--radius-full); background: none; color: var(--text-tertiary); font: 700 11px/1 var(--font-sans); cursor: pointer; }
+.info:hover, .info[aria-expanded="true"] { border-color: var(--text-secondary); color: var(--text-secondary); }
+/* 말풍선. 아이콘과 말풍선 사이 틈을 ::before 로 메워 마우스를 옮겨도 닫히지 않는다. */
+.tooltip { position: absolute; top: 100%; left: 0; z-index: 5; display: flex; align-items: center; gap: var(--space-4); width: max-content; max-width: min(calc(100vw - 2 * var(--space-4)), 960px); margin-top: var(--space-3); padding: var(--space-3) var(--space-4); border: 1px solid var(--border-default); border-radius: var(--radius-md); background: var(--bg-surface); box-shadow: var(--shadow-md); color: var(--text-secondary); font: 400 15px/22px var(--font-sans); }
+.tooltip::before { content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--space-3); }
+.tooltip p { word-break: keep-all; }
+.close { display: inline-flex; flex: none; padding: 0; border: 0; background: none; color: var(--text-primary); cursor: pointer; }

@@ -1,0 +1,5 @@
+.options { display: flex; flex-direction: column; gap: var(--space-3); width: 100%; margin: 0; padding: var(--space-4); border: 1px solid var(--border-default); border-radius: var(--radius-md); background: var(--bg-page); }
+.legend { float: left; width: 100%; margin-bottom: var(--space-1); padding: 0; color: var(--text-primary); font: 700 16px/24px var(--font-sans); }
+.field { display: grid; grid-template-columns: 64px minmax(0, 1fr); align-items: center; gap: var(--space-3); clear: both; }
+.name { color: var(--text-secondary); font: 500 14px/20px var(--font-sans); }
+.select { width: 100%; min-width: 0; }

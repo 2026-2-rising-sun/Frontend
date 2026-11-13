@@ -4,7 +4,7 @@ import styles from './Select.module.css'
 
 interface SelectProps<T extends string> extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'onChange' | 'value'> {
   value: T
-  options: readonly { value: T; label: string }[]
+  options: readonly { value: T; label: string; disabled?: boolean }[]
   onChange: (value: T) => void
   'aria-label': string
 }
@@ -15,7 +15,7 @@ export function Select<T extends string>({ value, options, onChange, className, 
     <div className={[styles.root, className].filter(Boolean).join(' ')}>
       <select className={styles.select} value={value} onChange={(e) => onChange(e.target.value as T)} {...rest}>
         {options.map((o) => (
-          <option key={o.value} value={o.value}>
+          <option key={o.value} value={o.value} disabled={o.disabled}>
             {o.label}
           </option>
         ))}

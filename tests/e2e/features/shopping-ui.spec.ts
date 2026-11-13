@@ -74,7 +74,7 @@ async function login(page: Page) {
   await expect(page.getByRole('heading', { name: '내 계정', exact: true })).toBeVisible()
 }
 
-test('홈은 실제 연결 상품 사진을 사용하고 검색 결과는 커서 추가 조회·정렬을 유지한다', async ({ page }) => {
+test('홈은 실제 연결 상품 사진을 사용하고 검색 결과는 무한 스크롤 커서 조회와 정렬을 유지한다', async ({ page }) => {
   const api = await setup(page)
   await page.goto('/')
   await expect(page.getByRole('region', { name: '진행 중인 방송' }).getByAltText('오늘의 라이브')).toHaveAttribute('src', '/fixtures/product-3.svg')
@@ -82,8 +82,7 @@ test('홈은 실제 연결 상품 사진을 사용하고 검색 결과는 커서
   const search = page.getByRole('searchbox', { name: '상품 검색' })
   await search.fill('상품'); await search.press('Enter')
   const section = page.locator('#products')
-  await expect(productLinks(section)).toHaveCount(2)
-  await page.getByRole('button', { name: '더 보기', exact: true }).click()
+  // 목록 끝이 화면에 들어오면 버튼 없이 다음 묶음을 이어서 불러온다.
   await expect(productLinks(section)).toHaveCount(3)
   expect(api.cursors).toContain('2')
   await page.getByRole('combobox', { name: '정렬 기준' }).selectOption('PRICE_ASC')
@@ -244,7 +243,8 @@ test('방송이 없으면 빈 상태를 표시하고 두 줄 헤더는 검색·�
   const search = header.getByRole('searchbox', { name: '상품 검색' })
   const nav = header.getByRole('navigation', { name: '주요 메뉴' })
   expect(await nav.evaluate(el => el.getBoundingClientRect().top)).toBeGreaterThanOrEqual(await search.evaluate(el => el.getBoundingClientRect().bottom))
-  await expect(nav.getByRole('link', { name: '장바구니', exact: true })).toHaveAttribute('href', '/cart')
+  await expect(header.getByRole('navigation', { name: '계정 메뉴' }).getByRole('link', { name: '장바구니', exact: true })).toHaveAttribute('href', '/cart')
+  await expect(nav.getByRole('link')).toHaveText(['오특', '라이브', '식품', '생활', '가전', '뷰티', '패션'])
   await search.fill('스피커'); await search.press('Enter')
   await expect(page).toHaveURL(/q=/)
   await expect(page.locator('#products').getByRole('link', { name: /포터블 스피커/ })).toBeVisible()

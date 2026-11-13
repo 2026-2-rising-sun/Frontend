@@ -1,0 +1,28 @@
+.section { display: flex; flex-direction: column; gap: var(--space-4); margin-top: var(--space-8); scroll-margin-top: calc(var(--header-height) + var(--space-4)); }
+.head { position: relative; display: flex; align-items: center; gap: var(--space-2); }
+.title { color: var(--text-primary); font: 700 18px/26px var(--font-sans); }
+.box { overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--radius-md); }
+.summary { padding: var(--space-6) var(--space-4); background: var(--bg-page); color: var(--text-primary); font: 700 20px/28px var(--font-sans); text-align: center; }
+.summary em { color: var(--brand-default); font-style: normal; }
+
+/* 단계, 별, 막대, 비율 한 줄 */
+.levels { display: grid; gap: var(--space-4); margin: 0; padding: var(--space-6) var(--space-4); }
+.level { display: grid; grid-template-columns: 88px auto minmax(0, 1fr) 40px; align-items: center; gap: var(--space-3); color: var(--text-secondary); font: 400 14px/20px var(--font-sans); }
+.level dd { margin: 0; }
+.stars { display: flex; --star-size: 18px; }
+.bar { height: 8px; border-radius: var(--radius-full); background: var(--bg-muted); overflow: hidden; }
+.bar > span { display: block; height: 100%; border-radius: inherit; background: var(--text-tertiary); }
+.percent { text-align: right; }
+.strong { color: var(--text-primary); font-weight: 700; }
+.strong .bar > span { background: var(--brand-default); }
+
+@media (min-width: 768px) {
+  .summary { padding: var(--space-8); font-size: 26px; line-height: 36px; }
+  .levels { justify-content: center; padding: var(--space-8) var(--space-10); }
+  .stars { --star-size: 24px; }
+  .level { grid-template-columns: 120px auto minmax(200px, 480px) 56px; gap: var(--space-6); font-size: 18px; line-height: 26px; }
+}
+@media (max-width: 374px) {
+  .level { grid-template-columns: 80px minmax(0, 1fr) 36px; }
+  .stars { display: none; }
+}

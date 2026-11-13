@@ -8,14 +8,6 @@
 /* 작은 회색 제목 + 안내 아이콘 */
 .subHead { position: relative; display: flex; align-items: center; gap: var(--space-2); }
 .subTitle { color: var(--text-secondary); font: 500 16px/24px var(--font-sans); }
-.infoWrap { display: inline-flex; }
-.info { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; padding: 0; border: 1.5px solid var(--text-tertiary); border-radius: var(--radius-full); background: none; color: var(--text-tertiary); font: 700 11px/1 var(--font-sans); cursor: pointer; }
-.info:hover, .info[aria-expanded="true"] { border-color: var(--text-secondary); color: var(--text-secondary); }
-/* 안내 말풍선: 제목 아래, 순위 배지보다 위에 뜬다. 아이콘과 말풍선 사이 틈을 padding 으로 메워 마우스를 옮겨도 닫히지 않는다. */
-.tooltip { position: absolute; top: 100%; left: 0; z-index: 5; display: flex; align-items: center; gap: var(--space-4); width: max-content; max-width: min(calc(100vw - 2 * var(--space-4)), 960px); margin-top: var(--space-3); padding: var(--space-3) var(--space-4); border: 1px solid var(--border-default); border-radius: var(--radius-md); background: var(--bg-surface); box-shadow: var(--shadow-md); color: var(--text-secondary); font: 400 15px/22px var(--font-sans); }
-.tooltip::before { content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: var(--space-3); }
-.tooltip p { word-break: keep-all; }
-.tooltipClose { display: inline-flex; flex: none; padding: 0; border: 0; background: none; color: var(--text-primary); cursor: pointer; }
 .empty { display: grid; justify-items: start; gap: var(--space-3); padding: var(--space-6); border-radius: var(--radius-lg); background: var(--bg-page); color: var(--text-secondary); }
 
 

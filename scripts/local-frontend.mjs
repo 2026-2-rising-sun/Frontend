@@ -2,7 +2,9 @@ import { spawn, execFileSync } from 'node:child_process'
 import { mkdirSync, createWriteStream } from 'node:fs'
 import { resolve } from 'node:path'
 import { servicePorts, publicServices } from './services.ts'
-import { startLiveMock } from './mockLives.ts'
+import { startMock } from './mockServer.ts'
+import { liveMock, withLiveDeals } from './mockLives.ts'
+import { catalogMock } from './mockCatalog.ts'
 const root = resolve(import.meta.dirname, '..')
 const prism = process.argv.includes('--prism')
 const namespace = process.env.KIND_NAMESPACE ?? 'shoppinglive-service-split-local'
@@ -28,9 +30,10 @@ const urls = {}
 for (const service of publicServices) {
   const apiPort = (prism ? 10500 : 10400) + servicePorts[service]
   urls[service.toUpperCase() + '_URL'] = 'http://127.0.0.1:' + apiPort
-  // 방송 목록은 주간 편성 모의 데이터로 바꾸고, 나머지 방송 API는 뒤에 둔 Prism으로 넘긴다.
-  const prismPort = prism && service === 'live' ? apiPort + 100 : apiPort
-  if (prism && service === 'live') startLiveMock(apiPort, prismPort)
+  // 방송 목록과 상품 목록은 모의 데이터로 바꾸고, 나머지 API는 뒤에 둔 Prism으로 넘긴다.
+  const mock = prism && { live: () => liveMock(), catalog: () => catalogMock(undefined, items => withLiveDeals(items)) }[service]
+  const prismPort = mock ? apiPort + 100 : apiPort
+  if (mock) startMock(apiPort, prismPort, mock())
   if (prism) start(root + '/node_modules/.bin/prism', ['mock', resolve(process.env.BACKEND_DIR ?? root + '/../Backend', `contracts/api/${service}-service.yaml`), '--host', '127.0.0.1', '--port', String(prismPort)], service)
   else start('kubectl', ['--context', process.env.KIND_CONTEXT ?? 'kind-shoppinglive-dev', '-n', namespace, 'port-forward', 'svc/' + service, apiPort + ':8080', '--address=127.0.0.1'], service)
 }

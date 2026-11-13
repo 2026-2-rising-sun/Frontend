@@ -35,13 +35,12 @@ test('kind: 구매자는 전체 검색 결과를 가격순으로 이어 보고 �
   await page.goto(`/?q=${encodeURIComponent(prefix)}`)
   await page.getByLabel('정렬 기준').selectOption('PRICE_ASC')
   const cards = page.locator('a[href^="/products/"]').filter({ hasText: prefix })
-  await expect(cards).toHaveCount(12)
-  await page.getByRole('button', { name: '더 보기', exact: true }).click()
-  await expect(cards).toHaveCount(24)
+  // 무한 스크롤: 목록 끝까지 내리면 다음 묶음을 불러온다.
+  await expect(cards.first()).toBeVisible()
+  await expect(async () => { await page.mouse.wheel(0, 5000); await expect(cards).toHaveCount(24, { timeout: 1000 }) }).toPass()
   const sorted = products.toSorted((a, b) => a.price - b.price || a.id - b.id)
   expect(await cards.locator('p').filter({ hasText: prefix }).allTextContents()).toEqual(sorted.map(item => item.name))
   await page.getByLabel('정렬 기준').selectOption('PRICE_DESC')
-  await expect(cards).toHaveCount(12)
   await expect(cards.first()).toContainText(products.toSorted((a, b) => b.price - a.price || b.id - a.id)[0].name)
 
   for (const product of products.slice(0, 2)) {
@@ -59,7 +58,6 @@ test('kind: 구매자는 전체 검색 결과를 가격순으로 이어 보고 �
   }, { timeout: 30000 }).toBe(2)
   await page.getByRole('button', { name: '품절', exact: true }).click()
   await expect(cards).toHaveCount(2)
-  await expect(page.getByRole('button', { name: '더 보기', exact: true })).toHaveCount(0)
 
   await page.goto('/login')
   await page.getByLabel('아이디 또는 이메일').fill('seller@local.test')

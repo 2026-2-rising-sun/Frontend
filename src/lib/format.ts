@@ -59,3 +59,10 @@ export const formatScheduleTime = (iso: string) => {
   const p = Object.fromEntries(scheduleFormatter.formatToParts(new Date(iso)).map((x) => [x.type, x.value]))
   return `${p.month}. ${p.day}(${p.weekday}) ${p.dayPeriod} ${p.hour}:${p.minute}`
 }
+
+/** 할인 기간 표시용 "11/3 17:00" (한국 시간, 24시간제) */
+export const formatDealTime = (iso: string) => {
+  const [date, time] = toKstInputValue(iso).split('T')
+  const [, month, day] = date.split('-').map(Number)
+  return `${month}/${day} ${time}`
+}

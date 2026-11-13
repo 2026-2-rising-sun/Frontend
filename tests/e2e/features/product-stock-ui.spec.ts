@@ -38,27 +38,24 @@ async function fixture(page: Page, options: { currentContract?: boolean; catalog
 }
 
 for (const width of [1440, 390]) {
-  test(`${width}px 메인 판매 인기 카드가 실제 수량·0·미제공과 가격·품절·쿠폰을 함께 표시한다`, async ({ page }, testInfo) => {
+  test(`${width}px 메인 판매 인기 카드는 재고 수량 없이 가격, 품절, 쿠폰을 표시한다`, async ({ page }, testInfo) => {
     await page.setViewportSize({ width, height: 1000 })
     const api = await fixture(page)
     await page.goto('/')
     const section = page.getByRole('region', { name: RANKING })
     {
       const selling = section.getByRole('link', { name: /데일리 텀블러/ })
-      await expect(selling.getByText('남은 재고 1,234개', { exact: true })).toBeVisible()
       await expect(selling.getByText('18,000원', { exact: true })).toBeVisible()
       await expect(selling.getByText('쿠폰 혜택', { exact: true })).toBeVisible()
       const soldOut = section.getByRole('link', { name: /품절 머그컵/ })
-      await expect(soldOut.getByText('남은 재고 0개', { exact: true })).toBeVisible()
       await expect(soldOut.getByText('품절', { exact: true })).toHaveCount(2)
       const unknown = section.getByRole('link', { name: /수량 미제공 상품/ })
-      await expect(unknown.getByText('재고 확인 필요', { exact: true })).toBeVisible()
-      await expect(unknown.getByText('남은 재고 0개', { exact: true })).toHaveCount(0)
       await expect(unknown.getByText('품절', { exact: true })).toHaveCount(0)
       // 예약분 소진과 Commerce 판매 상태는 서로 다른 계약이다.
       const reserved = section.getByRole('link', { name: /판매 중 예약 소진 상품/ })
-      await expect(reserved.getByText('남은 재고 0개', { exact: true })).toBeVisible()
       await expect(reserved.getByText('품절', { exact: true })).toHaveCount(0)
+      // 카드에는 남은 재고를 보여 주지 않는다.
+      await expect(section.getByText(/재고/)).toHaveCount(0)
       const first = await selling.boundingBox(), second = await soldOut.boundingBox()
       expect(first && second && Math.abs(first.y - second.y)).toBeLessThan(1)
       const third = await unknown.boundingBox()
@@ -78,8 +75,7 @@ test('수량이 누락된 응답에서도 판매 상태를 유지하고 재고�
   await page.goto('/')
   {
     const section = page.getByRole('region', { name: RANKING })
-    await expect(section.getByText('재고 확인 필요', { exact: true })).toHaveCount(4)
-    await expect(section.getByText(/남은 재고/)).toHaveCount(0)
+    await expect(section.getByText(/재고/)).toHaveCount(0)
     await expect(section.getByRole('link', { name: /품절 머그컵/ }).getByText('품절', { exact: true })).toHaveCount(2)
   }
 })
@@ -89,10 +85,10 @@ test('판매 인기 조회 실패를 품절·재고 0으로 대체하지 않고 
   await page.goto('/')
   const catalog = page.getByRole('region', { name: RANKING })
   await expect(catalog.getByText('판매 인기 상품을 불러오지 못했어요.', { exact: true })).toBeVisible()
-  await expect(page.getByText('남은 재고 0개', { exact: true })).toHaveCount(0)
+  await expect(catalog.getByText('품절', { exact: true })).toHaveCount(0)
   api.recover()
   await catalog.getByRole('button', { name: '순위 다시 조회', exact: true }).click()
-  await expect(catalog.getByText('남은 재고 1,234개', { exact: true })).toBeVisible()
+  await expect(catalog.getByRole('link', { name: /데일리 텀블러/ }).getByText('18,000원', { exact: true })).toBeVisible()
 })
 
 test('수량 없는 상품 상세는 품절로 단정하지 않고 구매와 수량 변경을 막는다', async ({ page }) => {

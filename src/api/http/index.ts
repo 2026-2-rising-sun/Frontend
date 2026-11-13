@@ -43,7 +43,7 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
     promotions: createPromotions(request, publicRequest),
     products: {
       async list(params) {
-        const dto = await publicRequest<{ items: ProductDto[]; nextCursor: string | null; hasNext: boolean }>('/catalog/v1/products', { query: { cursor: params?.cursor, size: params?.size, q: params?.query, category: params?.category, sort: params?.sort, status: params?.status === 'SELLING' ? 'ON_SALE' : params?.status === 'SOLD_OUT' ? 'SOLD_OUT' : undefined } })
+        const dto = await publicRequest<{ items: ProductDto[]; nextCursor: string | null; hasNext: boolean }>('/catalog/v1/products', { query: { cursor: params?.cursor, size: params?.size, q: params?.query, category: params?.category, subcategory: params?.subcategory, sort: params?.sort === 'RANKING' ? undefined : params?.sort, freeShipping: params?.freeShipping ? 'true' : undefined, minPrice: params?.minPrice, maxPrice: params?.maxPrice, status: params?.status === 'SELLING' ? 'ON_SALE' : params?.status === 'SOLD_OUT' ? 'SOLD_OUT' : undefined } })
         return { items: dto.items.map(product), nextCursor: dto.nextCursor === null ? null : String(dto.nextCursor), hasNext: dto.hasNext, page: params?.page ?? 0, size: params?.size ?? 12, totalCount: -1 }
       },
       get: async n => product(await publicRequest<ProductDto>(`/catalog/v1/products/${id(n)}`)),

@@ -24,23 +24,51 @@ export interface Product {
   featuredLive?: { id: string; title: string } | null
   /** 1단계 상품 분류. null 은 미분류. */
   category?: ProductCategory | null
+  /** 세부 분류 값(SUBCATEGORIES). 아직 계약에 없어 모의 서버만 보낸다. */
+  subcategory?: string | null
+  /** 아래는 아직 Backend 계약에 없는 표시용 정보다. 지금은 로컬 모의 서버만 보내고, 없으면 화면에서 숨긴다. */
+  brand?: string | null
+  /** 할인 전 가격. price(베리특가)보다 클 때만 값이 있다. */
+  originalPrice?: number | null
+  /** 리뷰 만족도 4단계별 인원 */
+  satisfaction?: Satisfaction | null
+  freeShipping?: boolean
+  /** 선택 옵션 묶음(컬러, 사이즈, 구성 등). 비어 있으면 옵션 없는 상품이다. */
+  options?: ProductOptionGroup[]
+  /** 라이브 방송 쿠폰 할인(베리특가). 방송이 정한 기간 안에서만 붙는다. */
+  liveDeal?: LiveDeal | null
+  /** 지금 주문 진행 중인 수 */
+  orderingCount?: number | null
+  /** 지금 상품을 보고 있는 사람 수 */
+  viewingCount?: number | null
 }
+
+/** 라이브 할인. discount 는 베리특가에서 빼는 금액(원), 기간은 양 끝 포함이다. */
+export interface LiveDeal { broadcastId: string; broadcastTitle: string; discount: number; startsAt: string; endsAt: string }
+
+/** 옵션 묶음 하나. 값마다 기본 가격에 더할 금액(음수 가능)과 품절 여부가 있다. */
+export interface ProductOptionGroup { name: string; values: { label: string; extraPrice: number; soldOut: boolean }[] }
+
+/** 리뷰 만족도 4단계(매우 만족해요, 만족해요, 아쉬워요, 매우 아쉬워요)별 인원 */
+export interface Satisfaction { veryGood: number; good: number; bad: number; veryBad: number }
 
 /** Catalog 공개 목록의 1단계 상품 분류 (catalog-service.yaml ProductCategory) */
 export type ProductCategory = 'FASHION' | 'BEAUTY' | 'FOOD' | 'LIVING' | 'DIGITAL' | 'KIDS' | 'ETC'
+/** 화면에 보여 주는 분류와 순서. 계약의 KIDS, ETC 는 고객 화면에서 쓰지 않는다. */
 export const PRODUCT_CATEGORIES: { value: ProductCategory; label: string }[] = [
+  { value: 'FOOD', label: '식품' },
+  { value: 'LIVING', label: '생활' },
+  { value: 'DIGITAL', label: '가전' },
   { value: 'BEAUTY', label: '뷰티' },
   { value: 'FASHION', label: '패션' },
-  { value: 'FOOD', label: '식품' },
-  { value: 'LIVING', label: '리빙' },
-  { value: 'DIGITAL', label: '디지털' },
-  { value: 'KIDS', label: '키즈' },
-  { value: 'ETC', label: '기타' },
 ]
-export const isProductCategory = (value: string | null | undefined): value is ProductCategory =>
-  PRODUCT_CATEGORIES.some(category => category.value === value)
+/** 분류 이름. 미분류(null)나 화면에서 쓰지 않는 분류면 null. */
+export const categoryLabel = (value: ProductCategory | null | undefined) => PRODUCT_CATEGORIES.find(category => category.value === value)?.label ?? null
+const CONTRACT_CATEGORIES: readonly string[] = ['FASHION', 'BEAUTY', 'FOOD', 'LIVING', 'DIGITAL', 'KIDS', 'ETC']
+export const isProductCategory = (value: string | null | undefined): value is ProductCategory => CONTRACT_CATEGORIES.includes(value ?? '')
 
-export type ProductSort = 'LATEST' | 'PRICE_ASC' | 'PRICE_DESC'
+/** 상품 정렬. LATEST, PRICE_ASC, PRICE_DESC 만 계약에 있고 RANKING(기본), SALES, REVIEWS 는 아직 화면 확인용이다. */
+export type ProductSort = 'RANKING' | 'SALES' | 'REVIEWS' | 'LATEST' | 'PRICE_ASC' | 'PRICE_DESC'
 export type ProductStatusFilter = 'ALL' | 'SELLING' | 'SOLD_OUT'
 
 /** 목록 조회는 일정 개수씩(페이지 단위) 가져온다. page 는 0부터 시작. */
@@ -66,6 +94,13 @@ export interface ProductListParams extends PageParams {
   query?: string
   /** 생략하면 미분류를 포함한 전체 */
   category?: ProductCategory
+  /** 아래는 아직 계약에 없는 필터다. 지금은 로컬 모의 서버만 적용한다. */
+  /** 세부 분류 값. category 와 함께 쓴다. */
+  subcategory?: string
+  freeShipping?: boolean
+  /** 베리특가(price) 기준 원 단위 범위. 양 끝 포함. */
+  minPrice?: number
+  maxPrice?: number
 }
 
 /** 방송 상태. READY = 준비 중(예정), LIVE = 진행 중, ENDED = 종료 */

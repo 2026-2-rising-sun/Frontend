@@ -9,9 +9,24 @@
 .image { width: 100%; border-radius: var(--radius-xl); }
 .info { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-5); min-width: 0; }
 .name { overflow-wrap: anywhere; }
+.titleBlock { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); }
+.brand { color: var(--text-secondary); font: 500 14px/20px var(--font-sans); }
+.reviewLine { display: flex; align-items: center; gap: var(--space-2); color: var(--text-secondary); font: 400 14px/20px var(--font-sans); --star-size: 18px; }
+.reviewLink { color: var(--text-secondary); text-decoration: underline; }
+.reviewLink:hover { color: var(--text-brand); }
+.tags { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+.tag { padding: 2px var(--space-2); border-radius: var(--radius-sm); background: var(--bg-muted); color: var(--text-secondary); font: 500 12px/18px var(--font-sans); }
+.prices { display: flex; flex-direction: column; }
+.original { color: var(--text-tertiary); font: 400 15px/22px var(--font-sans); }
+.deal { margin-right: var(--space-1); color: var(--text-brand); }
+.activity { display: flex; align-items: center; color: var(--text-primary); font: 600 14px/20px var(--font-sans); }
+.activity > span + span::before { content: ''; display: inline-block; width: 1px; height: 12px; margin: 0 var(--space-3); vertical-align: -1px; background: var(--border-strong); }
+/* "베리특가 안내 | 11/3 17:00 ~ 11/16 23:59 까지 한정할인" */
+.dealInfo { display: flex; flex-wrap: wrap; align-items: center; width: 100%; padding-bottom: var(--space-4); border-bottom: 1px solid var(--border-default); color: var(--text-primary); font: 500 15px/22px var(--font-sans); }
+.dealInfo > strong { font-weight: 700; }
+.dealInfo > strong::after { content: ''; display: inline-block; width: 1px; height: 14px; margin: 0 var(--space-3); vertical-align: -2px; background: var(--border-strong); }
 .summary { color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
 .summary:hover { color: var(--text-brand); }
-.stock { color: var(--warning-text); font: 500 12px/18px var(--font-sans); }
 .live { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-3); border-radius: var(--radius-md); background: var(--bg-page); color: var(--text-secondary); font: 400 12px/18px var(--font-sans); }
 .live:hover { text-decoration: underline; }
 .actions { position: fixed; left: 0; right: 0; bottom: 0; z-index: 100; display: flex; flex-direction: column; gap: var(--space-3); padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom)); border-top: 1px solid var(--border-default); background: var(--bg-surface); }
@@ -20,6 +35,7 @@
 .qtyRow > span { display: none; }
 .totalRow { display: flex; flex-direction: column; align-items: flex-end; color: var(--text-secondary); font: 400 12px/18px var(--font-sans); }
 .totalRow > strong { color: var(--text-brand); font-size: 20px; line-height: 28px; }
+.picked { color: var(--text-secondary); font: 400 13px/20px var(--font-sans); }
 .buttons { display: flex; gap: var(--space-3); }
 .buttons > * { flex: 1; min-width: 0; padding-left: var(--space-3); padding-right: var(--space-3); }
 .description { display: flex; flex-direction: column; gap: var(--space-4); border-top: 1px solid var(--border-default); padding-top: var(--space-6); margin-top: var(--space-6); scroll-margin-top: calc(var(--header-height) + var(--space-4)); }
@@ -28,7 +44,7 @@
   .page { padding-top: var(--space-6); padding-bottom: var(--space-12); gap: var(--space-6); }
   .product { padding-bottom: 0; }
   .layout { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: var(--space-12); align-items: start; }
-  .actions { position: static; width: 100%; gap: var(--space-5); padding: var(--space-5) 0 0; }
+  .actions { position: static; z-index: auto; width: 100%; gap: var(--space-5); padding: var(--space-5) 0 0; }
   .purchaseSummary { flex-direction: column; align-items: stretch; gap: var(--space-5); }
   .qtyRow { justify-content: space-between; }
   .qtyRow > span { display: inline; color: var(--text-secondary); }

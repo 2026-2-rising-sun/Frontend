@@ -1,0 +1,48 @@
+/* 제목 줄 오른쪽 정렬 버튼 */
+.sortButton { display: inline-flex; align-items: center; gap: var(--space-1); padding: var(--space-1) 0; border: 0; background: none; color: var(--text-secondary); font: 500 15px/22px var(--font-sans); cursor: pointer; }
+.sortButton:hover { color: var(--text-primary); }
+
+/* 무료배송, 가격 칩 */
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+.chip { display: inline-flex; align-items: center; gap: var(--space-1); min-height: 40px; padding: 0 var(--space-4); border: 1px solid var(--border-strong); border-radius: var(--radius-full); background: var(--bg-surface); color: var(--text-primary); font: 500 15px/22px var(--font-sans); cursor: pointer; }
+.chip:hover { border-color: var(--text-secondary); }
+.chip[aria-pressed="true"] { border-color: var(--text-primary); background: var(--bg-inverse); color: var(--color-neutral-0); }
+
+/* 공통 창 머리 */
+.dialogHead, .drawerHead { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.dialogTitle { color: var(--text-primary); font: 700 20px/28px var(--font-sans); }
+.iconButton { display: inline-flex; align-items: center; justify-content: center; padding: var(--space-1); border: 0; background: none; color: var(--text-secondary); cursor: pointer; }
+.iconButton:hover { color: var(--text-primary); }
+.headActions { display: flex; align-items: center; gap: var(--space-2); }
+.reset { width: 40px; height: 40px; border: 1px solid var(--border-default); border-radius: var(--radius-full); color: var(--brand-default); }
+
+/* 라디오 목록 */
+.radios { display: flex; flex-direction: column; margin: 0; padding: 0; border: 0; }
+.radio { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-3) 0; color: var(--text-primary); font: 400 16px/24px var(--font-sans); cursor: pointer; }
+.radio input { flex: none; width: 22px; height: 22px; margin: 1px 0 0; accent-color: var(--brand-default); cursor: pointer; }
+.radioText { display: flex; flex-direction: column; gap: var(--space-1); }
+.radioHint { color: var(--text-secondary); font: 400 14px/22px var(--font-sans); }
+
+/* 정렬 창: 가운데 */
+.sortDialog { width: min(440px, calc(100vw - 2 * var(--space-4))); padding: var(--space-6); border: 0; border-radius: var(--radius-lg); background: var(--bg-surface); color: var(--text-primary); }
+.sortDialog::backdrop, .drawer::backdrop { background: rgb(30 25 28 / 0.55); }
+.sortDialog .dialogHead { margin-bottom: var(--space-3); }
+.sortDialog .radio + .radio { border-top: 1px solid var(--border-default); }
+.sortDialog .radio { padding: var(--space-4) 0; }
+
+/* 필터 창: 오른쪽에 붙는 서랍 */
+.drawer { width: min(400px, 100vw); max-width: 100vw; height: 100dvh; max-height: 100dvh; margin: 0 0 0 auto; padding: 0; border: 0; background: var(--bg-surface); color: var(--text-primary); }
+.drawer[open] { display: flex; flex-direction: column; animation: slide-in 0.2s ease-out; }
+@keyframes slide-in { from { transform: translateX(100%); } }
+@media (prefers-reduced-motion: reduce) { .drawer[open] { animation: none; } }
+.drawerHead { padding: var(--space-5) var(--space-6); border-bottom: 1px solid var(--border-default); }
+.drawerSection { overflow-y: auto; padding: var(--space-4) var(--space-6) var(--space-8); }
+.sectionToggle { display: flex; align-items: center; justify-content: space-between; width: 100%; padding: var(--space-2) 0; border: 0; background: none; color: var(--text-primary); font: 700 17px/26px var(--font-sans); cursor: pointer; }
+.toggleIcon { display: inline-flex; transform: rotate(180deg); transition: transform 0.15s; }
+.sectionToggle[aria-expanded="false"] .toggleIcon { transform: none; }
+.custom { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) auto; align-items: center; gap: var(--space-2); margin-top: var(--space-2); color: var(--text-tertiary); }
+.priceInput { min-width: 0; height: 44px; padding: 0 var(--space-3); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); background: var(--bg-surface); color: var(--text-primary); font: 400 15px/22px var(--font-sans); }
+.priceInput:disabled { background: var(--disabled-bg); color: var(--text-disabled); }
+.apply { height: 44px; padding: 0 var(--space-4); border: 0; border-radius: var(--radius-sm); background: var(--bg-inverse); color: var(--color-neutral-0); font: 600 15px/22px var(--font-sans); cursor: pointer; }
+.apply:disabled { background: var(--disabled-bg); color: var(--text-disabled); cursor: not-allowed; }
+.error { margin-top: var(--space-2); color: var(--danger-default); font: 400 13px/20px var(--font-sans); }
