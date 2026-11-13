@@ -33,7 +33,16 @@ export interface Product {
   freeShipping?: boolean
   /** 선택 옵션 묶음(컬러, 사이즈, 구성 등). 비어 있으면 옵션 없는 상품이다. */
   options?: ProductOptionGroup[]
+  /** 라이브 방송 쿠폰 할인(베리특가). 방송이 정한 기간 안에서만 붙는다. */
+  liveDeal?: LiveDeal | null
+  /** 지금 주문 진행 중인 수 */
+  orderingCount?: number | null
+  /** 지금 상품을 보고 있는 사람 수 */
+  viewingCount?: number | null
 }
+
+/** 라이브 할인. discount 는 베리특가에서 빼는 금액(원), 기간은 양 끝 포함이다. */
+export interface LiveDeal { broadcastId: string; broadcastTitle: string; discount: number; startsAt: string; endsAt: string }
 
 /** 옵션 묶음 하나. 값마다 기본 가격에 더할 금액(음수 가능)과 품절 여부가 있다. */
 export interface ProductOptionGroup { name: string; values: { label: string; extraPrice: number; soldOut: boolean }[] }

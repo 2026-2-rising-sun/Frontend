@@ -14,6 +14,7 @@ import { ProductOptions } from './components/ProductOptions'
 import { SatisfactionSummary } from './components/SatisfactionSummary'
 import { Stars } from './components/Stars'
 import { recordRecentProduct } from './recentProducts'
+import { dealPeriod, displayPrice } from './liveDeal'
 import { reviewCount, satisfiedPercent } from './satisfaction'
 import styles from './ProductDetailPage.module.css'
 
@@ -52,6 +53,7 @@ function ProductDetail({ product }: { product: Product }) {
   const picked = groups.map((group, index) => chosen[index] === '' ? null : group.values[Number(chosen[index])])
   const ready = picked.every(Boolean)
   const unitPrice = product.price + picked.reduce((sum, value) => sum + (value?.extraPrice ?? 0), 0)
+  const shown = displayPrice(product)
 
   // 오류 안내와 글자 크기에 따라 달라지는 모바일 구매 바의 높이만큼 여백을 확보한다.
   useEffect(() => {
@@ -80,12 +82,14 @@ function ProductDetail({ product }: { product: Product }) {
           {product.brand && <p className={styles.brand}>{product.brand}</p>}
           <h1 className={`t-h1 ${styles.name}`}>{product.name}</h1>
           <ReviewLine product={product} />
+          <ActivityLine product={product} deal={shown.deal !== null} />
           {product.freeShipping && <p className={styles.tags}><span className={styles.tag}>무료배송</span></p>}
         </div>
         <div className={styles.prices}>
-          {product.originalPrice && <del className={styles.original} aria-label={`원가 ${formatPrice(product.originalPrice)}`}>{formatPrice(product.originalPrice)}</del>}
-          <p className="t-price-lg">{product.originalPrice && <span className={styles.deal}>베리특가</span>}{formatPrice(product.price)}</p>
+          {shown.before !== null && <del className={styles.original} aria-label={`할인 전 ${formatPrice(shown.before)}`}>{formatPrice(shown.before)}</del>}
+          <p className="t-price-lg">{shown.deal && <span className={styles.deal}>베리특가</span>}{formatPrice(shown.price)}</p>
         </div>
+        {shown.deal && <p className={styles.dealInfo}><strong>베리특가 안내</strong><span>{dealPeriod(shown.deal)}</span></p>}
         {product.description && <a href="#product-description" className={styles.summary}>{product.description}</a>}
         {product.featuredLive && <Link to={`/lives/${product.featuredLive.id}`} className={styles.live}><StatusBadge status="live" /><span>{product.featuredLive.title}에서 소개된 상품이에요</span></Link>}
         <ProductCoupons productId={product.id} price={product.price} />
@@ -130,4 +134,14 @@ function Breadcrumb({ category }: { category: ProductCategory | null }) {
     <Link to="/">홈</Link><span aria-hidden="true">/</span>
     {label && category ? <Link to={`/categories/${category.toLowerCase()}`}>{label}</Link> : <span>상품 상세</span>}
   </nav>
+}
+
+/** "2,459개 주문중 | 2,603명 구경중". 구경중은 라이브 할인(베리특가) 기간에만 보인다. 값이 없으면 숨긴다. */
+function ActivityLine({ product, deal }: { product: Product; deal: boolean }) {
+  const ordering = product.orderingCount, viewing = deal ? product.viewingCount : null
+  if (ordering == null && viewing == null) return null
+  return <p className={styles.activity}>
+    {ordering != null && <span>{ordering.toLocaleString('ko-KR')}개 주문중</span>}
+    {viewing != null && <span>{viewing.toLocaleString('ko-KR')}명 구경중</span>}
+  </p>
 }
