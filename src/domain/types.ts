@@ -24,6 +24,8 @@ export interface Product {
   featuredLive?: { id: string; title: string } | null
   /** 1단계 상품 분류. null 은 미분류. */
   category?: ProductCategory | null
+  /** 세부 분류 값(SUBCATEGORIES). 아직 계약에 없어 모의 서버만 보낸다. */
+  subcategory?: string | null
   /** 아래는 아직 Backend 계약에 없는 표시용 정보다. 지금은 로컬 모의 서버만 보내고, 없으면 화면에서 숨긴다. */
   brand?: string | null
   /** 할인 전 가격. price(베리특가)보다 클 때만 값이 있다. */
@@ -93,6 +95,8 @@ export interface ProductListParams extends PageParams {
   /** 생략하면 미분류를 포함한 전체 */
   category?: ProductCategory
   /** 아래는 아직 계약에 없는 필터다. 지금은 로컬 모의 서버만 적용한다. */
+  /** 세부 분류 값. category 와 함께 쓴다. */
+  subcategory?: string
   freeShipping?: boolean
   /** 베리특가(price) 기준 원 단위 범위. 양 끝 포함. */
   minPrice?: number
