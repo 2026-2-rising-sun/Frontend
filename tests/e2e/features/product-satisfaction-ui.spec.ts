@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 // 브랜드, 원가(베리특가), 만족도, 무료배송, 옵션은 아직 Backend 계약에 없는 표시용 필드다. 값이 있을 때와 없을 때를 함께 본다.
 const products = [
-  { productId: 1, name: '바른 도가니탕 500g X 4팩', mainImageUrl: null, price: 11900, salesStatus: 'ON_SALE', available: 30, category: 'FOOD', brandName: '진한식품', originalPrice: 27600,
+  { productId: 1, name: '바른 도가니탕 500g X 4팩', mainImageUrl: null, price: 11900, salesStatus: 'ON_SALE', available: 30, category: 'FOOD', subcategory: 'processed', brandName: '진한식품', originalPrice: 27600,
     satisfaction: { veryGood: 66, good: 10, bad: 14, veryBad: 10 }, freeShipping: true, orderingCount: 2459, viewingCount: 2603,
     liveDeal: { broadcastId: 12, broadcastTitle: '겨울 특가 라이브', discount: 3000, startsAt: '2026-11-03T08:00:00Z', endsAt: '2099-11-16T14:59:00Z' },
     options: [
@@ -99,19 +99,22 @@ test('상단 카테고리를 누르면 전체 분류가 펼쳐지고, 상품 상
   await page.goto('/products/1')
   const crumb = page.getByRole('navigation', { name: '현재 위치' })
   await expect(crumb.getByRole('link', { name: '식품', exact: true })).toHaveAttribute('href', '/categories/food')
+  await expect(crumb.getByRole('link', { name: '가공식품', exact: true })).toHaveAttribute('href', '/categories/food?sub=processed')
   await expect(crumb.getByText('상품 상세', { exact: true })).toHaveCount(0)
   const account = page.getByRole('navigation', { name: '계정 메뉴' })
   const button = account.getByRole('button', { name: '카테고리' })
   await button.click()
   await expect(button).toHaveAttribute('aria-expanded', 'true')
   const panel = page.locator('#category-menu')
-  await expect(panel.getByRole('link')).toHaveCount(5)
-  await expect(panel.getByRole('link', { name: /키즈|기타/ })).toHaveCount(0)
+  // 분류 5개 아래에 세부 분류가 펼쳐진다. 키즈, 기타 분류와 "기타" 세부 분류는 없다.
+  await expect(panel.getByRole('list', { name: /세부 카테고리$/ })).toHaveCount(5)
+  await expect(panel.getByRole('list', { name: '식품 세부 카테고리' }).getByRole('link')).toHaveText(['쌀/과일/농축수산물', '가공식품', '음료/생수/커피'])
+  await expect(panel.getByRole('link', { name: /^키즈|기타/ })).toHaveCount(0)
   await page.keyboard.press('Escape')
   await expect(panel).toHaveCount(0)
   await button.click()
-  await panel.getByRole('link', { name: /^생활/ }).click()
-  await expect(page).toHaveURL(/\/categories\/living$/)
+  await panel.getByRole('link', { name: '주방/식기/용기' }).click()
+  await expect(page).toHaveURL(/\/categories\/living\?sub=kitchen$/)
   await expect(panel).toHaveCount(0)
   await expect(page.getByRole('navigation', { name: '주요 메뉴' }).getByRole('link', { name: '생활', exact: true })).toHaveClass(/active/)
   await page.goto('/products/2')

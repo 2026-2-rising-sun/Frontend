@@ -67,3 +67,19 @@ test('무료배송과 가격 필터는 요청과 주소에 담기고, 가격은 
   await drawer.getByRole('button', { name: '가격 필터 초기화' }).click()
   await expect.poll(() => api.last().get('minPrice')).toBeNull()
 })
+
+test('카테고리 화면의 칩은 그 분류의 세부 카테고리이고, 고르면 세부 분류로 다시 불러온다', async ({ page }) => {
+  const api = await fixture(page)
+  await page.goto('/categories/food?sort=PRICE_ASC')
+  const chips = page.getByRole('navigation', { name: '식품 세부 카테고리' })
+  await expect(chips.getByRole('link')).toHaveText(['전체', '쌀/과일/농축수산물', '가공식품', '음료/생수/커피'])
+  await expect(chips.getByRole('link', { name: '전체' })).toHaveAttribute('aria-current', 'page')
+  await chips.getByRole('link', { name: '가공식품' }).click()
+  await expect(page).toHaveURL(/sub=processed/)
+  await expect(page).toHaveURL(/sort=PRICE_ASC/) // 정렬은 그대로 둔다
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('가공식품')
+  await expect.poll(() => api.last().get('subcategory')).toBe('processed')
+  await expect(chips.getByRole('link', { name: '가공식품' })).toHaveAttribute('aria-current', 'page')
+  await chips.getByRole('link', { name: '전체' }).click()
+  await expect.poll(() => api.last().get('subcategory')).toBeNull()
+})

@@ -65,3 +65,15 @@ test('모의 상품 목록은 무료배송, 가격 범위, 판매량순과 리�
   const reviews = items('/v1/products?sort=REVIEWS&size=50').map(item => Object.values(item.satisfaction).reduce((a, b) => a + b, 0))
   assert.deepEqual(reviews, reviews.toSorted((a, b) => b - a))
 })
+
+test('모의 상품은 모두 이름 있는 세부 분류에 속하고, 세부 분류마다 상품이 하나 이상 있다', async () => {
+  const { SUBCATEGORIES } = await import('../src/domain/subcategories')
+  const products = mockProducts()
+  for (const [category, subs] of Object.entries(SUBCATEGORIES)) {
+    assert.ok(!subs!.some(sub => sub.label.includes('기타')), category)
+    for (const sub of subs!) assert.ok(products.some(product => product.category === category && product.subcategory === sub.value), `${category} ${sub.label}`)
+  }
+  for (const product of products) assert.ok(SUBCATEGORIES[product.category]!.some(sub => sub.value === product.subcategory), product.name)
+  const page = ask('/v1/products?category=FOOD&subcategory=processed&size=50')?.body as { items: { subcategory: string }[] }
+  assert.ok(page.items.length > 0 && page.items.every(item => item.subcategory === 'processed'))
+})
