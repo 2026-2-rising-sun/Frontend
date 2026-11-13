@@ -165,6 +165,9 @@ const SORTS = {
   PRICE_DESC: (a: MockProduct, b: MockProduct) => b.price - a.price,
 }
 
+/** 지금 보고 있는 사람 수는 요청마다 조금씩 바뀐다(실제처럼 오르내림). "조회 급상승"의 업데이트를 눌렀을 때 순위가 바뀌는 것을 확인할 수 있다. */
+const fluctuate = (items: MockProduct[]) => items.map(item => ({ ...item, viewingCount: Math.round(item.viewingCount * (0.6 + Math.random() * 0.8)) }))
+
 /** 상품 목록, 상세, 이미지 요청에 답한다. 그 밖의 요청(쿠폰, 구매 확인 등)은 undefined 를 돌려 Prism 에 맡긴다. */
 /** decorate 는 응답 직전에 상품에 덧붙일 값(라이브 할인 등)을 정한다. */
 export function catalogMock(products = mockProducts(), decorate: (items: MockProduct[]) => object[] = items => items) {
@@ -178,7 +181,7 @@ export function catalogMock(products = mockProducts(), decorate: (items: MockPro
     const detail = url.pathname.match(/^\/v1\/products\/(\d+)$/)
     if (detail) {
       const product = products.find(item => item.productId === Number(detail[1]))
-      return product && { body: { ...decorate([product])[0], maxQuantity: Math.min(product.available, 10) } }
+      return product && { body: { ...decorate(fluctuate([product]))[0], maxQuantity: Math.min(product.available, 10) } }
     }
     if (url.pathname !== '/v1/products') return
     const q = url.searchParams.get('q')?.trim(), status = url.searchParams.get('status'), category = url.searchParams.get('category'), subcategory = url.searchParams.get('subcategory')
@@ -196,6 +199,6 @@ export function catalogMock(products = mockProducts(), decorate: (items: MockPro
     const from = Number(url.searchParams.get('cursor') ?? 0) || 0
     const size = Math.min(Number(url.searchParams.get('size') ?? 20) || 20, 50)
     const hasNext = from + size < found.length
-    return { body: { items: decorate(found.slice(from, from + size)), nextCursor: hasNext ? String(from + size) : null, hasNext } }
+    return { body: { items: decorate(fluctuate(found.slice(from, from + size))), nextCursor: hasNext ? String(from + size) : null, hasNext } }
   }
 }
