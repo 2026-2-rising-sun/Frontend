@@ -14,7 +14,7 @@ test('Prism: anonymous product read and login-gated checkout/cart', async ({ pag
   await expect(page.getByRole('heading', { name: '주문서', exact: true })).toBeVisible()
   await expect(page.getByLabel('주문자 이름')).toBeVisible(); await expect(page.getByLabel('연락처')).toBeVisible()
   await expect(page.getByLabel('주문 조회 비밀번호')).toHaveCount(0)
-  await page.getByRole('navigation', { name: '주요 메뉴' }).getByRole('link', { name: '장바구니', exact: true }).click()
+  await page.getByRole('navigation', { name: '계정 메뉴' }).getByRole('link', { name: '장바구니', exact: true }).click()
   await expect(page.getByRole('heading', { name: '장바구니', exact: true })).toBeVisible()
   await expect(page.getByRole('button', { name: '삭제', exact: true }).first()).toBeVisible()
 })

@@ -2,7 +2,7 @@ import { expect, test, type Page } from '@playwright/test'
 
 // 브랜드, 원가(베리특가), 만족도, 무료배송, 옵션은 아직 Backend 계약에 없는 표시용 필드다. 값이 있을 때와 없을 때를 함께 본다.
 const products = [
-  { productId: 1, name: '바른 도가니탕 500g X 4팩', mainImageUrl: null, price: 11900, salesStatus: 'ON_SALE', available: 30, brandName: '진한식품', originalPrice: 27600,
+  { productId: 1, name: '바른 도가니탕 500g X 4팩', mainImageUrl: null, price: 11900, salesStatus: 'ON_SALE', available: 30, category: 'FOOD', brandName: '진한식품', originalPrice: 27600,
     satisfaction: { veryGood: 66, good: 10, bad: 14, veryBad: 10 }, freeShipping: true,
     options: [
       { name: '컬러', values: [{ label: '블랙', extraPrice: 0, soldOut: false }, { label: '화이트', extraPrice: 0, soldOut: true }] },
@@ -73,4 +73,28 @@ test('옵션이 있는 상품은 모든 옵션을 골라야 구매할 수 있고
   await page.goto('/products/2')
   await expect(page.getByRole('group', { name: '옵션 선택' })).toHaveCount(0)
   await expect(page.getByRole('link', { name: '바로 구매', exact: true })).toBeVisible()
+})
+
+test('상단 카테고리를 누르면 전체 분류가 펼쳐지고, 상품 상세 위치에는 상품의 분류가 보인다', async ({ page }) => {
+  await fixture(page)
+  await page.goto('/products/1')
+  const crumb = page.getByRole('navigation', { name: '현재 위치' })
+  await expect(crumb.getByRole('link', { name: '식품', exact: true })).toHaveAttribute('href', '/categories/food')
+  await expect(crumb.getByText('상품 상세', { exact: true })).toHaveCount(0)
+  const account = page.getByRole('navigation', { name: '계정 메뉴' })
+  const button = account.getByRole('button', { name: '카테고리' })
+  await button.click()
+  await expect(button).toHaveAttribute('aria-expanded', 'true')
+  const panel = page.locator('#category-menu')
+  await expect(panel.getByRole('link')).toHaveCount(5)
+  await expect(panel.getByRole('link', { name: /키즈|기타/ })).toHaveCount(0)
+  await page.keyboard.press('Escape')
+  await expect(panel).toHaveCount(0)
+  await button.click()
+  await panel.getByRole('link', { name: /^생활/ }).click()
+  await expect(page).toHaveURL(/\/categories\/living$/)
+  await expect(panel).toHaveCount(0)
+  await expect(page.getByRole('navigation', { name: '주요 메뉴' }).getByRole('link', { name: '생활', exact: true })).toHaveClass(/active/)
+  await page.goto('/products/2')
+  await expect(page.getByRole('navigation', { name: '현재 위치' })).toContainText('상품 상세')
 })
