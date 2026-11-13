@@ -24,7 +24,17 @@ export interface Product {
   featuredLive?: { id: string; title: string } | null
   /** 1단계 상품 분류. null 은 미분류. */
   category?: ProductCategory | null
+  /** 아래는 아직 Backend 계약에 없는 표시용 정보다. 지금은 로컬 모의 서버만 보내고, 없으면 화면에서 숨긴다. */
+  brand?: string | null
+  /** 할인 전 가격. price(베리특가)보다 클 때만 값이 있다. */
+  originalPrice?: number | null
+  /** 리뷰 만족도 4단계별 인원 */
+  satisfaction?: Satisfaction | null
+  freeShipping?: boolean
 }
+
+/** 리뷰 만족도 4단계(매우 만족해요, 만족해요, 아쉬워요, 매우 아쉬워요)별 인원 */
+export interface Satisfaction { veryGood: number; good: number; bad: number; veryBad: number }
 
 /** Catalog 공개 목록의 1단계 상품 분류 (catalog-service.yaml ProductCategory) */
 export type ProductCategory = 'FASHION' | 'BEAUTY' | 'FOOD' | 'LIVING' | 'DIGITAL' | 'KIDS' | 'ETC'
