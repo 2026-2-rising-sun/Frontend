@@ -1,0 +1,44 @@
+import { strict as assert } from 'node:assert'
+import type { IncomingMessage } from 'node:http'
+import { test } from 'node:test'
+import { catalogMock, mockProducts } from '../scripts/mockCatalog'
+import { levelPercent, reviewCount, satisfiedPercent } from '../src/features/shopping/satisfaction'
+
+const GET = { method: 'GET' } as IncomingMessage
+const ask = (path: string) => catalogMock()(new URL(path, 'http://127.0.0.1'), GET)
+
+test('모의 상품은 카테고리마다 15개 이상이고, 할인 상품은 원가가 베리특가보다 비싸다', () => {
+  const products = mockProducts()
+  for (const category of ['FASHION', 'BEAUTY', 'FOOD', 'LIVING', 'DIGITAL', 'KIDS', 'ETC']) {
+    assert.ok(products.filter(product => product.category === category).length >= 15, category)
+  }
+  for (const product of products) {
+    if (product.originalPrice !== null) assert.ok(product.originalPrice > product.price, product.name)
+    assert.equal(product.salesStatus === 'SOLD_OUT', product.available === 0)
+  }
+  assert.ok(products.some(product => product.freeShipping) && products.some(product => !product.freeShipping))
+  assert.deepEqual(mockProducts().map(product => product.name), products.map(product => product.name))
+})
+
+test('모의 상품 목록은 카테고리, 검색, 정렬, 커서를 지킨다', () => {
+  const page = ask('/v1/products?category=FOOD&sort=PRICE_ASC&size=5')?.body as { items: { category: string; price: number }[]; nextCursor: string; hasNext: boolean }
+  assert.equal(page.items.length, 5)
+  assert.ok(page.items.every(item => item.category === 'FOOD'))
+  assert.deepEqual(page.items.map(item => item.price), page.items.map(item => item.price).toSorted((a, b) => a - b))
+  assert.equal(page.hasNext, true)
+  const next = ask(`/v1/products?category=FOOD&sort=PRICE_ASC&size=5&cursor=${page.nextCursor}`)?.body as { items: { price: number }[] }
+  assert.ok(next.items[0].price >= page.items.at(-1)!.price)
+  const found = ask('/v1/products?q=' + encodeURIComponent('삼겹살'))?.body as { items: { name: string }[] }
+  assert.ok(found.items.length > 0 && found.items.every(item => item.name.includes('삼겹살')))
+  assert.equal(ask('/v1/mock-images/1.svg')?.type, 'image/svg+xml')
+  assert.equal(ask('/v1/products/1/coupons'), undefined) // 쿠폰은 Prism 이 답한다
+})
+
+test('만족 비율은 매우 만족해요와 만족해요를 합친 비율이다', () => {
+  const s = { veryGood: 66, good: 10, bad: 14, veryBad: 10 }
+  assert.equal(reviewCount(s), 100)
+  assert.equal(satisfiedPercent(s), 76)
+  assert.equal(levelPercent(s, 'bad'), 14)
+  assert.equal(satisfiedPercent({ veryGood: 0, good: 0, bad: 0, veryBad: 0 }), null)
+  assert.equal(satisfiedPercent(null), null)
+})
