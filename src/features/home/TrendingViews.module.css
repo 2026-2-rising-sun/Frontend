@@ -34,9 +34,20 @@
 .free { background: var(--info-default); }
 .fast { background: var(--success-default); }
 
+/* 왼쪽 상품은 5초마다 아래에서 위로 밀려 올라오며 바뀐다 */
+.viewport { overflow: hidden; contain: paint; }
+.slide { animation: slideUp 0.5s cubic-bezier(0.2, 0.7, 0.2, 1); }
+@keyframes slideUp { from { transform: translateY(60%); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .slide { animation: none; } }
+.badge { position: absolute; top: var(--space-2); left: var(--space-2); z-index: 1; display: flex; align-items: center; justify-content: center; min-width: 28px; height: 28px; padding: 0 var(--space-2); border-radius: var(--radius-md); background: rgb(23 23 23 / 0.88); color: var(--color-neutral-0); font: 700 14px/1 var(--font-sans); }
+.pause { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; border: 1px solid var(--border-default); border-radius: var(--radius-full); background: var(--bg-surface); color: var(--text-secondary); cursor: pointer; }
+.pause:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+.pause:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+
 /* 오른쪽: 순위 5개 */
 .list { display: flex; flex-direction: column; gap: var(--space-1); margin: 0; padding: 0; list-style: none; }
-.row { display: flex; align-items: center; gap: var(--space-4); padding: var(--space-2) var(--space-4); border: 1px solid transparent; border-radius: var(--radius-md); color: var(--text-secondary); font: 400 15px/24px var(--font-sans); }
+.row { display: flex; align-items: center; gap: var(--space-4); width: 100%; padding: var(--space-2) var(--space-4); border: 1px solid transparent; border-radius: var(--radius-md); background: none; color: var(--text-secondary); font: 400 15px/24px var(--font-sans); text-align: left; cursor: pointer; }
+.row:hover { color: var(--text-primary); }
 .row:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
 .rank { flex-shrink: 0; width: 20px; color: var(--text-tertiary); font: 400 18px/24px var(--font-sans); text-align: center; }
 .rowName { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

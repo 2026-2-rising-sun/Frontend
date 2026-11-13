@@ -42,3 +42,4 @@ export const ReceiptIcon = (p: IconProps) => <Icon {...p}><path d="M4 2v20l3-2 3
 export const RankingIcon = (p: IconProps) => <Icon {...p}><path d="M6 20V12M12 20V4M18 20v-8" /></Icon>
 export const RefreshIcon = (p: IconProps) => <Icon {...p}><path d="M20 12a8 8 0 1 1-2.34-5.66M20 4v5h-5" /></Icon>
 export const EyeIcon = (p: IconProps) => <Icon {...p}><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" /><circle cx="12" cy="12" r="3" /></Icon>
+export const PauseIcon = (p: IconProps) => <Icon {...p}><path d="M8 5v14M16 5v14" /></Icon>
