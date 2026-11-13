@@ -9,7 +9,7 @@ const ask = (path: string) => catalogMock()(new URL(path, 'http://127.0.0.1'), G
 
 test('모의 상품은 카테고리마다 15개 이상이고, 할인 상품은 원가가 베리특가보다 비싸다', () => {
   const products = mockProducts()
-  for (const category of ['FASHION', 'BEAUTY', 'FOOD', 'LIVING', 'DIGITAL', 'KIDS', 'ETC']) {
+  for (const category of ['FOOD', 'LIVING', 'DIGITAL', 'BEAUTY', 'FASHION']) {
     assert.ok(products.filter(product => product.category === category).length >= 15, category)
   }
   for (const product of products) {
@@ -51,4 +51,17 @@ test('만족 비율은 매우 만족해요와 만족해요를 합친 비율이�
   assert.equal(levelPercent(s, 'bad'), 14)
   assert.equal(satisfiedPercent({ veryGood: 0, good: 0, bad: 0, veryBad: 0 }), null)
   assert.equal(satisfiedPercent(null), null)
+})
+
+test('모의 상품 목록은 무료배송, 가격 범위, 판매량순과 리뷰 많은순 정렬을 지킨다', () => {
+  type Item = { price: number; freeShipping: boolean; salesCount: number; satisfaction: Record<string, number> }
+  const items = (path: string) => (ask(path)!.body as { items: Item[] }).items
+  const free = items('/v1/products?freeShipping=true&size=50')
+  assert.ok(free.length > 0 && free.every(item => item.freeShipping))
+  const ranged = items('/v1/products?minPrice=10000&maxPrice=20000&size=50')
+  assert.ok(ranged.length > 0 && ranged.every(item => item.price >= 10000 && item.price <= 20000))
+  const sales = items('/v1/products?sort=SALES&size=50').map(item => item.salesCount)
+  assert.deepEqual(sales, sales.toSorted((a, b) => b - a))
+  const reviews = items('/v1/products?sort=REVIEWS&size=50').map(item => Object.values(item.satisfaction).reduce((a, b) => a + b, 0))
+  assert.deepEqual(reviews, reviews.toSorted((a, b) => b - a))
 })

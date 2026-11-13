@@ -43,19 +43,21 @@ export interface Satisfaction { veryGood: number; good: number; bad: number; ver
 
 /** Catalog 공개 목록의 1단계 상품 분류 (catalog-service.yaml ProductCategory) */
 export type ProductCategory = 'FASHION' | 'BEAUTY' | 'FOOD' | 'LIVING' | 'DIGITAL' | 'KIDS' | 'ETC'
+/** 화면에 보여 주는 분류와 순서. 계약의 KIDS, ETC 는 고객 화면에서 쓰지 않는다. */
 export const PRODUCT_CATEGORIES: { value: ProductCategory; label: string }[] = [
+  { value: 'FOOD', label: '식품' },
+  { value: 'LIVING', label: '생활' },
+  { value: 'DIGITAL', label: '가전' },
   { value: 'BEAUTY', label: '뷰티' },
   { value: 'FASHION', label: '패션' },
-  { value: 'FOOD', label: '식품' },
-  { value: 'LIVING', label: '리빙' },
-  { value: 'DIGITAL', label: '디지털' },
-  { value: 'KIDS', label: '키즈' },
-  { value: 'ETC', label: '기타' },
 ]
-export const isProductCategory = (value: string | null | undefined): value is ProductCategory =>
-  PRODUCT_CATEGORIES.some(category => category.value === value)
+/** 분류 이름. 미분류(null)나 화면에서 쓰지 않는 분류면 null. */
+export const categoryLabel = (value: ProductCategory | null | undefined) => PRODUCT_CATEGORIES.find(category => category.value === value)?.label ?? null
+const CONTRACT_CATEGORIES: readonly string[] = ['FASHION', 'BEAUTY', 'FOOD', 'LIVING', 'DIGITAL', 'KIDS', 'ETC']
+export const isProductCategory = (value: string | null | undefined): value is ProductCategory => CONTRACT_CATEGORIES.includes(value ?? '')
 
-export type ProductSort = 'LATEST' | 'PRICE_ASC' | 'PRICE_DESC'
+/** 상품 정렬. LATEST, PRICE_ASC, PRICE_DESC 만 계약에 있고 RANKING(기본), SALES, REVIEWS 는 아직 화면 확인용이다. */
+export type ProductSort = 'RANKING' | 'SALES' | 'REVIEWS' | 'LATEST' | 'PRICE_ASC' | 'PRICE_DESC'
 export type ProductStatusFilter = 'ALL' | 'SELLING' | 'SOLD_OUT'
 
 /** 목록 조회는 일정 개수씩(페이지 단위) 가져온다. page 는 0부터 시작. */
@@ -81,6 +83,11 @@ export interface ProductListParams extends PageParams {
   query?: string
   /** 생략하면 미분류를 포함한 전체 */
   category?: ProductCategory
+  /** 아래는 아직 계약에 없는 필터다. 지금은 로컬 모의 서버만 적용한다. */
+  freeShipping?: boolean
+  /** 베리특가(price) 기준 원 단위 범위. 양 끝 포함. */
+  minPrice?: number
+  maxPrice?: number
 }
 
 /** 방송 상태. READY = 준비 중(예정), LIVE = 진행 중, ENDED = 종료 */

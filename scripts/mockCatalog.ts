@@ -2,27 +2,24 @@ import type { IncomingMessage } from 'node:http'
 import { seeded, type MockReply } from './mockServer.ts'
 
 // Prism 모의 서버의 상품은 계약 예시 "가을 니트" 하나뿐이라 카테고리, 랭킹, 검색 화면을 확인하기 어렵다.
-// 로컬 Prism 모드에서만 카테고리마다 15~20개 상품을 만들어 목록, 상세, 상품 이미지를 직접 응답한다.
+// 로컬 Prism 모드에서만 화면에 쓰는 5개 분류(식품, 생활, 가전, 뷰티, 패션)마다 15개 이상 상품을 만들어 목록, 상세, 상품 이미지를 직접 응답한다.
 // 브랜드, 원가, 만족도, 무료배송, 옵션은 아직 Backend 계약에 없는 화면 확인용 필드다. 씨앗이 고정이라 실행할 때마다 같은 상품이 나온다.
 
-type Category = 'FASHION' | 'BEAUTY' | 'FOOD' | 'LIVING' | 'DIGITAL' | 'KIDS' | 'ETC'
+type Category = 'FOOD' | 'LIVING' | 'DIGITAL' | 'BEAUTY' | 'FASHION'
 interface Catalog { brands: string[]; items: [emoji: string, name: string, option: OptionKind][]; price: [min: number, max: number]; colors: [string, string] }
 
+// 화면 순서(식품, 생활, 가전, 뷰티, 패션). 아이, 반려동물, 캠핑, 문구 상품은 쓰임새에 맞는 분류로 나눠 넣었다.
 const CATALOG: Record<Category, Catalog> = {
-  FASHION: { brands: ['드넬', '모노웨어', '어반핏', '라온', '시티무드'], price: [29000, 249000], colors: ['#f3e8ff', '#d8b4fe'],
-    items: [['🧥', '울 블렌디드 벨티드 하프코트', 'apparel'], ['🧶', '캐시미어 라운드 니트', 'apparel'], ['👖', '와이드 데님 팬츠', 'pants'], ['👟', '데일리 러닝 스니커즈', 'shoes'], ['👜', '미니 숄더백', 'color'], ['🧣', '램스울 머플러', 'color'], ['👕', '오버핏 기모 맨투맨', 'apparel'], ['🧤', '니트 장갑 세트', 'color']] },
-  BEAUTY: { brands: ['수분결', '라벨르', '퓨어랩', '메르시', '오롯'], price: [9000, 69000], colors: ['#ffe4ec', '#fda4af'],
-    items: [['🧴', '히알루론 수분 크림', 'volume'], ['💄', '벨벳 립 틴트', 'shade'], ['🧼', '약산성 클렌징 폼', 'set'], ['🌸', '데일리 톤업 선크림', 'set'], ['💅', '젤 네일 스티커', 'nail'], ['🪞', '커버 쿠션 리필 포함', 'cushion'], ['🫧', '버블 클렌저', 'none'], ['🌿', '시카 진정 앰플', 'volume']] },
   FOOD: { brands: ['으뜸한돈', '진한식품', '이쌀이다', '바다곳간', '과일상회'], price: [8000, 59000], colors: ['#fef3c7', '#fcd34d'],
     items: [['🥩', '국내산 냉장 삼겹살 1kg', 'weight'], ['🍲', '바른 도가니탕 500g X 4팩', 'pack'], ['🍚', '햅쌀 특등급 10kg', 'none'], ['🍊', '제주 감귤 3kg', 'fruit'], ['🦐', '손질 새우 1kg', 'weight'], ['🍓', '설향 딸기 500g', 'fruit'], ['🥟', '고기 왕만두 1.4kg', 'set'], ['☕', '콜드브루 원액 1L', 'set']] },
   LIVING: { brands: ['살림공방', '코지홈', '데이린넨', '정리왕', '숲내음'], price: [9000, 129000], colors: ['#e0f2fe', '#7dd3fc'],
-    items: [['🛏️', '극세사 겨울 이불 세트', 'bedding'], ['🕯️', '소이 캔들 디퓨저', 'scent'], ['🧺', '접이식 수납 바구니', 'set'], ['🍳', '인덕션 통주물 프라이팬', 'pan'], ['🪴', '공기정화 식물 화분', 'none'], ['🧹', '무선 물걸레 청소기', 'color'], ['🫖', '유리 티포트 세트', 'none'], ['🛁', '호텔 수건 5장', 'set']] },
+    items: [['🛏️', '극세사 겨울 이불 세트', 'bedding'], ['🕯️', '소이 캔들 디퓨저', 'scent'], ['🧺', '접이식 수납 바구니', 'set'], ['🍳', '인덕션 통주물 프라이팬', 'pan'], ['🪴', '공기정화 식물 화분', 'none'], ['🧹', '무선 물걸레 청소기', 'color'], ['🫖', '유리 티포트 세트', 'none'], ['🛁', '호텔 수건 5장', 'set'], ['🧸', '애착 곰인형', 'toy'], ['🧩', '원목 퍼즐 세트', 'none'], ['🖍️', '세척되는 크레파스 24색', 'set'], ['🚲', '유아 밸런스 바이크', 'color'], ['📚', '그림책 전집 10권', 'none'], ['⛺', '원터치 캠핑 텐트', 'tent'], ['✏️', '젤펜 12색 세트', 'set'], ['🪑', '사무용 메쉬 의자', 'color'], ['🎨', '아크릴 물감 세트', 'none'], ['🏕️', '캠핑 의자 2개', 'color'], ['🐱', '고양이 스크래쳐', 'none']] },
   DIGITAL: { brands: ['소닉랩', '픽셀원', '에어모션', '라이트온', '볼트'], price: [19000, 399000], colors: ['#e2e8f0', '#94a3b8'],
-    items: [['🎧', '노이즈 캔슬링 무선 헤드폰', 'color'], ['⌚', '스마트 워치 GPS', 'watch'], ['🔋', '고속 충전 보조배터리 20000mAh', 'color'], ['⌨️', '무선 기계식 키보드', 'switch'], ['🖱️', '저소음 무선 마우스', 'color'], ['📷', '액션캠 4K', 'none'], ['🔊', '블루투스 스피커', 'color'], ['💡', '스마트 LED 무드등', 'set']] },
-  KIDS: { brands: ['아이숲', '꼬마랑', '베베로운', '토이랜드', '몽글'], price: [9000, 159000], colors: ['#dcfce7', '#86efac'],
-    items: [['🧸', '애착 곰인형', 'toy'], ['🧩', '원목 퍼즐 세트', 'none'], ['👶', '유기농 아기 내복', 'baby'], ['🎒', '초등 경량 책가방', 'color'], ['🖍️', '세척되는 크레파스 24색', 'set'], ['🚲', '유아 밸런스 바이크', 'color'], ['🍼', '젖병 소독기', 'none'], ['📚', '그림책 전집 10권', 'none']] },
-  ETC: { brands: ['펫앤미', '캠핑로그', '하루문구', '트립백', '오피스핏'], price: [5000, 189000], colors: ['#ffedd5', '#fdba74'],
-    items: [['🐶', '반려견 겨울 패딩', 'pet'], ['⛺', '원터치 캠핑 텐트', 'tent'], ['✏️', '젤펜 12색 세트', 'set'], ['🧳', '기내용 캐리어 20인치', 'color'], ['🪑', '사무용 메쉬 의자', 'color'], ['🎨', '아크릴 물감 세트', 'none'], ['🏕️', '캠핑 의자 2개', 'color'], ['🐱', '고양이 스크래쳐', 'none']] },
+    items: [['🎧', '노이즈 캔슬링 무선 헤드폰', 'color'], ['⌚', '스마트 워치 GPS', 'watch'], ['🔋', '고속 충전 보조배터리 20000mAh', 'color'], ['⌨️', '무선 기계식 키보드', 'switch'], ['🖱️', '저소음 무선 마우스', 'color'], ['📷', '액션캠 4K', 'none'], ['🔊', '블루투스 스피커', 'color'], ['💡', '스마트 LED 무드등', 'set'], ['🍼', '젖병 소독기', 'none']] },
+  BEAUTY: { brands: ['수분결', '라벨르', '퓨어랩', '메르시', '오롯'], price: [9000, 69000], colors: ['#ffe4ec', '#fda4af'],
+    items: [['🧴', '히알루론 수분 크림', 'volume'], ['💄', '벨벳 립 틴트', 'shade'], ['🧼', '약산성 클렌징 폼', 'set'], ['🌸', '데일리 톤업 선크림', 'set'], ['💅', '젤 네일 스티커', 'nail'], ['🪞', '커버 쿠션 리필 포함', 'cushion'], ['🫧', '버블 클렌저', 'none'], ['🌿', '시카 진정 앰플', 'volume']] },
+  FASHION: { brands: ['드넬', '모노웨어', '어반핏', '라온', '시티무드'], price: [29000, 249000], colors: ['#f3e8ff', '#d8b4fe'],
+    items: [['🧥', '울 블렌디드 벨티드 하프코트', 'apparel'], ['🧶', '캐시미어 라운드 니트', 'apparel'], ['👖', '와이드 데님 팬츠', 'pants'], ['👟', '데일리 러닝 스니커즈', 'shoes'], ['👜', '미니 숄더백', 'color'], ['🧣', '램스울 머플러', 'color'], ['👕', '오버핏 기모 맨투맨', 'apparel'], ['🧤', '니트 장갑 세트', 'color'], ['👶', '유기농 아기 내복', 'baby'], ['🎒', '초등 경량 책가방', 'color'], ['🐶', '반려견 겨울 패딩', 'pet'], ['🧳', '기내용 캐리어 20인치', 'color']] },
 }
 /** 상품 특성별 옵션. 값마다 추가 금액(원)을 둘 수 있다. 추가 금액은 기본 가격 대비 비율로 정한다. */
 type OptionKind = keyof typeof OPTIONS
@@ -64,6 +61,9 @@ function productOptions(kind: OptionKind, price: number, productId: number): Moc
   }))
 }
 
+/** 누적 판매량. 다른 값의 난수 순서를 바꾸지 않도록 상품 번호를 씨앗으로 따로 뽑는다. */
+const seededSales = (productId: number) => Math.floor(10 ** (1 + seeded(productId * 104729)() * 4))
+
 const SUFFIXES = [' 1+1', ' 기획세트', ' 단독 구성', ' 시즌 신상', ' 대용량', ' 선물 포장']
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -72,6 +72,8 @@ export interface MockProduct {
   productId: number; name: string; description: string; mainImageUrl: string; price: number; available: number
   salesStatus: 'ON_SALE' | 'SOLD_OUT'; purchasable: boolean; category: Category; createdAt: string
   brandName: string; originalPrice: number | null; satisfaction: Satisfaction; freeShipping: boolean; emoji: string; options: MockOption[]
+  /** 누적 판매량. 화면에는 쓰지 않고 판매량순, 랭킹순 정렬에만 쓴다. */
+  salesCount: number
 }
 
 const round100 = (value: number) => Math.round(value / 100) * 100
@@ -91,7 +93,7 @@ export function mockProducts(random = seeded(20261113)): MockProduct[] {
   const products: MockProduct[] = []
   const now = Date.now()
   for (const [category, catalog] of Object.entries(CATALOG) as [Category, Catalog][]) {
-    const count = 15 + Math.floor(random() * 6)
+    const count = Math.max(catalog.items.length, 15 + Math.floor(random() * 6))
     for (let i = 0; i < count; i++) {
       const [emoji, item, option] = catalog.items[i % catalog.items.length]
       const brandName = catalog.brands[Math.floor(random() * catalog.brands.length)]
@@ -106,7 +108,7 @@ export function mockProducts(random = seeded(20261113)): MockProduct[] {
         price, available, salesStatus: available ? 'ON_SALE' : 'SOLD_OUT', purchasable: available > 0, category,
         createdAt: new Date(now - Math.floor(random() * 30 * DAY_MS)).toISOString(),
         brandName, originalPrice: discounted ? list : null, satisfaction: satisfaction(random), freeShipping: random() < 0.6, emoji,
-        options: productOptions(option, price, productId),
+        options: productOptions(option, price, productId), salesCount: seededSales(productId),
       })
     }
   }
@@ -124,7 +126,13 @@ export function productImage(product: MockProduct) {
 </svg>`
 }
 
+const reviews = (product: MockProduct) => Object.values(product.satisfaction).reduce((sum, n) => sum + n, 0)
+/** 랭킹 점수. 판매량, 리뷰 수, 최근 등록을 섞는다. 실제 랭킹 기준이 정해지면 Backend 가 대신한다. */
+const rankScore = (product: MockProduct, now: number) => Math.log10(product.salesCount + 1) * 3 + Math.log10(reviews(product) + 1) * 2 - (now - Date.parse(product.createdAt)) / DAY_MS / 10
 const SORTS = {
+  RANKING: (a: MockProduct, b: MockProduct) => rankScore(b, Date.now()) - rankScore(a, Date.now()),
+  SALES: (a: MockProduct, b: MockProduct) => b.salesCount - a.salesCount,
+  REVIEWS: (a: MockProduct, b: MockProduct) => reviews(b) - reviews(a),
   LATEST: (a: MockProduct, b: MockProduct) => b.createdAt.localeCompare(a.createdAt),
   PRICE_ASC: (a: MockProduct, b: MockProduct) => a.price - b.price,
   PRICE_DESC: (a: MockProduct, b: MockProduct) => b.price - a.price,
@@ -146,11 +154,15 @@ export function catalogMock(products = mockProducts()) {
     }
     if (url.pathname !== '/v1/products') return
     const q = url.searchParams.get('q')?.trim(), status = url.searchParams.get('status'), category = url.searchParams.get('category')
-    const sort = SORTS[url.searchParams.get('sort') as keyof typeof SORTS] ?? SORTS.LATEST
+    // 계약상 sort 를 생략하면 최신순이지만, 화면의 기본 정렬인 랭킹순을 확인할 수 있게 모의 서버는 랭킹순으로 답한다.
+    const sort = SORTS[url.searchParams.get('sort') as keyof typeof SORTS] ?? SORTS.RANKING
+    const free = url.searchParams.get('freeShipping') === 'true'
+    const min = Number(url.searchParams.get('minPrice') ?? '') || 0, max = Number(url.searchParams.get('maxPrice') ?? '') || Infinity
     const found = products
       .filter(item => !q || item.name.includes(q) || item.brandName.includes(q))
       .filter(item => !status || item.salesStatus === status)
       .filter(item => !category || item.category === category)
+      .filter(item => (!free || item.freeShipping) && item.price >= min && item.price <= max)
       .toSorted(sort)
     const from = Number(url.searchParams.get('cursor') ?? 0) || 0
     const size = Math.min(Number(url.searchParams.get('size') ?? 20) || 20, 50)
