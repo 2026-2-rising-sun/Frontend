@@ -54,3 +54,6 @@ img {
     --bottom-nav-height: 60px;
   }
 }
+
+/* 화면에는 숨기고 읽기 보조기기에만 읽히는 글 */
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
