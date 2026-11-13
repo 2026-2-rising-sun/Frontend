@@ -76,6 +76,29 @@ export interface MockProduct {
   salesCount: number
   /** 지금 주문 진행 중인 수, 상품을 보고 있는 사람 수. 화면 확인용 고정값이다. */
   orderingCount: number; viewingCount: number
+  /** 상품 카드 종류별 표시값. 새벽도착(DAWN), 오늘출발(TODAY), 무료반품, 총 내용량, 묶음 수 */
+  deliveryType: 'DAWN' | 'TODAY' | null; freeReturn: boolean; netContent: NetContent | null; packCount: number | null
+}
+
+export interface NetContent { amount: number; unit: 'g' | 'ml' | '개' }
+
+/** 상품명에서 총 내용량과 묶음 수를 읽는다. "500g X 4팩"은 2000g, "수건 5장"은 5개, "1+1"은 2개 묶음이다. */
+export function readContent(name: string): { netContent: NetContent | null; packCount: number | null } {
+  const pack = Number(name.match(/X\s*(\d+)\s*팩/)?.[1] ?? 1) * (name.includes('1+1') ? 2 : 1)
+  const size = name.match(/(\d+(?:\.\d+)?)\s*(kg|g|L|ml)(?![a-zA-Z])/)
+  if (size) {
+    const [amount, unit] = { kg: [1000, 'g'], g: [1, 'g'], L: [1000, 'ml'], ml: [1, 'ml'] }[size[2] as 'kg' | 'g' | 'L' | 'ml'] as [number, 'g' | 'ml']
+    return { netContent: { amount: Math.round(Number(size[1]) * amount * pack), unit }, packCount: pack > 1 ? pack : null }
+  }
+  const pieces = Number(name.match(/(\d+)\s*(?:개|장|권)(?!\S*색)/)?.[1] ?? 1) * pack
+  return { netContent: pieces > 1 ? { amount: pieces, unit: '개' } : null, packCount: pieces > 1 ? pieces : null }
+}
+
+/** 식품은 대부분 새벽도착, 그 밖에는 일부만 오늘출발. 상품 번호를 씨앗으로 따로 뽑아 다른 값의 난수 순서를 바꾸지 않는다. */
+function delivery(category: Category, productId: number): MockProduct['deliveryType'] {
+  const roll = seeded(productId * 41)()
+  if (category === 'FOOD') return roll < 0.75 ? 'DAWN' : null
+  return roll < 0.45 ? 'TODAY' : null
 }
 
 const round100 = (value: number) => Math.round(value / 100) * 100
@@ -112,6 +135,7 @@ export function mockProducts(random = seeded(20261113)): MockProduct[] {
         brandName, originalPrice: discounted ? list : null, satisfaction: satisfaction(random), freeShipping: random() < 0.6, emoji,
         options: productOptions(option, price, productId), salesCount: seededSales(productId),
         orderingCount: Math.floor(seeded(productId * 31)() * 3000), viewingCount: Math.floor(seeded(productId * 37)() * 4000),
+        deliveryType: delivery(category, productId), freeReturn: seeded(productId * 43)() < 0.4, ...readContent(name),
       })
     }
   }

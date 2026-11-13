@@ -1,8 +1,8 @@
 import { isProductCategory } from '../../domain/types'
-import type { Product, ProductOptionGroup, Satisfaction, SellerProduct, SellerProductStatus, LiveDetail, Order, Paged } from '../../domain/types'
+import type { DeliveryType, NetContent, Product, ProductOptionGroup, Satisfaction, SellerProduct, SellerProductStatus, LiveDetail, Order, Paged } from '../../domain/types'
 import { ApiError } from '../../domain/errors'
 export const states: Record<string, SellerProductStatus> = { NOT_REGISTERED: 'DRAFT', UNKNOWN: 'UNKNOWN', READY: 'READY', ON_SALE: 'SELLING', SOLD_OUT: 'SOLD_OUT', PRIVATE: 'HIDDEN' }
-export type ProductDto = { productId: number; name: string | null; description?: string; mainImageUrl: string | null; version?: number; salesStatus?: string; status?: string | null; price: number | null; available?: number | null; purchasable?: boolean; linkId?: number; missing?: boolean; category?: string | null; subcategory?: string | null; brandName?: string | null; originalPrice?: number | null; satisfaction?: Satisfaction | null; freeShipping?: boolean; options?: ProductOptionGroup[] | null; liveDeal?: { broadcastId: number | string; broadcastTitle: string; discount: number; startsAt: string; endsAt: string } | null; orderingCount?: number | null; viewingCount?: number | null }
+export type ProductDto = { productId: number; name: string | null; description?: string; mainImageUrl: string | null; version?: number; salesStatus?: string; status?: string | null; price: number | null; available?: number | null; purchasable?: boolean; linkId?: number; missing?: boolean; category?: string | null; subcategory?: string | null; brandName?: string | null; originalPrice?: number | null; satisfaction?: Satisfaction | null; freeShipping?: boolean; options?: ProductOptionGroup[] | null; liveDeal?: { broadcastId: number | string; broadcastTitle: string; discount: number; startsAt: string; endsAt: string } | null; orderingCount?: number | null; viewingCount?: number | null; deliveryType?: string | null; freeReturn?: boolean; netContent?: NetContent | null; packCount?: number | null }
 export const imageUrl = (url: string | null) => url
 export function product(p: ProductDto): Product {
   const status = states[p.salesStatus ?? p.status ?? 'PRIVATE']
@@ -10,8 +10,11 @@ export function product(p: ProductDto): Product {
   return { id: String(p.productId), name: p.name ?? '조회할 수 없는 상품', description: p.description ?? '', imageUrl: imageUrl(p.mainImageUrl), price: p.price ?? 0, stock: p.available ?? null, status, purchasable: p.purchasable, linkId: p.linkId === undefined ? undefined : String(p.linkId), missing: p.missing, category: isProductCategory(p.category) ? p.category : null, subcategory: p.subcategory ?? null,
     brand: p.brandName ?? null, originalPrice: p.originalPrice && p.price && p.originalPrice > p.price ? p.originalPrice : null, satisfaction: p.satisfaction ?? null, freeShipping: p.freeShipping ?? false,
     options: (p.options ?? []).filter(group => group.values?.length),
-    liveDeal: p.liveDeal ? { ...p.liveDeal, broadcastId: String(p.liveDeal.broadcastId) } : null, orderingCount: p.orderingCount ?? null, viewingCount: p.viewingCount ?? null }
+    liveDeal: p.liveDeal ? { ...p.liveDeal, broadcastId: String(p.liveDeal.broadcastId) } : null, orderingCount: p.orderingCount ?? null, viewingCount: p.viewingCount ?? null,
+    delivery: DELIVERY_TYPES.includes(p.deliveryType as DeliveryType) ? p.deliveryType as DeliveryType : null, freeReturn: p.freeReturn ?? false,
+    netContent: p.netContent && p.netContent.amount > 0 ? p.netContent : null, packCount: p.packCount && p.packCount > 1 ? p.packCount : null }
 }
+const DELIVERY_TYPES: readonly DeliveryType[] = ['DAWN', 'TODAY']
 export function sellerProduct(p: ProductDto, salesId: string | null = null): SellerProduct {
   const status = states[p.salesStatus ?? 'NOT_REGISTERED']
   if (!status) throw new ApiError('NETWORK', '판매 정보를 조회하지 못했어요. 잠시 후 다시 시도해 주세요.')
