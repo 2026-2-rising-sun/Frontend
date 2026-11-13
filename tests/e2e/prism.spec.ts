@@ -3,6 +3,10 @@ test('Prism: anonymous product read and login-gated checkout/cart', async ({ pag
   const result = await request.get('/api/catalog/v1/products/1'); expect(result.ok()).toBeTruthy()
   const product = (await result.json()).data
   await page.goto('/products/1'); await expect(page.getByRole('heading', { name: product.name, exact: true })).toBeVisible()
+  // 옵션이 있는 상품은 묶음마다 품절 아닌 첫 값을 골라야 구매할 수 있다.
+  for (const select of await page.getByRole('group', { name: '옵션 선택' }).getByRole('combobox').all()) {
+    await select.selectOption(await select.locator('option:not([disabled])').first().getAttribute('value') ?? '')
+  }
   await page.getByRole('link', { name: '바로 구매', exact: true }).click()
   await expect(page.getByRole('heading', { name: '로그인', exact: true })).toBeVisible()
   await page.getByLabel('아이디 또는 이메일').fill('user'); await page.getByLabel('비밀번호', { exact: true }).fill('user')
