@@ -12,6 +12,8 @@ import { readFilter, writeFilter, type ProductFilter } from './productFilter'
 import styles from './CategoryPage.module.css'
 
 const PAGE_SIZE = 12
+/** 식품, 생활은 양과 묶음을 비교하는 상품이 많아 단위가격을 보이는 가성비형 카드를 쓴다. */
+const VALUE_CATEGORIES: readonly string[] = ['FOOD', 'LIVING']
 
 /**
  * 1단계 분류별 공개 상품 목록. 주소는 /categories/beauty 처럼 소문자 분류값을 쓴다.
@@ -49,7 +51,7 @@ function CategoryProducts({ value, label }: { value: (typeof PRODUCT_CATEGORIES)
       <PagedView infinite state={products} skeleton={<ProductGridSkeleton />}
         emptyTitle={filter.freeShipping || filter.minPrice !== undefined || filter.maxPrice !== undefined ? '조건에 맞는 상품이 없어요' : `${sub?.label ?? label} 상품이 아직 없어요`}
         emptyMessage={filter.freeShipping || filter.minPrice !== undefined || filter.maxPrice !== undefined ? '필터를 바꿔 보세요.' : '다른 카테고리를 둘러보세요.'}>
-        {items => <ProductGrid products={items} />}
+        {items => <ProductGrid products={items} variant={VALUE_CATEGORIES.includes(value) ? 'value' : 'standard'} />}
       </PagedView>
     </section>
   </PageContainer>

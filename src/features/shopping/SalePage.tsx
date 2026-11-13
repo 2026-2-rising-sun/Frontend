@@ -5,7 +5,6 @@ import { PageContainer } from '../../components/PageContainer'
 import { Chip } from '../../components/ui'
 import type { ProductSort } from '../../domain/types'
 import { usePaged } from '../../hooks/usePaged'
-import { formatPrice } from '../../lib/format'
 import { ProductCard } from './components/ProductCard'
 import { ProductGridSkeleton } from './components/ProductGrid'
 import { fetchSalePage } from './saleProducts'
@@ -41,8 +40,7 @@ export function SalePage() {
     <PagedView infinite state={sale} skeleton={<ProductGridSkeleton />} emptyTitle="지금 세일 중인 상품이 없어요" emptyMessage="쿠폰 행사가 열리면 이곳에 모아 보여드려요.">
       {items => <ul className={styles.grid}>
         {items.map(({ product, discount }) => <li key={product.id} className={styles.item}>
-          <span className={styles.discount}>{formatPrice(discount)} 할인</span>
-          <ProductCard product={product} />
+          <ProductCard product={product} variant="deal" couponDiscount={discount} />
         </li>)}
       </ul>}
     </PagedView>

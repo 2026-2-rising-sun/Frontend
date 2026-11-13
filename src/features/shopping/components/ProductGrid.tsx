@@ -1,14 +1,14 @@
 import { Skeleton } from '../../../components/ui'
 import type { Product } from '../../../domain/types'
-import { ProductCard } from './ProductCard'
+import { ProductCard, type ProductCardVariant } from './ProductCard'
 import styles from './ProductGrid.module.css'
 
 /** 반응형 상품 그리드: 모바일 2열 → 태블릿 3열 → 데스크톱 4열 */
-export function ProductGrid({ products }: { products: Product[] }) {
+export function ProductGrid({ products, variant }: { products: Product[]; variant?: ProductCardVariant }) {
   return (
     <div className={styles.grid}>
       {products.map((p) => (
-        <ProductCard key={p.id} product={p} />
+        <ProductCard key={p.id} product={p} variant={variant} />
       ))}
     </div>
   )

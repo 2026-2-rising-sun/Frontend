@@ -47,6 +47,26 @@
 
 .card:hover .name { text-decoration: underline; }
 
+/* 특가형: 맨 위 할인 문구, 할인율 + 가격 */
+.headline { display: flex; align-items: center; gap: var(--space-1); color: var(--danger-text); font: 700 14px/20px var(--font-sans); }
+.badge { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: var(--radius-full); background: var(--danger-default); color: var(--color-neutral-0); font: 700 11px/1 var(--font-sans); }
+.rate { margin-right: var(--space-2); color: var(--danger-text); }
+.dealCard .price { color: var(--danger-text); }
+.count { color: var(--text-tertiary); }
+.coupon { background: var(--danger-subtle); color: var(--danger-text); }
+
+/* 간결형: 테두리 안에 이미지, 이름 한 줄, 가격과 빠른 배송 */
+.compact { gap: var(--space-3); padding: var(--space-3); border: 1px solid var(--border-default); border-radius: var(--radius-lg); background: var(--bg-surface); }
+.compact .thumb { border: 0; }
+.oneLine { -webkit-line-clamp: 1; }
+.priceLine { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
+.delivery { display: inline-flex; align-items: center; padding: 0 var(--space-2); border: 1px solid var(--brand-border); border-radius: var(--radius-sm); color: var(--text-brand); font: 700 12px/20px var(--font-sans); }
+
+/* 가성비형: 묶음 수 배지, 단위가격, 혜택 칩 */
+.pack { position: absolute; top: var(--space-2); left: var(--space-2); z-index: 1; padding: 2px var(--space-2); border-radius: var(--radius-sm); background: rgb(30 25 28 / 0.78); color: var(--text-on-strong); font: 700 13px/20px var(--font-sans); }
+.unit { color: var(--text-secondary); font: 400 13px/20px var(--font-sans); }
+.benefit { background: var(--info-subtle); color: var(--info-text); }
+
 @media (max-width: 767px) {
   .brand { font-size: 12px; line-height: 18px; }
   .name { font-size: 14px; line-height: 20px; }
@@ -54,4 +74,7 @@
   .price { font-size: 16px; line-height: 24px; }
   .rating { font-size: 12px; line-height: 18px; }
   .star { width: 14px; height: 14px; }
+  .headline { font-size: 12px; line-height: 18px; }
+  .unit { font-size: 12px; line-height: 18px; }
+  .compact { padding: var(--space-2); }
 }
