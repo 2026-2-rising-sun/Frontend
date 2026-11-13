@@ -74,7 +74,7 @@ async function login(page: Page) {
   await expect(page.getByRole('heading', { name: '내 계정', exact: true })).toBeVisible()
 }
 
-test('홈은 실제 연결 상품 사진을 사용하고 검색 결과는 커서 추가 조회·정렬을 유지한다', async ({ page }) => {
+test('홈은 실제 연결 상품 사진을 사용하고 검색 결과는 무한 스크롤 커서 조회와 정렬을 유지한다', async ({ page }) => {
   const api = await setup(page)
   await page.goto('/')
   await expect(page.getByRole('region', { name: '진행 중인 방송' }).getByAltText('오늘의 라이브')).toHaveAttribute('src', '/fixtures/product-3.svg')
@@ -82,8 +82,7 @@ test('홈은 실제 연결 상품 사진을 사용하고 검색 결과는 커서
   const search = page.getByRole('searchbox', { name: '상품 검색' })
   await search.fill('상품'); await search.press('Enter')
   const section = page.locator('#products')
-  await expect(productLinks(section)).toHaveCount(2)
-  await page.getByRole('button', { name: '더 보기', exact: true }).click()
+  // 목록 끝이 화면에 들어오면 버튼 없이 다음 묶음을 이어서 불러온다.
   await expect(productLinks(section)).toHaveCount(3)
   expect(api.cursors).toContain('2')
   await page.getByRole('combobox', { name: '정렬 기준' }).selectOption('PRICE_ASC')

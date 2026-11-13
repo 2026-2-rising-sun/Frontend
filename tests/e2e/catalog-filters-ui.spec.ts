@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 const product = (id: number, name: string) => ({ productId: id, name, mainImageUrl: null, price: id * 1000, salesStatus: 'ON_SALE', purchasable: true })
 const envelope = (data: unknown) => ({ success: true, data, error: null })
 
-test('검색·상태·정렬 조건을 서버에 전달하고 더 보기와 조건 변경에서 커서를 관리한다', async ({ page }) => {
+test('검색·상태·정렬 조건을 서버에 전달하고 무한 스크롤과 조건 변경에서 커서를 관리한다', async ({ page }) => {
   const requests: URL[] = []
   await page.route(/\/api\/(member|commercecore|catalog|live|notification)\//, async route => {
     const url = new URL(route.request().url())
@@ -16,23 +16,29 @@ test('검색·상태·정렬 조건을 서버에 전달하고 더 보기와 조�
     if (url.pathname.endsWith('/live/v1/broadcasts')) return route.fulfill({ json: envelope({ content: [], totalElements: 0, totalPages: 0, number: 0, size: 6 }) })
     return route.fulfill({ status: 401 })
   })
+  /** from 번째 이후 요청 중 첫 묶음(커서 없음)과 이어 부른 묶음(커서 있음) */
+  const after = (from: number) => ({ first: requests.slice(from).find(url => !url.searchParams.has('cursor')), more: requests.slice(from).find(url => url.searchParams.has('cursor')) })
   await page.goto('/?q=니트')
-  await expect(page.locator('#products').getByRole('link', { name: /니트 첫 번째/ })).toBeVisible()
-  await page.getByLabel('정렬 기준').selectOption('PRICE_ASC')
-  await expect.poll(() => requests.at(-1)?.searchParams.get('sort')).toBe('PRICE_ASC')
-  await page.getByRole('button', { name: '판매 중', exact: true }).click()
-  await expect.poll(() => requests.at(-1)?.searchParams.get('status')).toBe('ON_SALE')
-  await page.getByRole('button', { name: '더 보기', exact: true }).click()
+  // 목록 끝이 화면에 들어오면 버튼 없이 다음 묶음을 이어서 불러온다.
   await expect(page.locator('#products').getByRole('link', { name: /니트 두 번째/ })).toBeVisible()
-  expect(requests.at(-1)?.searchParams.get('q')).toBe('니트')
-  expect(requests.at(-1)?.searchParams.get('cursor')).toBe('next-cursor')
+  expect(after(0).more?.searchParams.get('cursor')).toBe('next-cursor')
+  expect(after(0).more?.searchParams.get('q')).toBe('니트')
+  let from = requests.length
+  await page.getByLabel('정렬 기준').selectOption('PRICE_ASC')
+  await expect.poll(() => after(from).first?.searchParams.get('sort')).toBe('PRICE_ASC')
+  await expect.poll(() => after(from).more?.searchParams.get('sort')).toBe('PRICE_ASC')
+  from = requests.length
+  await page.getByRole('button', { name: '판매 중', exact: true }).click()
+  await expect.poll(() => after(from).first?.searchParams.get('status')).toBe('ON_SALE')
+  await expect.poll(() => after(from).more?.searchParams.get('status')).toBe('ON_SALE')
+  from = requests.length
   await page.getByLabel('정렬 기준').selectOption('PRICE_DESC')
-  await expect.poll(() => requests.at(-1)?.searchParams.get('sort')).toBe('PRICE_DESC')
-  expect(requests.at(-1)?.searchParams.has('cursor')).toBe(false)
-  await expect(page.locator('#products').getByRole('link', { name: /니트 두 번째/ })).toHaveCount(0)
+  // 조건이 바뀌면 커서 없이 첫 묶음부터 다시 부른다.
+  await expect.poll(() => requests[from]?.searchParams.get('sort')).toBe('PRICE_DESC')
+  expect(requests[from].searchParams.has('cursor')).toBe(false)
 })
 
-test('이전 조건의 지연된 더 보기 응답이 새 목록이나 새 조건 더 보기를 막지 않는다', async ({ page }) => {
+test('이전 조건의 지연된 추가 조회 응답이 새 목록이나 새 조건의 추가 조회를 막지 않는다', async ({ page }) => {
   let release!: () => void
   const held = new Promise<void>(resolve => { release = resolve })
   let oldMore = false
@@ -50,11 +56,10 @@ test('이전 조건의 지연된 더 보기 응답이 새 목록이나 새 조�
   })
   await page.goto('/?q=상품')
   await expect(page.locator('#products').getByRole('link', { name: /이전 목록 상품/ })).toBeVisible()
-  await page.getByRole('button', { name: '더 보기', exact: true }).click()
+  // 목록 끝이 보이므로 다음 묶음 요청이 자동으로 나가고, 그 응답은 잡아 둔다.
   await expect.poll(() => oldMore).toBe(true)
   await page.getByLabel('정렬 기준').selectOption('PRICE_DESC')
   await expect(page.locator('#products').getByRole('link', { name: /새 목록 첫 상품/ })).toBeVisible()
-  await page.getByRole('button', { name: '더 보기', exact: true }).click()
   await expect(page.locator('#products').getByRole('link', { name: /새 목록 다음 상품/ })).toBeVisible()
   release()
   await page.waitForResponse(response => response.url().includes('/catalog/v1/products') && new URL(response.url()).searchParams.get('sort') === 'LATEST')
