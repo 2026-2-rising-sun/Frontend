@@ -40,6 +40,7 @@
 
 .tags { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: var(--space-1); }
 .tag { padding: 2px var(--space-2); border-radius: var(--radius-sm); background: var(--bg-muted); color: var(--text-secondary); font: 500 12px/18px var(--font-sans); }
+.live { background: var(--brand-subtle); color: var(--text-brand); }
 
 .soldOut .name,
 .soldOut .price { color: var(--text-tertiary); }
