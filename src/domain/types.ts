@@ -31,7 +31,12 @@ export interface Product {
   /** 리뷰 만족도 4단계별 인원 */
   satisfaction?: Satisfaction | null
   freeShipping?: boolean
+  /** 선택 옵션 묶음(컬러, 사이즈, 구성 등). 비어 있으면 옵션 없는 상품이다. */
+  options?: ProductOptionGroup[]
 }
+
+/** 옵션 묶음 하나. 값마다 기본 가격에 더할 금액(음수 가능)과 품절 여부가 있다. */
+export interface ProductOptionGroup { name: string; values: { label: string; extraPrice: number; soldOut: boolean }[] }
 
 /** 리뷰 만족도 4단계(매우 만족해요, 만족해요, 아쉬워요, 매우 아쉬워요)별 인원 */
 export interface Satisfaction { veryGood: number; good: number; bad: number; veryBad: number }
