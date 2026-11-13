@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useApi } from '../../app/apiContext'
-import { Button } from '../../components/ui'
+import { Button, InfoTip } from '../../components/ui'
 import { useAsync } from '../../hooks/useAsync'
 import { ProductCard } from '../shopping/components/ProductCard'
 import { ProductGridSkeleton } from '../shopping/components/ProductGrid'
@@ -21,24 +21,6 @@ function useHourlyNow() {
 }
 
 /** ⓘ 안내. 마우스를 올리거나 키보드로 포커스하면 열리고, 누르면 고정, X 나 Esc 로 닫는다. */
-function RankingInfo() {
-  const [hovered, setHovered] = useState(false)
-  const [pinned, setPinned] = useState(false)
-  const open = hovered || pinned
-  const close = () => { setHovered(false); setPinned(false) }
-  return <div className={styles.infoWrap} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-    onKeyDown={event => { if (event.key === 'Escape') close() }}>
-    <button type="button" className={styles.info} aria-label="판매 인기 기준 안내" aria-expanded={open} aria-controls="hourly-info"
-      onClick={() => setPinned(value => !value)} onFocus={() => setHovered(true)} onBlur={event => { if (!event.currentTarget.parentElement?.contains(event.relatedTarget)) setHovered(false) }}>i</button>
-    {open && <div id="hourly-info" role="tooltip" className={styles.tooltip}>
-      <p>{INFO}</p>
-      <button type="button" className={styles.tooltipClose} aria-label="안내 닫기" onClick={close}>
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18" /></svg>
-      </button>
-    </div>}
-  </div>
-}
-
 /** "OO시 기준 판매 인기". 판매 인기 상위 10개를 매 정각 다시 불러온다. */
 export function HourlyRanking() {
   const api = useApi()
@@ -49,7 +31,7 @@ export function HourlyRanking() {
   return <section className={styles.section} aria-labelledby="hourly-heading">
     <div className={styles.subHead}>
       <h2 id="hourly-heading" className={styles.subTitle}>오늘 {hour}시 기준 판매 인기</h2>
-      <RankingInfo />
+      <InfoTip id="hourly-info" label="판매 인기 기준 안내">{INFO}</InfoTip>
     </div>
     {!ranking.data && !ranking.error ? <ProductGridSkeleton count={SIZE} />
       : ranking.error && !ranking.data ? <div className={styles.empty}><p>판매 인기 상품을 불러오지 못했어요.</p><Button variant="secondary" size="S" onClick={ranking.reload}>순위 다시 조회</Button></div>
