@@ -1,0 +1,7 @@
+.stars { display: inline-flex; gap: 2px; }
+.stars svg { width: var(--star-size, 16px); height: var(--star-size, 16px); stroke-width: 1.4; }
+.filled { fill: currentColor; stroke: currentColor; }
+.empty { fill: none; stroke: currentColor; }
+.brand { color: var(--brand-default); }
+.muted { color: var(--text-tertiary); }
+.gold { color: var(--color-warning-500); }
