@@ -1,5 +1,5 @@
 import type { IncomingMessage } from 'node:http'
-import { mockProducts } from './mockCatalog.ts'
+import { mockProducts, type MockProduct } from './mockCatalog.ts'
 import { seeded, type MockReply } from './mockServer.ts'
 
 export { seeded }
@@ -34,14 +34,52 @@ export function weeklyMockLives(now = new Date(), random = seeded(Math.floor((no
   }))
 }
 
+const onSale = () => mockProducts().filter(product => product.salesStatus === 'ON_SALE')
+
+/** 방송마다 소개하는 판매 중 상품 3개 */
+export const liveProducts = (liveId: number, products: MockProduct[]) => [0, 1, 2].map(n => products[(liveId * 7 + n * 13) % products.length])
+
+/** 라이브 할인(베리특가). 방송이 정한 기간 동안 소개 상품에 쿠폰 할인이 붙는다. */
+export interface MockLiveDeal { broadcastId: number; broadcastTitle: string; discount: number; startsAt: string; endsAt: string }
+
+/**
+ * 방송마다 할인 기간과 할인율을 정한다. 시작은 방송 2~4일 전 17시, 끝은 방송 1~3일 뒤 23:59(한국 시간)이고 할인율은 10~30%다.
+ * 이번 주 예정 방송과 지난주 방송(방송 뒤 할인이 남아 있을 수 있다)을 함께 본다.
+ * now 가 기간 안인 할인만 돌려준다. 한 상품이 여러 방송에 걸리면 할인액이 큰 쪽을 쓴다.
+ */
+export function liveDeals(now = new Date(), products = onSale()): Map<number, MockLiveDeal> {
+  const deals = new Map<number, MockLiveDeal>()
+  const lastWeek = weeklyMockLives(new Date(now.getTime() - 7 * DAY_MS)).map(live => ({ ...live, id: live.id + 100 }))
+  for (const live of [...lastWeek, ...weeklyMockLives(now)]) {
+    const random = seeded(Date.parse(live.scheduledAt) / HOUR_MS)
+    const liveDay = Math.floor((Date.parse(live.scheduledAt) + KST_MS) / DAY_MS) * DAY_MS - KST_MS
+    const startsAt = liveDay - (2 + Math.floor(random() * 3)) * DAY_MS + 17 * HOUR_MS
+    const endsAt = liveDay + (2 + Math.floor(random() * 3)) * DAY_MS - 60_000
+    const rate = 0.1 + Math.floor(random() * 5) * 0.05
+    if (now.getTime() < startsAt || now.getTime() > endsAt) continue
+    for (const product of liveProducts(live.id, products)) {
+      const discount = Math.round(product.price * rate / 100) * 100
+      if ((deals.get(product.productId)?.discount ?? 0) >= discount) continue
+      deals.set(product.productId, { broadcastId: live.id, broadcastTitle: live.title, discount, startsAt: new Date(startsAt).toISOString(), endsAt: new Date(endsAt).toISOString() })
+    }
+  }
+  return deals
+}
+
+/** 상품 응답에 지금 걸린 라이브 할인을 붙인다. 없으면 null. */
+export function withLiveDeals<T extends MockProduct>(items: T[], now = new Date()): (T & { liveDeal: MockLiveDeal | null })[] {
+  const deals = liveDeals(now)
+  return items.map(item => ({ ...item, liveDeal: deals.get(item.productId) ?? null }))
+}
+
 /** 방송 목록과 방송 소개 상품에 답한다. 그 밖의 방송 요청은 undefined 를 돌려 Prism 에 맡긴다. */
-export function liveMock(products = mockProducts().filter(product => product.salesStatus === 'ON_SALE')) {
+export function liveMock(products = onSale()) {
   return (url: URL, req: IncomingMessage): MockReply | undefined => {
     if (req.method !== 'GET') return
     const linked = url.pathname.match(/^\/v1\/broadcasts\/(\d+)\/products$/)
     if (linked) {
       const id = Number(linked[1])
-      return { body: [0, 1, 2].map(n => products[(id * 7 + n * 13) % products.length]).map((product, n) => ({ ...product, linkId: id * 10 + n })) }
+      return { body: withLiveDeals(liveProducts(id, products)).map((product, n) => ({ ...product, linkId: id * 10 + n })) }
     }
     if (url.pathname !== '/v1/broadcasts') return
     const status = url.searchParams.get('status')

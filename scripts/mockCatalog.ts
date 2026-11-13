@@ -74,6 +74,8 @@ export interface MockProduct {
   brandName: string; originalPrice: number | null; satisfaction: Satisfaction; freeShipping: boolean; emoji: string; options: MockOption[]
   /** 누적 판매량. 화면에는 쓰지 않고 판매량순, 랭킹순 정렬에만 쓴다. */
   salesCount: number
+  /** 지금 주문 진행 중인 수, 상품을 보고 있는 사람 수. 화면 확인용 고정값이다. */
+  orderingCount: number; viewingCount: number
 }
 
 const round100 = (value: number) => Math.round(value / 100) * 100
@@ -109,6 +111,7 @@ export function mockProducts(random = seeded(20261113)): MockProduct[] {
         createdAt: new Date(now - Math.floor(random() * 30 * DAY_MS)).toISOString(),
         brandName, originalPrice: discounted ? list : null, satisfaction: satisfaction(random), freeShipping: random() < 0.6, emoji,
         options: productOptions(option, price, productId), salesCount: seededSales(productId),
+        orderingCount: Math.floor(seeded(productId * 31)() * 3000), viewingCount: Math.floor(seeded(productId * 37)() * 4000),
       })
     }
   }
@@ -139,7 +142,8 @@ const SORTS = {
 }
 
 /** 상품 목록, 상세, 이미지 요청에 답한다. 그 밖의 요청(쿠폰, 구매 확인 등)은 undefined 를 돌려 Prism 에 맡긴다. */
-export function catalogMock(products = mockProducts()) {
+/** decorate 는 응답 직전에 상품에 덧붙일 값(라이브 할인 등)을 정한다. */
+export function catalogMock(products = mockProducts(), decorate: (items: MockProduct[]) => object[] = items => items) {
   return (url: URL, req: IncomingMessage): MockReply | undefined => {
     if (req.method !== 'GET') return
     const image = url.pathname.match(/^\/v1\/mock-images\/(\d+)\.svg$/)
@@ -150,7 +154,7 @@ export function catalogMock(products = mockProducts()) {
     const detail = url.pathname.match(/^\/v1\/products\/(\d+)$/)
     if (detail) {
       const product = products.find(item => item.productId === Number(detail[1]))
-      return product && { body: { ...product, maxQuantity: Math.min(product.available, 10) } }
+      return product && { body: { ...decorate([product])[0], maxQuantity: Math.min(product.available, 10) } }
     }
     if (url.pathname !== '/v1/products') return
     const q = url.searchParams.get('q')?.trim(), status = url.searchParams.get('status'), category = url.searchParams.get('category')
@@ -167,6 +171,6 @@ export function catalogMock(products = mockProducts()) {
     const from = Number(url.searchParams.get('cursor') ?? 0) || 0
     const size = Math.min(Number(url.searchParams.get('size') ?? 20) || 20, 50)
     const hasNext = from + size < found.length
-    return { body: { items: found.slice(from, from + size), nextCursor: hasNext ? String(from + size) : null, hasNext } }
+    return { body: { items: decorate(found.slice(from, from + size)), nextCursor: hasNext ? String(from + size) : null, hasNext } }
   }
 }

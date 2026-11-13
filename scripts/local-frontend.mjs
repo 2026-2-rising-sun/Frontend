@@ -3,7 +3,7 @@ import { mkdirSync, createWriteStream } from 'node:fs'
 import { resolve } from 'node:path'
 import { servicePorts, publicServices } from './services.ts'
 import { startMock } from './mockServer.ts'
-import { liveMock } from './mockLives.ts'
+import { liveMock, withLiveDeals } from './mockLives.ts'
 import { catalogMock } from './mockCatalog.ts'
 const root = resolve(import.meta.dirname, '..')
 const prism = process.argv.includes('--prism')
@@ -31,7 +31,7 @@ for (const service of publicServices) {
   const apiPort = (prism ? 10500 : 10400) + servicePorts[service]
   urls[service.toUpperCase() + '_URL'] = 'http://127.0.0.1:' + apiPort
   // 방송 목록과 상품 목록은 모의 데이터로 바꾸고, 나머지 API는 뒤에 둔 Prism으로 넘긴다.
-  const mock = prism && { live: liveMock, catalog: catalogMock }[service]
+  const mock = prism && { live: () => liveMock(), catalog: () => catalogMock(undefined, items => withLiveDeals(items)) }[service]
   const prismPort = mock ? apiPort + 100 : apiPort
   if (mock) startMock(apiPort, prismPort, mock())
   if (prism) start(root + '/node_modules/.bin/prism', ['mock', resolve(process.env.BACKEND_DIR ?? root + '/../Backend', `contracts/api/${service}-service.yaml`), '--host', '127.0.0.1', '--port', String(prismPort)], service)
