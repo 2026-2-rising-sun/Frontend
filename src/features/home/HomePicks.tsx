@@ -3,7 +3,7 @@ import { useApi } from '../../app/apiContext'
 import { Button, Skeleton } from '../../components/ui'
 import type { Product } from '../../domain/types'
 import { useAsync, type AsyncState } from '../../hooks/useAsync'
-import { ProductCard, type ProductCardVariant } from '../shopping/components/ProductCard'
+import { ProductCard } from '../shopping/components/ProductCard'
 import { loadRecentAndRelated } from '../shopping/recentProducts'
 import { loadRanking } from '../shopping/rankingProducts'
 import { ProductPicksDialog } from './ProductPicksDialog'
@@ -33,8 +33,8 @@ export function HomePicks() {
   const more = (target: 'trending' | 'recommended') => <button type="button" className={styles.more} aria-haspopup="dialog" onClick={() => setDialog(target)}>더보기 <span aria-hidden="true">›</span></button>
 
   return <div className={styles.picks}>
-    <PickColumn id="trending" title="요즘 주목 받는 상품" variant="deal" more={more('trending')} state={trending} emptyMessage="방송에서 소개 중인 상품이 아직 없어요." />
-    <PickColumn id="recommended" title="나를 위한 추천 상품" variant="compact" more={more('recommended')} state={recommended} emptyMessage="추천할 상품이 아직 없어요." />
+    <PickColumn id="trending" title="요즘 주목 받는 상품" more={more('trending')} state={trending} emptyMessage="방송에서 소개 중인 상품이 아직 없어요." />
+    <PickColumn id="recommended" title="나를 위한 추천 상품" more={more('recommended')} state={recommended} emptyMessage="추천할 상품이 아직 없어요." />
     {dialog === 'trending' && <ProductPicksDialog title="요즘 주목 받는 상품" onClose={() => setDialog(null)}
       emptyTitle="순위에 올릴 상품이 아직 없어요" emptyMessage="판매 상품이 등록되면 이곳에 보여드려요."
       load={async () => (await loadRanking(api)).map((product, index) => ({ product, tag: String(index + 1), strong: index < 3 }))} />}
@@ -54,11 +54,9 @@ interface PickColumnProps {
   more: ReactNode
   state: AsyncState<Product[]>
   emptyMessage: string
-  /** 주목 상품은 특가형, 추천 상품은 간결형 카드로 보인다. */
-  variant: ProductCardVariant
 }
 
-function PickColumn({ id, title, more, state, emptyMessage, variant }: PickColumnProps) {
+function PickColumn({ id, title, more, state, emptyMessage }: PickColumnProps) {
   const [page, setPage] = useState(0)
   const products = state.data ?? []
   const pages = Math.max(1, Math.ceil(products.length / PER_PAGE))
@@ -74,7 +72,7 @@ function PickColumn({ id, title, more, state, emptyMessage, variant }: PickColum
       : state.error && !state.data ? <div className={styles.empty}><p>상품을 불러오지 못했어요.</p><Button variant="secondary" size="S" onClick={state.reload}>상품 다시 조회</Button></div>
         : !products.length ? <p className={styles.empty}>{emptyMessage}</p>
           : <>
-            <div className={styles.cards}>{shown.map(product => <ProductCard key={product.id} product={product} variant={variant} />)}</div>
+            <div className={styles.cards}>{shown.map(product => <ProductCard key={product.id} product={product} variant="random" />)}</div>
             {pages > 1 && <button type="button" className={styles.next} onClick={() => setPage((current + 1) % pages)}>
               다른 상품 추천해드릴게요 <span className={styles.count}><strong>{current + 1}</strong> | {pages}</span>
             </button>}

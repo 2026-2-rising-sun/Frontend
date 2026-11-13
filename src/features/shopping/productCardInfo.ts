@@ -23,3 +23,14 @@ export function unitPriceLabel(content: NetContent | null | undefined, price: nu
 }
 
 export const DELIVERY_LABEL: Record<DeliveryType, string> = { DAWN: '새벽도착', TODAY: '오늘출발' }
+
+/** 상품 카드 종류. ProductCard 의 설명을 함께 본다. */
+export const CARD_VARIANTS = ['standard', 'deal', 'compact', 'value'] as const
+
+/** 상품 번호로 카드 종류를 고른다. 무작위처럼 섞이지만 같은 상품은 어느 화면에서든 같은 카드다. */
+export function randomCardVariant(productId: string): (typeof CARD_VARIANTS)[number] {
+  let hash = 0
+  for (const char of productId) hash = (Math.imul(hash, 31) + char.charCodeAt(0)) | 0
+  hash = Math.imul(hash ^ (hash >>> 16), 0x45d9f3b)
+  return CARD_VARIANTS[((hash ^ (hash >>> 16)) >>> 0) % CARD_VARIANTS.length]
+}

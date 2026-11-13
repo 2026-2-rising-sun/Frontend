@@ -4,7 +4,7 @@ import { ProductCard, type ProductCardVariant } from './ProductCard'
 import styles from './ProductGrid.module.css'
 
 /** 반응형 상품 그리드: 모바일 2열 → 태블릿 3열 → 데스크톱 4열 */
-export function ProductGrid({ products, variant }: { products: Product[]; variant?: ProductCardVariant }) {
+export function ProductGrid({ products, variant }: { products: Product[]; variant?: ProductCardVariant | 'random' }) {
   return (
     <div className={styles.grid}>
       {products.map((p) => (

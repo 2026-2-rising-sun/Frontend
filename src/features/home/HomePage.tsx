@@ -75,7 +75,7 @@ function SearchResults({ query }: { query: string }) {
       <Select aria-label="정렬 기준" value={sort} options={SORT_OPTIONS} onChange={v => setParam('sort', v, 'LATEST')} />
     </div>
     <PagedView infinite state={products} skeleton={<ProductGridSkeleton />} emptyTitle="조건에 맞는 상품이 없어요" emptyMessage="검색어나 판매 상태를 변경해 보세요.">
-      {items => <ProductGrid products={items} />}
+      {items => <ProductGrid products={items} variant="random" />}
     </PagedView>
   </section>
 }
