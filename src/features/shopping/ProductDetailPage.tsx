@@ -4,6 +4,7 @@ import { useApi } from '../../app/apiContext'
 import { AsyncView } from '../../components/AsyncView'
 import { PageContainer } from '../../components/PageContainer'
 import { Alert, Button, ButtonLink, QuantityStepper, Skeleton, StatusBadge, Thumbnail, productBadge } from '../../components/ui'
+import { subcategoryLabel } from '../../domain/subcategories'
 import { categoryLabel, type Product, type ProductCategory } from '../../domain/types'
 import { useAsync } from '../../hooks/useAsync'
 import { formatPrice } from '../../lib/format'
@@ -29,7 +30,7 @@ function ProductPage({ productId }: { productId: string }) {
   // 홈의 "최근 본 상품과 연관 추천 상품"에 쓰도록 실제로 조회된 상품만 기록한다.
   useEffect(() => { if (product.data) recordRecentProduct(product.data.id) }, [product.data])
   return <div className={styles.surface}><PageContainer className={styles.page}>
-    <Breadcrumb category={product.data?.category ?? null} />
+    <Breadcrumb category={product.data?.category ?? null} subcategory={product.data?.subcategory ?? null} />
     <AsyncView state={product} skeleton={<div className={styles.layout}><Skeleton height={0} style={{ aspectRatio: '672 / 520', height: 'auto' }} radius={20} /><Skeleton height={320} radius={14} /></div>}>
       {p => <ProductDetail product={p} />}
     </AsyncView>
@@ -127,12 +128,15 @@ function ReviewLine({ product }: { product: Product }) {
   </p>
 }
 
-/** "홈 / 식품" 처럼 상품의 분류를 보여 준다. 분류를 누르면 그 분류 목록으로 간다. 미분류나 불러오는 중에는 "상품 상세"로 둔다. */
-function Breadcrumb({ category }: { category: ProductCategory | null }) {
+/** "홈 / 식품 / 가공식품" 처럼 상품의 분류와 세부 분류를 보여 준다. 누르면 그 목록으로 간다. 미분류나 불러오는 중에는 "상품 상세"로 둔다. */
+function Breadcrumb({ category, subcategory }: { category: ProductCategory | null; subcategory: string | null }) {
   const label = categoryLabel(category)
+  const subLabel = subcategoryLabel(category, subcategory)
+  const path = category && `/categories/${category.toLowerCase()}`
   return <nav aria-label="현재 위치" className={styles.breadcrumb}>
     <Link to="/">홈</Link><span aria-hidden="true">/</span>
-    {label && category ? <Link to={`/categories/${category.toLowerCase()}`}>{label}</Link> : <span>상품 상세</span>}
+    {label && path ? <Link to={path}>{label}</Link> : <span>상품 상세</span>}
+    {label && path && subLabel && <><span aria-hidden="true">/</span><Link to={`${path}?sub=${subcategory}`}>{subLabel}</Link></>}
   </nav>
 }
 

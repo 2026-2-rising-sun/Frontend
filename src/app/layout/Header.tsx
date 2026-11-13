@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate } from 'react-router-dom'
 import { NotificationBadge } from '../../features/notifications/NotificationBadge'
 import { useSession } from '../../features/auth/useSession'
 import { SearchBox } from '../../components/SearchBox'
+import { subcategoriesOf } from '../../domain/subcategories'
 import { PRODUCT_CATEGORIES, type ProductCategory } from '../../domain/types'
 import { useApi } from '../apiContext'
 import styles from './Header.module.css'
@@ -13,15 +14,6 @@ const NAV = [
   { to: '/lives', label: '라이브' },
   ...PRODUCT_CATEGORIES.map(category => ({ to: categoryPath(category.value), label: category.label })),
 ]
-/** 카테고리 펼침 화면에서 분류 이름 아래에 적는 대표 품목 */
-const CATEGORY_HINTS: Partial<Record<ProductCategory, string>> = {
-  FOOD: '정육, 수산, 과일, 간편식',
-  LIVING: '침구, 주방, 완구, 캠핑, 문구',
-  DIGITAL: '음향, 웨어러블, 주변기기, 육아가전',
-  BEAUTY: '스킨케어, 메이크업, 클렌징',
-  FASHION: '의류, 신발, 가방, 유아동, 반려견',
-}
-
 /** 맨 위는 계정 메뉴(카테고리, 장바구니, 마이페이지, 로그인 상태, 알림), 가운데는 로고와 검색, 아래는 오특, 라이브, 대표 분류 탭이다. */
 export function Header() {
   const session = useSession()
@@ -64,7 +56,7 @@ export function Header() {
   )
 }
 
-/** "카테고리"를 누르면 머리글 아래에 전체 분류를 펼친다. 바깥 클릭, Esc, 항목 선택 시 닫는다. */
+/** "카테고리"를 누르면 머리글 아래에 분류와 세부 분류를 펼친다. 바깥 클릭, Esc, 항목 선택 시 닫는다. */
 function CategoryMenu() {
   const [open, setOpen] = useState(false)
   const button = useRef<HTMLButtonElement>(null)
@@ -86,11 +78,13 @@ function CategoryMenu() {
     </button>
     {open && <div ref={panel} id="category-menu" className={styles.categoryPanel}>
       <ul className={styles.categoryGrid}>
-        {PRODUCT_CATEGORIES.map(category => <li key={category.value}>
-          <Link to={categoryPath(category.value)} className={styles.categoryLink} onClick={() => setOpen(false)}>
-            <span className={styles.categoryName}>{category.label}<span aria-hidden="true">›</span></span>
-            <span className={styles.categoryHint}>{CATEGORY_HINTS[category.value]}</span>
-          </Link>
+        {PRODUCT_CATEGORIES.map(category => <li key={category.value} className={styles.categoryColumn}>
+          <Link to={categoryPath(category.value)} className={styles.categoryName} onClick={() => setOpen(false)}>{category.label}<span aria-hidden="true">›</span></Link>
+          <ul className={styles.subList} aria-label={`${category.label} 세부 카테고리`}>
+            {subcategoriesOf(category.value).map(sub => <li key={sub.value}>
+              <Link to={`${categoryPath(category.value)}?sub=${sub.value}`} className={styles.subLink} onClick={() => setOpen(false)}>{sub.label}</Link>
+            </li>)}
+          </ul>
         </li>)}
       </ul>
     </div>}
