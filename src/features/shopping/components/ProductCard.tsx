@@ -30,7 +30,6 @@ export function ProductCard({ product }: { product: Product }) {
           <span>{satisfied}% 만족</span><span className={styles.reviews}>리뷰 {reviewCount(product.satisfaction).toLocaleString('ko-KR')}</span>
         </p>}
         {product.freeShipping && <p className={styles.tags}><span className={styles.tag}>무료배송</span></p>}
-        <p className={styles.stock}>{product.stock === null ? '재고 확인 필요' : `남은 재고 ${product.stock.toLocaleString('ko-KR')}개`}</p>
         {product.status !== 'SELLING' && <StatusBadge status={productBadge(product.status)} />}
         <ProductCouponHint productId={product.id} />
       </div>
