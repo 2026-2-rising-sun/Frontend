@@ -17,6 +17,16 @@ test('모의 상품은 카테고리마다 15개 이상이고, 할인 상품은 �
     assert.equal(product.salesStatus === 'SOLD_OUT', product.available === 0)
   }
   assert.ok(products.some(product => product.freeShipping) && products.some(product => !product.freeShipping))
+  // 옷은 컬러와 사이즈, 프라이팬은 사이즈와 구성처럼 상품 특성에 맞는 옵션이 붙는다. 품절 아닌 값이 묶음마다 하나 이상 있다.
+  const coat = products.find(product => product.name.startsWith('울 블렌디드'))!
+  assert.deepEqual(coat.options.map(group => group.name), ['컬러', '사이즈'])
+  const pan = products.find(product => product.name.startsWith('인덕션 통주물 프라이팬'))!
+  assert.deepEqual(pan.options.map(group => group.name), ['사이즈', '구성'])
+  assert.ok(pan.options[1].values.some(value => value.label === '2개 세트' && value.extraPrice > 0))
+  for (const product of products) {
+    for (const group of product.options) assert.ok(group.values.some(value => !value.soldOut), `${product.name} ${group.name}`)
+    for (const value of product.options.flatMap(group => group.values)) assert.ok(product.price + value.extraPrice > 0)
+  }
   assert.deepEqual(mockProducts().map(product => product.name), products.map(product => product.name))
 })
 

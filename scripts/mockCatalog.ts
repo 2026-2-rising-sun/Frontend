@@ -3,27 +3,67 @@ import { seeded, type MockReply } from './mockServer.ts'
 
 // Prism 모의 서버의 상품은 계약 예시 "가을 니트" 하나뿐이라 카테고리, 랭킹, 검색 화면을 확인하기 어렵다.
 // 로컬 Prism 모드에서만 카테고리마다 15~20개 상품을 만들어 목록, 상세, 상품 이미지를 직접 응답한다.
-// 브랜드, 원가, 만족도, 무료배송은 아직 Backend 계약에 없는 화면 확인용 필드다. 씨앗이 고정이라 실행할 때마다 같은 상품이 나온다.
+// 브랜드, 원가, 만족도, 무료배송, 옵션은 아직 Backend 계약에 없는 화면 확인용 필드다. 씨앗이 고정이라 실행할 때마다 같은 상품이 나온다.
 
 type Category = 'FASHION' | 'BEAUTY' | 'FOOD' | 'LIVING' | 'DIGITAL' | 'KIDS' | 'ETC'
-interface Catalog { brands: string[]; items: [emoji: string, name: string][]; price: [min: number, max: number]; colors: [string, string] }
+interface Catalog { brands: string[]; items: [emoji: string, name: string, option: OptionKind][]; price: [min: number, max: number]; colors: [string, string] }
 
 const CATALOG: Record<Category, Catalog> = {
   FASHION: { brands: ['드넬', '모노웨어', '어반핏', '라온', '시티무드'], price: [29000, 249000], colors: ['#f3e8ff', '#d8b4fe'],
-    items: [['🧥', '울 블렌디드 벨티드 하프코트'], ['🧶', '캐시미어 라운드 니트'], ['👖', '와이드 데님 팬츠'], ['👟', '데일리 러닝 스니커즈'], ['👜', '미니 숄더백'], ['🧣', '램스울 머플러'], ['👕', '오버핏 기모 맨투맨'], ['🧤', '니트 장갑 세트']] },
+    items: [['🧥', '울 블렌디드 벨티드 하프코트', 'apparel'], ['🧶', '캐시미어 라운드 니트', 'apparel'], ['👖', '와이드 데님 팬츠', 'pants'], ['👟', '데일리 러닝 스니커즈', 'shoes'], ['👜', '미니 숄더백', 'color'], ['🧣', '램스울 머플러', 'color'], ['👕', '오버핏 기모 맨투맨', 'apparel'], ['🧤', '니트 장갑 세트', 'color']] },
   BEAUTY: { brands: ['수분결', '라벨르', '퓨어랩', '메르시', '오롯'], price: [9000, 69000], colors: ['#ffe4ec', '#fda4af'],
-    items: [['🧴', '히알루론 수분 크림'], ['💄', '벨벳 립 틴트'], ['🧼', '약산성 클렌징 폼'], ['🌸', '데일리 톤업 선크림'], ['💅', '젤 네일 스티커'], ['🪞', '커버 쿠션 리필 포함'], ['🫧', '버블 클렌저'], ['🌿', '시카 진정 앰플']] },
+    items: [['🧴', '히알루론 수분 크림', 'volume'], ['💄', '벨벳 립 틴트', 'shade'], ['🧼', '약산성 클렌징 폼', 'set'], ['🌸', '데일리 톤업 선크림', 'set'], ['💅', '젤 네일 스티커', 'nail'], ['🪞', '커버 쿠션 리필 포함', 'cushion'], ['🫧', '버블 클렌저', 'none'], ['🌿', '시카 진정 앰플', 'volume']] },
   FOOD: { brands: ['으뜸한돈', '진한식품', '이쌀이다', '바다곳간', '과일상회'], price: [8000, 59000], colors: ['#fef3c7', '#fcd34d'],
-    items: [['🥩', '국내산 냉장 삼겹살 1kg'], ['🍲', '바른 도가니탕 500g X 4팩'], ['🍚', '햅쌀 특등급 10kg'], ['🍊', '제주 감귤 3kg'], ['🦐', '손질 새우 1kg'], ['🍓', '설향 딸기 500g'], ['🥟', '고기 왕만두 1.4kg'], ['☕', '콜드브루 원액 1L']] },
+    items: [['🥩', '국내산 냉장 삼겹살 1kg', 'weight'], ['🍲', '바른 도가니탕 500g X 4팩', 'pack'], ['🍚', '햅쌀 특등급 10kg', 'none'], ['🍊', '제주 감귤 3kg', 'fruit'], ['🦐', '손질 새우 1kg', 'weight'], ['🍓', '설향 딸기 500g', 'fruit'], ['🥟', '고기 왕만두 1.4kg', 'set'], ['☕', '콜드브루 원액 1L', 'set']] },
   LIVING: { brands: ['살림공방', '코지홈', '데이린넨', '정리왕', '숲내음'], price: [9000, 129000], colors: ['#e0f2fe', '#7dd3fc'],
-    items: [['🛏️', '극세사 겨울 이불 세트'], ['🕯️', '소이 캔들 디퓨저'], ['🧺', '접이식 수납 바구니'], ['🍳', '인덕션 통주물 프라이팬'], ['🪴', '공기정화 식물 화분'], ['🧹', '무선 물걸레 청소기'], ['🫖', '유리 티포트 세트'], ['🛁', '호텔 수건 5장']] },
+    items: [['🛏️', '극세사 겨울 이불 세트', 'bedding'], ['🕯️', '소이 캔들 디퓨저', 'scent'], ['🧺', '접이식 수납 바구니', 'set'], ['🍳', '인덕션 통주물 프라이팬', 'pan'], ['🪴', '공기정화 식물 화분', 'none'], ['🧹', '무선 물걸레 청소기', 'color'], ['🫖', '유리 티포트 세트', 'none'], ['🛁', '호텔 수건 5장', 'set']] },
   DIGITAL: { brands: ['소닉랩', '픽셀원', '에어모션', '라이트온', '볼트'], price: [19000, 399000], colors: ['#e2e8f0', '#94a3b8'],
-    items: [['🎧', '노이즈 캔슬링 무선 헤드폰'], ['⌚', '스마트 워치 GPS'], ['🔋', '고속 충전 보조배터리 20000mAh'], ['⌨️', '무선 기계식 키보드'], ['🖱️', '저소음 무선 마우스'], ['📷', '액션캠 4K'], ['🔊', '블루투스 스피커'], ['💡', '스마트 LED 무드등']] },
+    items: [['🎧', '노이즈 캔슬링 무선 헤드폰', 'color'], ['⌚', '스마트 워치 GPS', 'watch'], ['🔋', '고속 충전 보조배터리 20000mAh', 'color'], ['⌨️', '무선 기계식 키보드', 'switch'], ['🖱️', '저소음 무선 마우스', 'color'], ['📷', '액션캠 4K', 'none'], ['🔊', '블루투스 스피커', 'color'], ['💡', '스마트 LED 무드등', 'set']] },
   KIDS: { brands: ['아이숲', '꼬마랑', '베베로운', '토이랜드', '몽글'], price: [9000, 159000], colors: ['#dcfce7', '#86efac'],
-    items: [['🧸', '애착 곰인형'], ['🧩', '원목 퍼즐 세트'], ['👶', '유기농 아기 내복'], ['🎒', '초등 경량 책가방'], ['🖍️', '세척되는 크레파스 24색'], ['🚲', '유아 밸런스 바이크'], ['🍼', '젖병 소독기'], ['📚', '그림책 전집 10권']] },
+    items: [['🧸', '애착 곰인형', 'toy'], ['🧩', '원목 퍼즐 세트', 'none'], ['👶', '유기농 아기 내복', 'baby'], ['🎒', '초등 경량 책가방', 'color'], ['🖍️', '세척되는 크레파스 24색', 'set'], ['🚲', '유아 밸런스 바이크', 'color'], ['🍼', '젖병 소독기', 'none'], ['📚', '그림책 전집 10권', 'none']] },
   ETC: { brands: ['펫앤미', '캠핑로그', '하루문구', '트립백', '오피스핏'], price: [5000, 189000], colors: ['#ffedd5', '#fdba74'],
-    items: [['🐶', '반려견 겨울 패딩'], ['⛺', '원터치 캠핑 텐트'], ['✏️', '젤펜 12색 세트'], ['🧳', '기내용 캐리어 20인치'], ['🪑', '사무용 메쉬 의자'], ['🎨', '아크릴 물감 세트'], ['🏕️', '캠핑 의자 2개'], ['🐱', '고양이 스크래쳐']] },
+    items: [['🐶', '반려견 겨울 패딩', 'pet'], ['⛺', '원터치 캠핑 텐트', 'tent'], ['✏️', '젤펜 12색 세트', 'set'], ['🧳', '기내용 캐리어 20인치', 'color'], ['🪑', '사무용 메쉬 의자', 'color'], ['🎨', '아크릴 물감 세트', 'none'], ['🏕️', '캠핑 의자 2개', 'color'], ['🐱', '고양이 스크래쳐', 'none']] },
 }
+/** 상품 특성별 옵션. 값마다 추가 금액(원)을 둘 수 있다. 추가 금액은 기본 가격 대비 비율로 정한다. */
+type OptionKind = keyof typeof OPTIONS
+type OptionSpec = { name: string; values: [label: string, extra?: number][] }[]
+const SIZES: [string][] = [['S'], ['M'], ['L'], ['XL']]
+const OPTIONS = {
+  none: [],
+  apparel: [{ name: '컬러', values: [['블랙'], ['아이보리'], ['네이비'], ['카멜']] }, { name: '사이즈', values: SIZES }],
+  pants: [{ name: '컬러', values: [['연청'], ['중청'], ['흑청']] }, { name: '사이즈', values: [['26'], ['28'], ['30'], ['32'], ['34']] }],
+  shoes: [{ name: '컬러', values: [['화이트'], ['블랙'], ['그레이']] }, { name: '사이즈', values: [['230'], ['240'], ['250'], ['260'], ['270'], ['280']] }],
+  color: [{ name: '컬러', values: [['블랙'], ['화이트'], ['베이지'], ['그레이']] }],
+  shade: [{ name: '컬러', values: [['01 로지 핑크'], ['02 코랄 브라운'], ['03 체리 레드'], ['04 누드 베이지']] }],
+  nail: [{ name: '디자인', values: [['프렌치'], ['글리터'], ['마블'], ['원컬러']] }],
+  cushion: [{ name: '호수', values: [['17호 라이트'], ['21호 내추럴'], ['23호 미디엄']] }],
+  volume: [{ name: '용량', values: [['50ml'], ['100ml', 0.6]] }],
+  set: [{ name: '구성', values: [['1개'], ['2개 세트', 0.9], ['3개 세트', 1.7]] }],
+  pan: [{ name: '사이즈', values: [['24cm'], ['28cm', 0.2]] }, { name: '구성', values: [['1개'], ['2개 세트', 0.9]] }],
+  weight: [{ name: '중량', values: [['500g', -0.45], ['1kg'], ['2kg', 0.9]] }],
+  pack: [{ name: '구성', values: [['4팩'], ['8팩', 0.85]] }],
+  fruit: [{ name: '크기', values: [['중과'], ['대과', 0.25], ['특대과', 0.5]] }],
+  bedding: [{ name: '사이즈', values: [['싱글'], ['퀸', 0.3], ['킹', 0.5]] }, { name: '컬러', values: [['크림'], ['그레이'], ['핑크']] }],
+  scent: [{ name: '향', values: [['라벤더'], ['우디 앰버'], ['화이트 머스크']] }],
+  watch: [{ name: '컬러', values: [['블랙'], ['실버'], ['로즈골드']] }, { name: '사이즈', values: [['41mm'], ['45mm', 0.1]] }],
+  switch: [{ name: '스위치', values: [['적축'], ['갈축'], ['청축']] }],
+  toy: [{ name: '크기', values: [['30cm'], ['50cm', 0.5]] }],
+  baby: [{ name: '사이즈', values: [['70'], ['80'], ['90'], ['100']] }, { name: '컬러', values: [['오트밀'], ['스카이']] }],
+  pet: [{ name: '컬러', values: [['베이지'], ['네이비']] }, { name: '사이즈', values: [['S'], ['M'], ['L', 0.15]] }],
+  tent: [{ name: '인원', values: [['2인용'], ['4인용', 0.6]] }],
+} satisfies Record<string, OptionSpec>
+
+export interface MockOption { name: string; values: { label: string; extraPrice: number; soldOut: boolean }[] }
+
+/** 옵션 값에 추가 금액을 붙이고, 일부 값은 품절로 둔다. 옵션은 상품 번호를 씨앗으로 써서 상품 목록이 바뀌어도 그대로다. */
+function productOptions(kind: OptionKind, price: number, productId: number): MockOption[] {
+  const random = seeded(productId * 7919)
+  return (OPTIONS[kind] as OptionSpec).map(group => ({
+    name: group.name,
+    values: group.values.map(([label, extra = 0]) => ({ label, extraPrice: round100(price * extra), soldOut: group.values.length > 2 && random() < 0.12 })),
+  }))
+}
+
 const SUFFIXES = [' 1+1', ' 기획세트', ' 단독 구성', ' 시즌 신상', ' 대용량', ' 선물 포장']
 const DAY_MS = 24 * 60 * 60 * 1000
 
@@ -31,7 +71,7 @@ export interface Satisfaction { veryGood: number; good: number; bad: number; ver
 export interface MockProduct {
   productId: number; name: string; description: string; mainImageUrl: string; price: number; available: number
   salesStatus: 'ON_SALE' | 'SOLD_OUT'; purchasable: boolean; category: Category; createdAt: string
-  brandName: string; originalPrice: number | null; satisfaction: Satisfaction; freeShipping: boolean; emoji: string
+  brandName: string; originalPrice: number | null; satisfaction: Satisfaction; freeShipping: boolean; emoji: string; options: MockOption[]
 }
 
 const round100 = (value: number) => Math.round(value / 100) * 100
@@ -53,7 +93,7 @@ export function mockProducts(random = seeded(20261113)): MockProduct[] {
   for (const [category, catalog] of Object.entries(CATALOG) as [Category, Catalog][]) {
     const count = 15 + Math.floor(random() * 6)
     for (let i = 0; i < count; i++) {
-      const [emoji, item] = catalog.items[i % catalog.items.length]
+      const [emoji, item, option] = catalog.items[i % catalog.items.length]
       const brandName = catalog.brands[Math.floor(random() * catalog.brands.length)]
       const name = `${item}${i < catalog.items.length ? '' : SUFFIXES[Math.floor(random() * SUFFIXES.length)]}`
       const list = round100(catalog.price[0] + random() * (catalog.price[1] - catalog.price[0]))
@@ -66,6 +106,7 @@ export function mockProducts(random = seeded(20261113)): MockProduct[] {
         price, available, salesStatus: available ? 'ON_SALE' : 'SOLD_OUT', purchasable: available > 0, category,
         createdAt: new Date(now - Math.floor(random() * 30 * DAY_MS)).toISOString(),
         brandName, originalPrice: discounted ? list : null, satisfaction: satisfaction(random), freeShipping: random() < 0.6, emoji,
+        options: productOptions(option, price, productId),
       })
     }
   }
