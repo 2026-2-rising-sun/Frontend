@@ -10,7 +10,10 @@ import { formatPrice } from '../../lib/format'
 import { ProductCoupons } from '../coupons/ProductCoupons'
 import { AlertSubscription } from '../notifications/AlertSubscription'
 import { useSession } from '../auth/useSession'
+import { SatisfactionSummary } from './components/SatisfactionSummary'
+import { Stars } from './components/Stars'
 import { recordRecentProduct } from './recentProducts'
+import { reviewCount, satisfiedPercent } from './satisfaction'
 import styles from './ProductDetailPage.module.css'
 
 export function ProductDetailPage() {
@@ -66,8 +69,16 @@ function ProductDetail({ product }: { product: Product }) {
       <div className={styles.gallery}><Thumbnail src={product.imageUrl} alt={product.name} ratio="672 / 520" className={styles.image} /><p>상품 이미지</p></div>
       <div className={styles.info}>
         {product.status !== 'SELLING' && <StatusBadge status={productBadge(product.status)} />}
-        <h1 className={`t-h1 ${styles.name}`}>{product.name}</h1>
-        <p className="t-price-lg">{formatPrice(product.price)}</p>
+        <div className={styles.titleBlock}>
+          {product.brand && <p className={styles.brand}>{product.brand}</p>}
+          <h1 className={`t-h1 ${styles.name}`}>{product.name}</h1>
+          <ReviewLine product={product} />
+          {product.freeShipping && <p className={styles.tags}><span className={styles.tag}>무료배송</span></p>}
+        </div>
+        <div className={styles.prices}>
+          {product.originalPrice && <del className={styles.original} aria-label={`원가 ${formatPrice(product.originalPrice)}`}>{formatPrice(product.originalPrice)}</del>}
+          <p className="t-price-lg">{product.originalPrice && <span className={styles.deal}>베리특가</span>}{formatPrice(product.price)}</p>
+        </div>
         {product.description && <a href="#product-description" className={styles.summary}>{product.description}</a>}
         {buyable && product.stock !== null && product.stock <= 10 && <p className={styles.stock}>재고 {product.stock}개 남음</p>}
         {product.featuredLive && <Link to={`/lives/${product.featuredLive.id}`} className={styles.live}><StatusBadge status="live" /><span>{product.featuredLive.title}에서 소개된 상품이에요</span></Link>}
@@ -86,6 +97,20 @@ function ProductDetail({ product }: { product: Product }) {
         </div>
       </div>
     </div>
+    {product.satisfaction && <SatisfactionSummary satisfaction={product.satisfaction} />}
     <section id="product-description" className={styles.description} aria-labelledby="description-heading"><h2 id="description-heading" className="t-h2">상품 설명</h2><p>{product.description || '등록된 상품 설명이 없어요.'}</p></section>
   </div>
+}
+
+/** 제목 아래 별점 줄. 평균 단계만큼 별을 칠하고, 리뷰 수를 누르면 상품 만족도로 이동한다. 리뷰가 없으면 숨긴다. */
+function ReviewLine({ product }: { product: Product }) {
+  const s = product.satisfaction
+  const total = reviewCount(s)
+  if (!s || !total) return null
+  const average = (s.veryGood * 4 + s.good * 3 + s.bad * 2 + s.veryBad) / total
+  return <p className={styles.reviewLine}>
+    <Stars filled={Math.round(average)} tone="gold" />
+    <span>{satisfiedPercent(s)}% 만족</span>
+    <a href="#satisfaction" className={styles.reviewLink}>리뷰 {total.toLocaleString('ko-KR')}</a>
+  </p>
 }
