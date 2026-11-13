@@ -16,7 +16,7 @@ const visible = (product: Product) => !product.missing && (product.status === 'S
 const reducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
 
 /**
- * "오직 베리온에서만". 오늘부터 일주일 날짜 칸을 화면 위에 붙여 두고, 그 아래에 일주일치 예정 방송을 시작 순서대로 이어 보여 준다.
+ * "라이브 예고". 오늘부터 일주일 날짜 칸을 화면 위에 붙여 두고, 그 아래에 일주일치 예정 방송을 시작 순서대로 이어 보여 준다.
  * 날짜를 누르면 그날 첫 방송으로 스크롤하고, 스크롤하면 지금 보이는 방송의 날짜가 선택된다. 방송이 없는 날은 회색으로 두고 고를 수 없다.
  */
 export function ExclusiveLives() {
@@ -67,7 +67,7 @@ export function ExclusiveLives() {
 
   return <section className={sections.section} aria-labelledby="exclusive-heading">
     <div className={sections.head}>
-      <h2 id="exclusive-heading" className={sections.title}>오직 베리온에서만</h2>
+      <h2 id="exclusive-heading" className={sections.title}>라이브 예고</h2>
       <Link to="/lives" className={sections.more}>더보기 <span aria-hidden="true">›</span></Link>
     </div>
     {!lives.data && !lives.error ? <Skeleton height={320} radius={12} />

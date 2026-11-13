@@ -18,7 +18,7 @@ test('다음 정각까지 남은 시간으로 순위를 다시 불러온다', ()
   assert.equal(msUntilNextHour(new Date('2026-11-12T08:00:00Z')), 60 * 60_000)
 })
 
-test('오직 베리온에서만은 예정 방송만 모든 페이지에서 모아 시작이 빠른 다섯 개를 고른다', async () => {
+test('라이브 예고는 예정 방송만 모든 페이지에서 모아 시작이 빠른 다섯 개를 고른다', async () => {
   const statuses: string[] = []
   const pages = [
     ['f', 'd', 'b', 'g'].map((id, i) => live(id, `2026-11-${13 + i}T10:00:00Z`)),

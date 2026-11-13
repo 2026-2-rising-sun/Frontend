@@ -63,7 +63,7 @@ async function setup(page: Page, options: { liveFailure?: boolean; linkedFailure
 /** 메인 칸 */
 /** 픽스처 방송(10월 17, 18일)이 이번 주에 들도록 고정하는 시각. 한국 시간 2026-10-17(토) 12:00 */
 const FIXTURE_NOW = new Date('2026-10-17T12:00:00+09:00')
-const exclusive = (page: Page) => page.getByRole('region', { name: '오직 베리온에서만', exact: true })
+const exclusive = (page: Page) => page.getByRole('region', { name: '라이브 예고', exact: true })
 const productLinks = (section: Locator) => section.locator('a[href^="/products/"]')
 const ranking = (page: Page) => page.getByRole('region', { name: /^오늘 \d+시 기준 판매 인기$/ })
 async function login(page: Page) {
@@ -175,7 +175,7 @@ test('다른 상품으로 이동하는 동안 이전 상품의 구매 버튼을 
 })
 
 
-test('오직 베리온에서만은 일주일 날짜 칸과 일주일치 예정 방송을, 판매 인기는 정시 기준 순위를 보여준다', async ({ page }) => {
+test('라이브 예고는 일주일 날짜 칸과 일주일치 예정 방송을, 판매 인기는 정시 기준 순위를 보여준다', async ({ page }) => {
   await page.clock.setFixedTime(FIXTURE_NOW)
   const api = await setup(page)
   await page.goto('/')

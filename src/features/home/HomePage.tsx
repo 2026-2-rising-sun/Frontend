@@ -33,7 +33,7 @@ const SORT_OPTIONS: { value: ProductSort; label: string }[] = [
 ]
 
 /**
- * 메인. 배너, 주목·추천 상품, "오직 베리온에서만", 시간별 판매 인기 순서로 보여 준다.
+ * 메인. 배너, 주목·추천 상품, "라이브 예고", 시간별 판매 인기 순서로 보여 준다.
  * 헤더 검색어(?q=)가 있으면 그 자리에 검색 결과 목록을 보여 준다.
  */
 export function HomePage() {
