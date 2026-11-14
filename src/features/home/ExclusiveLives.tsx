@@ -29,7 +29,7 @@ export function ExclusiveLives() {
   const headerHeight = useHeaderHeight()
   const daysRef = useRef<HTMLDivElement>(null)
   const listRef = useRef<HTMLOListElement>(null)
-  const lock = useRef<{ timer?: number } | null>(null)
+  const lock = useRef<{ timer?: number; settle?: () => void } | null>(null)
 
   // 날짜 칸 바로 아래 줄을 넘어간 마지막 방송의 날짜를 선택한다. 날짜를 눌러 이동하는 동안에는 누른 날짜를 지킨다.
   useEffect(() => {
@@ -46,7 +46,7 @@ export function ExclusiveLives() {
       const held = lock.current
       if (held) {
         window.clearTimeout(held.timer)
-        held.timer = window.setTimeout(() => { lock.current = null }, 150)
+        held.timer = window.setTimeout(() => { lock.current = null; held.settle?.() }, 150)
         return
       }
       if (!frame) frame = requestAnimationFrame(update)
@@ -59,10 +59,11 @@ export function ExclusiveLives() {
     const target = listRef.current?.querySelector<HTMLElement>(`[data-day="${day}"]`)
     if (!target) return
     window.clearTimeout(lock.current?.timer)
-    lock.current = {}
+    const top = () => target.getBoundingClientRect().top + window.scrollY - headerHeight - (daysRef.current?.offsetHeight ?? 0) - 16
+    // 부드럽게 내려가는 동안 위쪽 내용(상품, 이미지)이 늦게 그려져 높이가 바뀌면 멈춘 뒤 한 번 더 맞춘다.
+    lock.current = { settle: () => { if (Math.abs(top() - window.scrollY) > 1) window.scrollTo({ top: top() }) } }
     setActive(day)
-    const offset = headerHeight + (daysRef.current?.offsetHeight ?? 0) + 16
-    window.scrollTo({ top: target.getBoundingClientRect().top + window.scrollY - offset, behavior: reducedMotion() ? 'auto' : 'smooth' })
+    window.scrollTo({ top: top(), behavior: reducedMotion() ? 'auto' : 'smooth' })
   }
 
   return <section className={sections.section} aria-labelledby="exclusive-heading">
