@@ -72,7 +72,7 @@ function PickColumn({ id, title, more, state, emptyMessage }: PickColumnProps) {
       : state.error && !state.data ? <div className={styles.empty}><p>상품을 불러오지 못했어요.</p><Button variant="secondary" size="S" onClick={state.reload}>상품 다시 조회</Button></div>
         : !products.length ? <p className={styles.empty}>{emptyMessage}</p>
           : <>
-            <div className={styles.cards}>{shown.map(product => <ProductCard key={product.id} product={product} />)}</div>
+            <div className={styles.cards}>{shown.map(product => <ProductCard key={product.id} product={product} variant="random" />)}</div>
             {pages > 1 && <button type="button" className={styles.next} onClick={() => setPage((current + 1) % pages)}>
               다른 상품 추천해드릴게요 <span className={styles.count}><strong>{current + 1}</strong> | {pages}</span>
             </button>}

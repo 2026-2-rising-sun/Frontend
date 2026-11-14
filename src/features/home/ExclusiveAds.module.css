@@ -1,0 +1,40 @@
+.section { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
+/* 제목은 가운데, 페이지 번호는 오른쪽 */
+.head { position: relative; display: flex; align-items: center; justify-content: center; min-height: 32px; }
+.title { font: 700 22px/32px var(--font-sans); text-align: center; }
+.pager { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
+
+.ads { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
+.ad { position: relative; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 140px; padding: var(--space-5); overflow: hidden; border-radius: var(--radius-md); color: var(--text-primary); }
+.ad:hover .adTitle { text-decoration: underline; }
+.ad:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+
+.text { position: relative; z-index: 1; display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.adTitle { display: flex; flex-direction: column; font: 700 20px/28px var(--font-sans); letter-spacing: -0.01em; }
+.description { color: var(--text-secondary); font: 400 14px/20px var(--font-sans); }
+
+/* 상품 사진 대신 이모지를 겹쳐 놓는다 */
+.art { position: relative; flex-shrink: 0; width: 120px; height: 110px; }
+.art > span { position: absolute; font-size: 56px; line-height: 1; filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.12)); }
+.art > span:nth-child(1) { right: 34px; top: 4px; font-size: 64px; }
+.art > span:nth-child(2) { right: 0; bottom: 0; }
+.art > span:nth-child(3) { left: 0; bottom: 6px; font-size: 40px; }
+
+/* 배너마다 다른 바탕색. 글자는 어두운 색 그대로 읽히도록 밝은 색만 쓴다. */
+.lavender { background: linear-gradient(110deg, #ddd0f0 0%, #efe7fb 100%); }
+.sky { background: linear-gradient(110deg, #dfe6f5 0%, #b9c8e6 100%); }
+.blush { background: linear-gradient(110deg, #fbe3e3 0%, #f2b8bd 100%); }
+.mint { background: linear-gradient(110deg, #dcf3e6 0%, #b6e3c8 100%); }
+.slate { background: linear-gradient(110deg, #e6e8ee 0%, #c5cad6 100%); }
+.peach { background: linear-gradient(110deg, #fde9d9 0%, #f8c9a6 100%); }
+
+@media (min-width: 768px) {
+  .ads { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
+  .ad { min-height: 190px; padding: var(--space-6); }
+  .adTitle { font-size: 22px; line-height: 30px; }
+}
+@media (min-width: 768px) and (max-width: 1023px) {
+  .art { width: 80px; }
+  .art > span { font-size: 40px; }
+  .art > span:nth-child(1) { right: 20px; font-size: 44px; }
+}

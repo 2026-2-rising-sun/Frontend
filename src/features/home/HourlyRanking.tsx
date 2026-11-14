@@ -38,7 +38,7 @@ export function HourlyRanking() {
         : !ranking.data?.length ? <p className={styles.empty}>순위에 올릴 상품이 아직 없어요.</p>
           : <ol className={styles.ranking}>{ranking.data.map((product, index) => <li key={product.id} className={styles.item}>
             <span className={styles.rank} aria-label={`${index + 1}위`}>{index + 1}</span>
-            <ProductCard product={product} />
+            <ProductCard product={product} variant="random" />
           </li>)}</ol>}
   </section>
 }

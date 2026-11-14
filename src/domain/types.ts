@@ -41,7 +41,17 @@ export interface Product {
   orderingCount?: number | null
   /** 지금 상품을 보고 있는 사람 수 */
   viewingCount?: number | null
+  /** 빠른 배송 종류. DAWN 은 새벽도착, TODAY 는 오늘출발이다. */
+  delivery?: DeliveryType | null
+  freeReturn?: boolean
+  /** 총 내용량(예: 1400g, 1000ml, 5개). 단위가격(100g당 등) 계산에 쓴다. */
+  netContent?: NetContent | null
+  /** 한 번에 받는 묶음 수(2개 구성 등). 1이면 null. */
+  packCount?: number | null
 }
+
+export type DeliveryType = 'DAWN' | 'TODAY'
+export interface NetContent { amount: number; unit: 'g' | 'ml' | '개' }
 
 /** 라이브 할인. discount 는 베리특가에서 빼는 금액(원), 기간은 양 끝 포함이다. */
 export interface LiveDeal { broadcastId: string; broadcastTitle: string; discount: number; startsAt: string; endsAt: string }

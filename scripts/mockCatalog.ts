@@ -76,6 +76,29 @@ export interface MockProduct {
   salesCount: number
   /** 지금 주문 진행 중인 수, 상품을 보고 있는 사람 수. 화면 확인용 고정값이다. */
   orderingCount: number; viewingCount: number
+  /** 상품 카드 종류별 표시값. 새벽도착(DAWN), 오늘출발(TODAY), 무료반품, 총 내용량, 묶음 수 */
+  deliveryType: 'DAWN' | 'TODAY' | null; freeReturn: boolean; netContent: NetContent | null; packCount: number | null
+}
+
+export interface NetContent { amount: number; unit: 'g' | 'ml' | '개' }
+
+/** 상품명에서 총 내용량과 묶음 수를 읽는다. "500g X 4팩"은 2000g, "수건 5장"은 5개, "1+1"은 2개 묶음이다. */
+export function readContent(name: string): { netContent: NetContent | null; packCount: number | null } {
+  const pack = Number(name.match(/X\s*(\d+)\s*팩/)?.[1] ?? 1) * (name.includes('1+1') ? 2 : 1)
+  const size = name.match(/(\d+(?:\.\d+)?)\s*(kg|g|L|ml)(?![a-zA-Z])/)
+  if (size) {
+    const [amount, unit] = { kg: [1000, 'g'], g: [1, 'g'], L: [1000, 'ml'], ml: [1, 'ml'] }[size[2] as 'kg' | 'g' | 'L' | 'ml'] as [number, 'g' | 'ml']
+    return { netContent: { amount: Math.round(Number(size[1]) * amount * pack), unit }, packCount: pack > 1 ? pack : null }
+  }
+  const pieces = Number(name.match(/(\d+)\s*(?:개|장|권)(?!\S*색)/)?.[1] ?? 1) * pack
+  return { netContent: pieces > 1 ? { amount: pieces, unit: '개' } : null, packCount: pieces > 1 ? pieces : null }
+}
+
+/** 식품은 대부분 새벽도착, 그 밖에는 일부만 오늘출발. 상품 번호를 씨앗으로 따로 뽑아 다른 값의 난수 순서를 바꾸지 않는다. */
+function delivery(category: Category, productId: number): MockProduct['deliveryType'] {
+  const roll = seeded(productId * 41)()
+  if (category === 'FOOD') return roll < 0.75 ? 'DAWN' : null
+  return roll < 0.45 ? 'TODAY' : null
 }
 
 const round100 = (value: number) => Math.round(value / 100) * 100
@@ -112,6 +135,7 @@ export function mockProducts(random = seeded(20261113)): MockProduct[] {
         brandName, originalPrice: discounted ? list : null, satisfaction: satisfaction(random), freeShipping: random() < 0.6, emoji,
         options: productOptions(option, price, productId), salesCount: seededSales(productId),
         orderingCount: Math.floor(seeded(productId * 31)() * 3000), viewingCount: Math.floor(seeded(productId * 37)() * 4000),
+        deliveryType: delivery(category, productId), freeReturn: seeded(productId * 43)() < 0.4, ...readContent(name),
       })
     }
   }
@@ -141,6 +165,9 @@ const SORTS = {
   PRICE_DESC: (a: MockProduct, b: MockProduct) => b.price - a.price,
 }
 
+/** 지금 보고 있는 사람 수는 요청마다 조금씩 바뀐다(실제처럼 오르내림). "조회 급상승"의 업데이트를 눌렀을 때 순위가 바뀌는 것을 확인할 수 있다. */
+const fluctuate = (items: MockProduct[]) => items.map(item => ({ ...item, viewingCount: Math.round(item.viewingCount * (0.6 + Math.random() * 0.8)) }))
+
 /** 상품 목록, 상세, 이미지 요청에 답한다. 그 밖의 요청(쿠폰, 구매 확인 등)은 undefined 를 돌려 Prism 에 맡긴다. */
 /** decorate 는 응답 직전에 상품에 덧붙일 값(라이브 할인 등)을 정한다. */
 export function catalogMock(products = mockProducts(), decorate: (items: MockProduct[]) => object[] = items => items) {
@@ -154,7 +181,7 @@ export function catalogMock(products = mockProducts(), decorate: (items: MockPro
     const detail = url.pathname.match(/^\/v1\/products\/(\d+)$/)
     if (detail) {
       const product = products.find(item => item.productId === Number(detail[1]))
-      return product && { body: { ...decorate([product])[0], maxQuantity: Math.min(product.available, 10) } }
+      return product && { body: { ...decorate(fluctuate([product]))[0], maxQuantity: Math.min(product.available, 10) } }
     }
     if (url.pathname !== '/v1/products') return
     const q = url.searchParams.get('q')?.trim(), status = url.searchParams.get('status'), category = url.searchParams.get('category'), subcategory = url.searchParams.get('subcategory')
@@ -172,6 +199,6 @@ export function catalogMock(products = mockProducts(), decorate: (items: MockPro
     const from = Number(url.searchParams.get('cursor') ?? 0) || 0
     const size = Math.min(Number(url.searchParams.get('size') ?? 20) || 20, 50)
     const hasNext = from + size < found.length
-    return { body: { items: decorate(found.slice(from, from + size)), nextCursor: hasNext ? String(from + size) : null, hasNext } }
+    return { body: { items: decorate(fluctuate(found.slice(from, from + size))), nextCursor: hasNext ? String(from + size) : null, hasNext } }
   }
 }
