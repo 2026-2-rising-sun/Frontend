@@ -9,8 +9,11 @@ const required = (name: string) => {
 }
 
 test('실제 Core 그룹 응답에서 선택·수량·삭제·견적·주문 생성의 항목 ID와 가격을 보존한다', async ({ page }, testInfo) => {
+  const backendSha = required('CART_E2E_BACKEND_SHA'); const frontendSha = required('CART_E2E_FRONTEND_SHA')
   const productIds = required('CART_E2E_PRODUCT_IDS').split(',').map(Number)
   expect(productIds).toHaveLength(2)
+  expect(productIds.every(id => Number.isSafeInteger(id) && id > 0)).toBe(true)
+  expect(new Set(productIds).size).toBe(2)
   const calls: { method: string; path: string; body: unknown; status: number }[] = []
   page.on('response', response => {
     const request = response.request(); const path = new URL(request.url()).pathname
@@ -93,7 +96,7 @@ test('실제 Core 그룹 응답에서 선택·수량·삭제·견적·주문 생
     await expect(page).toHaveURL(new RegExp(`/payment-groups/${groupNumber}`))
     await page.screenshot({ path: testInfo.outputPath('created-order.png'), fullPage: true })
     const evidencePath = testInfo.outputPath('actual-backend-wire-and-calls.json')
-    await writeFile(evidencePath, JSON.stringify({ backendSha: required('CART_E2E_BACKEND_SHA'), frontendSha: process.env.CART_E2E_FRONTEND_SHA, wire, calls, group, couponSelected: !!coupon, paymentExecution: false }, null, 2))
+    await writeFile(evidencePath, JSON.stringify({ backendSha, frontendSha, wire, calls, group, couponSelected: !!coupon, paymentExecution: false }, null, 2))
     await testInfo.attach('actual-backend-wire-and-calls', { path: evidencePath, contentType: 'application/json' })
   } finally {
     if (groupNumber) {
