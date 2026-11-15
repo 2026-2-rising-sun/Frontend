@@ -23,4 +23,4 @@ kind 수동 환경은 `npm run local:kind` → `npm run local:frontend`로 실�
 
 `GET /commercecore/v1/cart/items`의 상품별 그룹에서 각 SKU 항목을 화면의 Cart 행으로 변환합니다. 부모 productId·상품명·이미지와 항목의 Cart ID·skuId·version·quantity·unitPrice·available·purchasable을 보존하며, 수정/삭제/견적/주문에는 Cart 항목 ID와 최신 version을 사용합니다. 그룹 응답의 현재 가격·재고·구매가능 표시는 별도 Catalog 조회로 덮지 않습니다. 구 평면 fixture의 Catalog 조회 fallback은 기존 검사 호환에만 사용합니다.
 
-이 수정은 현재 지원되는 단일 SKU 상품 흐름의 소비자 호환 복구입니다. 공개 다중 SKU·대표가·옵션 UI나 구 견적의 복수 SKU 409를 우회하지 않습니다. 최종 금액·판매 가능 여부는 서버가 주문 생성 시 다시 검증합니다. Backend [Cart PR341](https://github.com/2026-2-rising-sun/Backend/pull/341)·최종 Order 통합과 함께 검토하며, Payment 새 설계 채택과 현재 Mock PG 구현의 실행 증거는 구분합니다.
+이 수정은 현재 지원되는 단일 SKU 상품 흐름의 소비자 호환 복구입니다. 공개 다중 SKU·대표가·옵션 UI나 구 견적의 복수 SKU 409를 우회하지 않습니다. 최종 금액·판매 가능 여부는 서버가 주문 생성 시 다시 검증합니다. Backend [Cart PR341](https://github.com/2026-2-rising-sun/Backend/pull/341)·최종 Order 통합과 함께 검토하며, 결제 실행은 이 호환 검증에 포함하지 않으며 새 결제 정책·Payment 직접 호출·금전 연동은 추가하지 않습니다.
