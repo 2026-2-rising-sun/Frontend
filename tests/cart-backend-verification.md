@@ -33,3 +33,11 @@ Orca에서는 별도 Cart3/Product101/SKU501의4000원×2=8000 화면을1280/390
 위3b44a879는 중간 실행 기준이다. 이후 사용자 지시로 Backend PR은 Payment 변경 없는 CommerceCore 독립 범위로 조정 중이며 기존 legacy 결제는 보존한다. 이 Frontend는 기존 Cart CRUD·checkout·cart/orders만 호출하고 새 order-sheets·Payment 직접호출·임시503 정책을 추가하지 않는다. 최종 Order 정정 SHA/API 목록을 받아 같은 호환 경로를 재확인한 뒤 PR에 결과를 갱신한다. 모든 새 주문10분 요구나 새 금전연동까지 충족했다고 주장하지 않는다.
 
 Backend [Cart PR341](https://github.com/2026-2-rising-sun/Backend/pull/341)·[Order PR343](https://github.com/2026-2-rising-sun/Backend/pull/343), Frontend [PR81](https://github.com/2026-2-rising-sun/Frontend/pull/81)은 Draft이며 dev 병합·배포는 수행하지 않는다. 공개 다중SKU·대표가·옵션 UI나 구 견적409 우회는 이 수정 범위가 아니다.
+
+## 최종 축소 계약 영향검증 — 2026-11-15
+
+Order `d588f70a28730f1dff6030e72a43139b06802866` + Frontend `3abc8113ecd2f9770e1f1977b8bb8dcaef025c03`에서 실제 브라우저1건이5.7초(전체6.4초)에 실패·스킵0으로 통과했다. Cart 생성201·그룹조회200·선택·수량PATCH200/version1·삭제204·쿠폰견적200·기존cart/orders201을 재확인했다. 총액12000/할인2000/실지불10000, Product101/SKU501/Cart1을 구분했다. 운영 인증 대신 같은 격리 Member/Notification fixture를 사용했고 Core API는 실제 서버였다.
+
+유지 API는 기존 Cart CRUD·checkout·cart/orders·묶음 조회/미결제cancel이며 신규 `/v1/order-sheets` 공개 핸들러는 제외됐다는 Order 담당 인계를 받았다. 이번 자동 검사는 묶음 URL 이동까지 확인했으나 개별 묶음GET 응답은 캡처되지 않았다. 완료파일 뒤 추가 GET은 서버 종료로 connection refused였으므로 조회200으로 세지 않는다. 생성한 본인 미결제 묶음cancel204·Cart삭제와 후속GET200 빈배열을 확인하고 종료를 인계했다. 자체 fixture/Vite는 종료했다.
+
+이 최종 경로는 기존 legacy policy0/PT15M이며 최신600/600 설계 완료 증거가 아니다. 결제 API 호출0, 신규 Payment 연동/임시차단/대체계약 없음. 샘플의 `/v1/product-images/1`은404여서 이미지 fallback을 표시했으며 실제 이미지 제공자 성공으로 계산하지 않는다. 나머지 가격·텍스트·조작과390px 넘침 검사는 통과했다. 이전3b44의 세 실행과 이번 최종축소1건을 구분한다.
