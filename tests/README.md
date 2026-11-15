@@ -29,3 +29,6 @@ E2E_EXTERNAL_SERVER=true E2E_BASE_URL=http://127.0.0.1:5174 npm run e2e:features
 
 
 Cart 그룹 응답 호환은 `cartCheckout.test.ts`에서 서로 다른 productId/skuId/Cart ID·수량·버전·가격과 수정/견적/주문/삭제 요청을 검사합니다. `e2e:checkout-ui`는 그룹 응답 fixture에서 Cart 현재가/구매불가 표시를 Catalog 값으로 덮지 않는지와 선택·수량 변경·새로고침 복구를 검사합니다. 이 fixture 검사를 실제 Backend E2E로 보고하지 않으며, 실서버 실행은 Backend/Frontend 정확 SHA와 포트·데이터·요청 증거를 별도 기록합니다.
+
+
+`npm run e2e:cart-backend`는 이미 기동된 격리 Frontend/실제 Core를 대상으로 실행합니다. `E2E_BASE_URL`, `CART_E2E_PRODUCT_IDS`(단일 SKU 상품2개), `CART_E2E_EMAIL`, `CART_E2E_PASSWORD`, `CART_E2E_BACKEND_SHA`, `CART_E2E_FRONTEND_SHA`를 지정하며, 실제 보유 쿠폰 선택을 검사하려면 `CART_E2E_COUPON_ID`도 지정합니다. 전용 회원의 빈 Cart에서 시작해 자신이 만든 항목/미결제 주문만 삭제·취소합니다. 실서버 응답·요청과 화면은 `test-results/cart-backend/`에 저장하고 JWT/인증 헤더는 기록하지 않습니다. 결제 API는 호출하지 않으며 실제 Member/Notification 사용 여부는 실행 기록에 별도로 명시합니다.

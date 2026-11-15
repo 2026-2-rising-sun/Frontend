@@ -19,7 +19,8 @@
     "e2e:features": "E2E_MODE=features playwright test",
     "local:kind": "node scripts/kind-local.mjs",
     "local:frontend": "node scripts/local-frontend.mjs",
-    "local:down": "node scripts/kind-local.mjs down"
+    "local:down": "node scripts/kind-local.mjs down",
+    "e2e:cart-backend": "playwright test --config playwright.cart-backend.config.ts"
   },
   "dependencies": {
     "hls.js": "^1.7.3",
