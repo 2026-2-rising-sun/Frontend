@@ -1,3 +1,4 @@
+import type { CartItem } from '../../domain/ports'
 import type { Product, SellerProduct, SellerProductStatus, LiveDetail, Order, Paged } from '../../domain/types'
 import { ApiError } from '../../domain/errors'
 export const states: Record<string, SellerProductStatus> = { NOT_REGISTERED: 'DRAFT', UNKNOWN: 'UNKNOWN', READY: 'READY', ON_SALE: 'SELLING', SOLD_OUT: 'SOLD_OUT', PRIVATE: 'HIDDEN' }
@@ -26,4 +27,27 @@ export function order(o: OrderDto): Order {
   const status = ({ PENDING_PAYMENT: 'UNPAID', PAYMENT_CONFIRMING: 'CONFIRMING', PAID: 'PAID', FAILED: 'FAILED', CANCELLED: 'CANCELED', EXPIRED: 'CANCELED', REFUNDED: 'REFUNDED' } as const)[o.status as 'PAID']
   if (!status) throw new ApiError('UNKNOWN', '주문 상태를 확인하지 못했어요.')
   return { orderNumber: o.orderNumber, groupNumber: o.groupNumber, status, productName: o.productName, unitPrice: o.unitPrice, quantity: o.quantity, totalPrice: o.totalAmount, discountAmount: o.discountAmount ?? 0, payableAmount: o.payableAmount ?? o.totalAmount, ordererName: o.buyerName, orderedAt: o.createdAt, expiresAt: o.expiresAt, cancelReason: o.status === 'EXPIRED' ? 'EXPIRED' : o.status === 'CANCELLED' ? 'USER' : null }
+}
+
+export type CartItemDto = Omit<CartItem, 'id' | 'productId' | 'skuId'> & {
+  id: number | string
+  productId: number | string
+  skuId?: number | string | null
+}
+export type CartProductGroupDto = {
+  productId: number | string
+  productName: string | null
+  mainImageUrl: string | null
+  saleEnabled: boolean
+  items: Omit<CartItemDto, 'productId'>[]
+}
+export function cartItem(c: CartItemDto): CartItem {
+  const { skuId, ...item } = c
+  return { ...item, id: String(c.id), productId: String(c.productId), ...(skuId === undefined ? {} : { skuId: skuId === null ? null : String(skuId) }) }
+}
+export function cartItems(groups: (CartProductGroupDto | CartItemDto)[]): CartItem[] {
+  // 구 계약 fixture도 지원하되, 그룹의 상품 ID를 항목 ID로 사용하지 않는다.
+  return groups.flatMap(group => 'items' in group
+    ? group.items.map(item => cartItem({ ...item, productId: group.productId, productName: group.productName, mainImageUrl: group.mainImageUrl, saleEnabled: group.saleEnabled }))
+    : [cartItem(group)])
 }

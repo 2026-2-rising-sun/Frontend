@@ -35,7 +35,7 @@ test('바로 구매 수량 변경 중에는 이전 견적으로 주문하지 않
   await expect(submit).toBeDisabled()
   expect(creates).toBe(0)
 })
-test('contract UI: selected products, one payment, reload recovery, mobile layout', async ({ page }) => {
+test('상품 그룹 응답의 선택·수량 변경과 주문·결제 복구 및 모바일 화면을 보존한다', async ({ page }) => {
   let status = 'PENDING_PAYMENT'; let starts = 0; let quoteBodies: unknown[] = []
   const cart = [{ id: 1, productId: 1, quantity: 2, version: 0 }, { id: 2, productId: 2, quantity: 1, version: 0 }]
   const orders = [1, 2].map(n => ({ orderNumber: 'OD-' + n, groupNumber: 'PG-1', status, productName: '상품 ' + n, quantity: n === 1 ? 2 : 1, unitPrice: n === 1 ? 10000 : 5000, totalAmount: n === 1 ? 20000 : 5000, buyerName: '회원', createdAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 900000).toISOString() }))
@@ -48,7 +48,7 @@ test('contract UI: selected products, one payment, reload recovery, mobile layou
     if (path.endsWith('/members/me')) return json({ success: true, data: { memberId: '00000000-0000-0000-0000-000000000001', displayName: '회원', email: 'user@test.dev', roles: ['USER'] } })
     if (path.endsWith('/payment-groups/active')) return created ? json(group()) : route.fulfill({ status: 204 })
     if (path.endsWith('/cart/items/1') && request.method() === 'PATCH') { cart[0].quantity = request.postDataJSON().quantity; cart[0].version++; return json(cart[0]) }
-    if (path.endsWith('/cart/items')) return json(cart)
+    if (path.endsWith('/cart/items')) return json(cart.map(item => ({ productId: item.productId, productName: '상품 ' + item.productId, mainImageUrl: null, saleEnabled: true, items: [{ ...item, skuId: 100 + item.id, unitPrice: item.id === 1 ? 10000 : 5000, available: 10, skuStatus: 'ON_SALE', purchasable: true }] })))
     if (path.includes('/catalog/v1/products/')) { const n = Number(path.split('/').pop()); return json({ success: true, data: { productId: n, name: '상품 ' + n, mainImageUrl: null, salesStatus: 'ON_SALE', price: n === 1 ? 10000 : 5000, available: 10 } }) }
     if (path.endsWith('/cart/checkout')) { quoteBodies.push(request.postDataJSON()); return json({ items: cart.map(i => ({ itemId: i.id, version: i.version, productId: i.productId, productName: '상품 ' + i.productId, quantity: i.quantity, unitPrice: i.id === 1 ? 10000 : 5000, totalAmount: i.id === 1 ? 20000 : 5000 })), totalAmount: 25000 }) }
     if (path.endsWith('/cart/orders')) { expect(request.headers()['x-idempotency-key']).toBeTruthy(); created = true; return route.abort('connectionreset') }
@@ -171,3 +171,27 @@ for (const grouped of [false, true]) {
     expect(starts).toBe(1)
   })
 }
+
+
+test('Cart 그룹의 가격과 구매불가 표시를 Catalog 조회값으로 덮지 않는다', async ({ page }) => {
+  let catalogCalls = 0
+  await page.route(/\/api\/(member|commercecore|catalog|live)\//, async route => {
+    const path = new URL(route.request().url()).pathname
+    const json = (body: unknown) => route.fulfill({ json: body })
+    if (path.includes('/auth/')) return json({ success: true, data: { accessToken: 'token', refreshToken: 'refresh' } })
+    if (path.endsWith('/members/me')) return json({ success: true, data: { memberId: 'buyer', email: 'buyer@test.dev', displayName: '회원', roles: ['USER'] } })
+    if (path.endsWith('/payment-groups/active')) return route.fulfill({ status: 204 })
+    if (path.endsWith('/cart/items')) return json([{ productId: 41, productName: '현재 서버 가격', mainImageUrl: null, saleEnabled: false, items: [{ id: 11, skuId: 71, quantity: 2, version: 7, unitPrice: 1200, available: 0, skuStatus: 'SOLD_OUT', purchasable: false }] }])
+    if (path.includes('/catalog/')) { catalogCalls++; return json({ productId: 41, name: '오래된 상품', mainImageUrl: null, price: 99999, available: 100, salesStatus: 'ON_SALE' }) }
+    return route.fulfill({ status: 404 })
+  })
+  await page.goto('/login'); await page.getByLabel('아이디 또는 이메일').fill('buyer@test.dev'); await page.getByLabel('비밀번호', { exact: true }).fill('password')
+  await page.getByRole('button', { name: '로그인', exact: true }).click()
+  await expect(page.getByRole('heading', { name: '내 계정', exact: true })).toBeVisible()
+  await page.goto('/cart')
+  await expect(page.getByRole('heading', { name: '현재 서버 가격', exact: true })).toBeVisible()
+  await expect(page.getByRole('region', { name: '장바구니 합계' })).toContainText('2,400원')
+  await expect(page.getByText('현재 구매할 수 없는 상품이에요.', { exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: '선택 상품 주문', exact: true })).toHaveAttribute('aria-disabled', 'true')
+  expect(catalogCalls).toBe(0)
+})

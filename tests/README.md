@@ -26,3 +26,6 @@ E2E_EXTERNAL_SERVER=true E2E_BASE_URL=http://127.0.0.1:5174 npm run e2e:features
 ```
 
 `npm run e2e:checkout-ui`에는 단건·0원 묶음 Payment 성공 응답 뒤 Core 주문/묶음 반영을 기다리는 fixture 회귀가 포함됩니다. 실제 새 서비스/DB/Kafka 결과 전달의 증거는 별도 Backend 연동 실행으로 확인해야 합니다. `BACKEND_DIR`는 Prism 실행 시에도 새 서비스 계약 YAML 경로로 사용됩니다.
+
+
+Cart 그룹 응답 호환은 `cartCheckout.test.ts`에서 서로 다른 productId/skuId/Cart ID·수량·버전·가격과 수정/견적/주문/삭제 요청을 검사합니다. `e2e:checkout-ui`는 그룹 응답 fixture에서 Cart 현재가/구매불가 표시를 Catalog 값으로 덮지 않는지와 선택·수량 변경·새로고침 복구를 검사합니다. 이 fixture 검사를 실제 Backend E2E로 보고하지 않으며, 실서버 실행은 Backend/Frontend 정확 SHA와 포트·데이터·요청 증거를 별도 기록합니다.

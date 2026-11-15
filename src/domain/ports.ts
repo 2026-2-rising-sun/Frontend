@@ -9,7 +9,17 @@ export interface ChatMessage { messageId: string; broadcastId: number; displayNa
 export interface LikeTotal { broadcastId: number; total: number; version: number }
 export interface ViewerTotal { broadcastId: number; total: number; measuredAt: string; expiresAfterSeconds: number }
 export interface MyLike extends LikeTotal { liked: boolean; stateVersion: number }
-export interface CartItem { id: string; productId: string; quantity: number; version: number }
+export interface CartItem {
+  id: string; productId: string; quantity: number; version: number
+  skuId?: string | null
+  productName?: string | null
+  mainImageUrl?: string | null
+  saleEnabled?: boolean
+  unitPrice?: number | null
+  available?: number | null
+  skuStatus?: string | null
+  purchasable?: boolean
+}
 export interface ProductsPort {
   list(params?: ProductListParams): Promise<Paged<Product>>
   get(id: string): Promise<Product>
