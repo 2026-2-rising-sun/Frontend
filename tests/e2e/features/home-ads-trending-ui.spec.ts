@@ -89,3 +89,19 @@ test('조회 급상승의 큰 상품은 5초마다 다음 순위로 넘어가고
   await page.clock.runFor(5000)
   await expect(featured()).toHaveAccessibleName(/^7위 /)
 })
+
+test('브랜드 띠 배너는 주목 상품 아래와 조회 급상승 위에 하나씩 있고, 누르면 그 브랜드 상품 검색으로 간다', async ({ page }) => {
+  await fixture(page)
+  await page.goto('/')
+  const banners = page.getByRole('complementary', { name: '브랜드 광고' })
+  await expect(banners).toHaveCount(2)
+  await expect(banners.nth(0)).toContainText('단계별 피부 보습, 수분결')
+  await expect(banners.nth(0)).toContainText('#수분케어')
+  await expect(banners.nth(1)).toContainText('코지홈')
+  // 두 번째 배너는 조회 급상승 바로 위에 있다
+  const below = await page.getByRole('region', { name: '조회 급상승, 인기템' }).boundingBox()
+  const living = await banners.nth(1).boundingBox()
+  expect(living!.y).toBeLessThan(below!.y)
+  await banners.nth(0).getByRole('link').click()
+  await expect(page).toHaveURL(/\/\?q=%EC%88%98%EB%B6%84%EA%B2%B0$/)
+})

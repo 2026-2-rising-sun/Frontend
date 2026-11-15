@@ -1,0 +1,27 @@
+.banner { min-width: 0; }
+.link { display: flex; align-items: center; gap: var(--space-3); min-height: 96px; padding: var(--space-3) var(--space-5); overflow: hidden; border-radius: var(--radius-md); color: var(--text-primary); }
+.link:hover strong { text-decoration: underline; }
+.link:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+
+/* 상품 사진 대신 이모지를 선반 위에 늘어놓은 것처럼 보인다 */
+.art { display: flex; align-items: flex-end; gap: var(--space-2); flex-shrink: 0; font-size: 32px; line-height: 1; filter: drop-shadow(0 6px 8px rgb(0 0 0 / 0.12)); }
+.art > span:nth-child(2) { font-size: 0.7em; }
+
+.text { display: flex; flex-direction: column; align-items: flex-end; gap: var(--space-1); flex: 1; min-width: 0; text-align: right; }
+.title { font: 400 16px/24px var(--font-sans); letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.title strong { font-weight: 800; }
+.tags { display: flex; flex-wrap: wrap; justify-content: flex-end; column-gap: var(--space-1); color: var(--text-secondary); font: 400 13px/20px var(--font-sans); }
+.tags > span { white-space: nowrap; }
+.arrow { flex-shrink: 0; color: var(--text-primary); }
+
+/* 글자는 어두운 색 그대로 읽히도록 밝은 바탕만 쓴다 */
+.sand { background: linear-gradient(90deg, #f3ece3 0%, #e6dccf 100%); }
+.fog { background: linear-gradient(90deg, #eef1f6 0%, #d9dfea 100%); }
+
+@media (min-width: 768px) {
+  .link { min-height: 140px; padding: var(--space-4) var(--space-10); gap: var(--space-8); }
+  .art { gap: var(--space-4); padding-left: var(--space-10); font-size: 72px; }
+  .title { font-size: 32px; line-height: 42px; }
+  .tags { column-gap: var(--space-2); font-size: 18px; line-height: 26px; }
+  .arrow { width: 36px; height: 36px; }
+}

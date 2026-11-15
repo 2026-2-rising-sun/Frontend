@@ -14,7 +14,6 @@ import { useSession } from '../auth/useSession'
 import { ProductOptions } from './components/ProductOptions'
 import { SatisfactionSummary } from './components/SatisfactionSummary'
 import { Stars } from './components/Stars'
-import { recordRecentProduct } from './recentProducts'
 import { dealPeriod, displayPrice } from './liveDeal'
 import { reviewCount, satisfiedPercent } from './satisfaction'
 import styles from './ProductDetailPage.module.css'
@@ -27,8 +26,6 @@ export function ProductDetailPage() {
 function ProductPage({ productId }: { productId: string }) {
   const api = useApi()
   const product = useAsync(() => api.products.get(productId), [api, productId])
-  // 홈의 "최근 본 상품과 연관 추천 상품"에 쓰도록 실제로 조회된 상품만 기록한다.
-  useEffect(() => { if (product.data) recordRecentProduct(product.data.id) }, [product.data])
   return <div className={styles.surface}><PageContainer className={styles.page}>
     <Breadcrumb category={product.data?.category ?? null} subcategory={product.data?.subcategory ?? null} />
     <AsyncView state={product} skeleton={<div className={styles.layout}><Skeleton height={0} style={{ aspectRatio: '672 / 520', height: 'auto' }} radius={20} /><Skeleton height={320} radius={14} /></div>}>
