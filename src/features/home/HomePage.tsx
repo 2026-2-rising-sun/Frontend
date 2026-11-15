@@ -11,6 +11,8 @@ import { usePaged } from '../../hooks/usePaged'
 import { formatDateTime } from '../../lib/format'
 import { ViewerCount } from '../live/ViewerCount'
 import { ProductGrid, ProductGridSkeleton } from '../shopping/components/ProductGrid'
+import { BrandBanner } from './BrandBanner'
+import { BRAND_BANNERS } from './brandBanners'
 import { ExclusiveAds } from './ExclusiveAds'
 import { ExclusiveLives } from './ExclusiveLives'
 import { HeroCarousel } from './HeroCarousel'
@@ -35,7 +37,7 @@ const SORT_OPTIONS: { value: ProductSort; label: string }[] = [
 ]
 
 /**
- * 메인. 배너, 요즘 주목 받는 상품, "라이브 예고", "오직 베리온에서만" 광고, 시간별 판매 인기, "조회 급상승, 인기템" 순서로 보여 준다.
+ * 메인. 배너, 요즘 주목 받는 상품, 브랜드 띠 배너, "라이브 예고", "오직 베리온에서만" 광고, 시간별 판매 인기, 브랜드 띠 배너, "조회 급상승, 인기템" 순서로 보여 준다.
  * 헤더 검색어(?q=)가 있으면 그 자리에 검색 결과 목록을 보여 준다.
  */
 export function HomePage() {
@@ -46,9 +48,11 @@ export function HomePage() {
     {query ? <SearchResults query={query} /> : <>
       <HomeHero />
       <HomePicks />
+      <BrandBanner ad={BRAND_BANNERS.beauty} />
       <ExclusiveLives />
       <ExclusiveAds />
       <HourlyRanking />
+      <BrandBanner ad={BRAND_BANNERS.living} />
       <TrendingViews />
     </>}
   </PageContainer></div>
