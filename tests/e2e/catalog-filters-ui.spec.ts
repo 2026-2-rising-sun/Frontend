@@ -8,7 +8,7 @@ test('검색·상태·정렬 조건을 서버에 전달하고 무한 스크롤�
   await page.route(/\/api\/(member|commercecore|catalog|live|notification)\//, async route => {
     const url = new URL(route.request().url())
     if (url.pathname.endsWith('/catalog/v1/products')) {
-      // 홈의 추천 상품 칸도 상품 목록을 조회하므로 검색 목록 요청만 기록한다.
+      // 홈의 다른 칸도 상품 목록을 조회하므로 검색 목록 요청만 기록한다.
       if (url.searchParams.has('q')) requests.push(url)
       const next = url.searchParams.has('cursor')
       return route.fulfill({ json: envelope({ items: [product(next ? 2 : 1, next ? '니트 두 번째' : '니트 첫 번째')], hasNext: !next, nextCursor: next ? null : 'next-cursor' }) })
