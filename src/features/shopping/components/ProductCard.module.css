@@ -56,8 +56,7 @@
 .coupon { background: var(--danger-subtle); color: var(--danger-text); }
 
 /* 간결형: 테두리 안에 이미지, 이름 한 줄, 가격과 빠른 배송 */
-.compact { gap: var(--space-3); padding: var(--space-3); border: 1px solid var(--border-default); border-radius: var(--radius-lg); background: var(--bg-surface); }
-.compact .thumb { border: 0; }
+.compact { gap: var(--space-3); }
 .oneLine { -webkit-line-clamp: 1; }
 .priceLine { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-2); }
 .delivery { display: inline-flex; align-items: center; padding: 0 var(--space-2); border: 1px solid var(--brand-border); border-radius: var(--radius-sm); color: var(--text-brand); font: 700 12px/20px var(--font-sans); }
@@ -76,5 +75,4 @@
   .star { width: 14px; height: 14px; }
   .headline { font-size: 12px; line-height: 18px; }
   .unit { font-size: 12px; line-height: 18px; }
-  .compact { padding: var(--space-2); }
 }
