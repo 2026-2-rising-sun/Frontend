@@ -1,40 +1,68 @@
-.section { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
-/* 제목은 가운데, 페이지 번호는 오른쪽 */
-.head { position: relative; display: flex; align-items: center; justify-content: center; min-height: 32px; }
-.title { font: 700 22px/32px var(--font-sans); text-align: center; }
-.pager { position: absolute; right: 0; top: 50%; transform: translateY(-50%); }
+/* 회색 바탕 한 칸. 왼쪽은 제목과 선착순 쿠폰, 오른쪽은 기획전 카드 */
+.section { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-8); min-width: 0; padding: var(--space-8) var(--space-4); border-radius: var(--radius-xl); background: var(--bg-muted); }
+.intro { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-4); min-width: 0; }
+.title { font: 800 44px/1.1 var(--font-sans); letter-spacing: -0.03em; }
+.lead { margin-bottom: var(--space-3); color: var(--text-primary); font: 400 18px/26px var(--font-sans); }
+.brands { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; }
+.pager { align-self: flex-end; }
 
-.ads { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-3); margin: 0; padding: 0; list-style: none; }
-.ad { position: relative; display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); min-height: 140px; padding: var(--space-5); overflow: hidden; border-radius: var(--radius-md); color: var(--text-primary); }
-.ad:hover .adTitle { text-decoration: underline; }
-.ad:focus-visible { outline: 2px solid var(--border-focus); outline-offset: 2px; }
+/* 모바일은 옆으로 넘기고, 태블릿 이상은 한 줄에 2장 */
+.ads { display: grid; grid-auto-flow: column; grid-auto-columns: 92%; gap: var(--space-3); margin: 0; padding: 0; overflow-x: auto; scroll-snap-type: x mandatory; list-style: none; }
+.ads > li { min-width: 0; scroll-snap-align: start; }
 
-.text { position: relative; z-index: 1; display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
-.adTitle { display: flex; flex-direction: column; font: 700 20px/28px var(--font-sans); letter-spacing: -0.01em; }
-.description { color: var(--text-secondary); font: 400 14px/20px var(--font-sans); }
+/* 기획전 카드: 위 배너, 대표 상품, 상품 두 줄, 더보기 */
+.card { display: flex; flex-direction: column; height: 100%; overflow: hidden; border-radius: var(--radius-xl); background: var(--bg-surface); }
 
-/* 상품 사진 대신 이모지를 겹쳐 놓는다 */
-.art { position: relative; flex-shrink: 0; width: 120px; height: 110px; }
-.art > span { position: absolute; font-size: 56px; line-height: 1; filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.12)); }
-.art > span:nth-child(1) { right: 34px; top: 4px; font-size: 64px; }
-.art > span:nth-child(2) { right: 0; bottom: 0; }
-.art > span:nth-child(3) { left: 0; bottom: 6px; font-size: 40px; }
+.banner { display: flex; align-items: center; gap: var(--space-3); min-height: 92px; padding: var(--space-4) var(--space-4) var(--space-8); color: var(--text-primary); }
+.banner:hover .headline { text-decoration: underline; }
+.banner:focus-visible, .more:focus-visible, .featuredProduct:focus-visible, .liveLink:focus-visible, .row:focus-visible { outline: 2px solid var(--border-focus); outline-offset: -2px; }
+.logo { display: grid; flex-shrink: 0; place-items: center; width: 52px; height: 52px; border-radius: 50%; background: var(--bg-surface); font-size: 28px; box-shadow: 0 2px 6px rgb(0 0 0 / 0.08); }
+.headline { display: flex; flex-direction: column; flex: 1; min-width: 0; font: 700 17px/24px var(--font-sans); letter-spacing: -0.01em; }
+.art { flex-shrink: 0; font-size: 44px; line-height: 1; letter-spacing: -0.15em; filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.12)); }
 
-/* 배너마다 다른 바탕색. 글자는 어두운 색 그대로 읽히도록 밝은 색만 쓴다. */
-.lavender { background: linear-gradient(110deg, #ddd0f0 0%, #efe7fb 100%); }
-.sky { background: linear-gradient(110deg, #dfe6f5 0%, #b9c8e6 100%); }
-.blush { background: linear-gradient(110deg, #fbe3e3 0%, #f2b8bd 100%); }
-.mint { background: linear-gradient(110deg, #dcf3e6 0%, #b6e3c8 100%); }
-.slate { background: linear-gradient(110deg, #e6e8ee 0%, #c5cad6 100%); }
-.peach { background: linear-gradient(110deg, #fde9d9 0%, #f8c9a6 100%); }
+/* 대표 상품은 배너 위로 살짝 올라온 흰 카드 */
+.featured { display: flex; flex-direction: column; gap: var(--space-3); margin: calc(-1 * var(--space-5)) var(--space-3) 0; padding: var(--space-3); border-radius: var(--radius-lg); background: var(--bg-surface); box-shadow: 0 4px 14px rgb(0 0 0 / 0.06); }
+.featuredProduct, .row { display: flex; align-items: center; gap: var(--space-3); min-width: 0; color: var(--text-primary); border-radius: var(--radius-md); }
+.featuredThumb { flex-shrink: 0; width: 112px; border-radius: var(--radius-md); }
+.rowThumb { flex-shrink: 0; width: 84px; border-radius: var(--radius-md); }
+.info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.name { overflow: hidden; font: 400 14px/20px var(--font-sans); white-space: nowrap; text-overflow: ellipsis; }
+.featuredProduct:hover .name, .row:hover .name { text-decoration: underline; }
+.price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 var(--space-1); font: 400 13px/20px var(--font-sans); }
+.price strong { font: 700 17px/24px var(--font-sans); }
+.price del { color: var(--text-tertiary); }
+.dealLabel { color: var(--color-live-600); font-weight: 700; }
+.chips { display: flex; flex-wrap: wrap; gap: var(--space-1); margin-top: 2px; }
+.chips > span { padding: 0 6px; border-radius: 4px; background: var(--bg-muted); color: var(--text-secondary); font: 400 12px/20px var(--font-sans); }
+.chips > .ordering { background: var(--brand-subtle); color: var(--text-brand); }
 
+.live { position: absolute; top: 6px; left: 6px; padding: 0 6px; border-radius: 4px; background: var(--color-live-600); color: var(--text-on-strong); font: 800 12px/20px var(--font-sans); }
+.liveLink { display: flex; align-items: center; gap: var(--space-2); min-height: 40px; padding: 0 var(--space-3); border: 1px solid var(--border-default); border-radius: var(--radius-md); color: var(--text-primary); font: 400 14px/20px var(--font-sans); }
+.liveLink:hover { border-color: var(--text-secondary); }
+.liveText { color: var(--color-live-600); font-weight: 800; }
+.liveTitle { flex: 1; min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+
+.rows { display: flex; flex-direction: column; gap: var(--space-3); margin: 0; padding: var(--space-4) var(--space-3) 0; list-style: none; }
+/* 상품 수가 달라도 더보기 버튼은 카드 맨 아래에 맞춘다 */
+.card > :nth-last-child(2) { margin-bottom: var(--space-4); }
+
+.more { display: flex; align-items: center; justify-content: center; gap: var(--space-1); min-height: 48px; margin: auto var(--space-3) var(--space-3); padding: 0 var(--space-3); border: 1px solid var(--border-default); border-radius: var(--radius-md); background: var(--bg-surface); color: var(--text-primary); font: 400 15px/22px var(--font-sans); }
+.more:hover { border-color: var(--text-secondary); }
+
+@media (max-width: 767px) {
+  .art { display: none; }
+  .headline { font-size: 15px; line-height: 22px; }
+  .featuredThumb { width: 96px; }
+}
 @media (min-width: 768px) {
-  .ads { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
-  .ad { min-height: 190px; padding: var(--space-6); }
-  .adTitle { font-size: 22px; line-height: 30px; }
+  .section { padding: var(--space-10) var(--space-8); }
+  .ads { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); overflow: visible; }
+}
+@media (min-width: 1024px) {
+  .section { grid-template-columns: minmax(0, 0.85fr) minmax(0, 2fr); align-items: center; gap: var(--space-10); padding: var(--space-12) var(--space-10); }
+  .title { font-size: 72px; }
+  .lead { font-size: 22px; line-height: 32px; }
 }
 @media (min-width: 768px) and (max-width: 1023px) {
-  .art { width: 80px; }
-  .art > span { font-size: 40px; }
-  .art > span:nth-child(1) { right: 20px; font-size: 44px; }
+  .featuredThumb { width: 96px; }
 }
