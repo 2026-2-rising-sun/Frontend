@@ -23,7 +23,7 @@ test('실제 Core·Payment와 인증대역에서 쿠폰 주문·승인 결과·C
     const g1=wire.find(g=>Number(g.productId)===productIds[0])!;const g2=wire.find(g=>Number(g.productId)===productIds[1])!;const first=g1.items[0];const second=g2.items[0]
     expect(String(first.id)).not.toBe(String(first.skuId));expect(String(first.id)).not.toBe(String(g1.productId))
     const price=first.unitPrice??NaN;const secondPrice=second.unitPrice??NaN
-    await page.goto('/cart');await page.reload();const total=page.getByRole('region',{name:'장바구니 합계'})
+    await page.goto('/cart');await expect(page.getByRole('heading',{name:'장바구니',exact:true})).toBeVisible();await page.reload();const total=page.getByRole('region',{name:'장바구니 합계'})
     await expect(total).toContainText((price*2+secondPrice).toLocaleString('ko-KR')+'원')
     await page.getByLabel(`${g2.productName} 선택`,{exact:true}).uncheck();await expect(total).toContainText((price*2).toLocaleString('ko-KR')+'원')
     const row=page.locator('section').filter({has:page.getByRole('heading',{name:g1.productName!,exact:true})})

@@ -43,5 +43,6 @@ export function sheetMessage(payment: SheetPayment): string {
   return { PENDING: '결제 인증을 진행해 주세요', PROCESSING: '결제 결과를 확인하고 있어요', PAID: '결제가 완료되었어요', FAILED: '결제 실패가 확정되었어요', EXPIRED: '주문 기한이 지났어요', CANCELLED: '주문이 취소되었어요', REFUNDED: '환불이 완료되었어요', PARTIALLY_REFUNDED: '일부 금액이 환불되었어요' }[payment.orderStatus]
 }
 export function needsSheetRefresh(p: SheetPayment) {
-  return p.orderStatus === 'PROCESSING' || p.refundStatus === 'REQUESTED' || (p.orderStatus === 'PENDING' && ['PREPARING', 'UNKNOWN', 'APPROVING'].includes(p.paymentStatus))
+  if (p.refundStatus === 'SUCCEEDED' || p.refundStatus === 'FAILED') return false
+  return p.orderStatus === 'PROCESSING' || p.refundStatus === 'REQUESTED' || ['UNKNOWN', 'APPROVING', 'PENDING'].includes(p.paymentStatus) || (p.orderStatus === 'PENDING' && p.paymentStatus === 'PREPARING')
 }

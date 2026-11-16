@@ -35,6 +35,8 @@ test('새active가있으면legacy를대신조회하거나새주문을만들지�
 })
 test('UNKNOWN·환불요청은성공이나실패로확정하지않고실제환불결과를구분한다',()=>{
   assert.equal(needsSheetRefresh({...pending,orderStatus:'PROCESSING',paymentStatus:'UNKNOWN'}),true)
+  assert.equal(needsSheetRefresh({...pending,orderStatus:'EXPIRED',paymentStatus:'APPROVING'}),true)
+  assert.equal(needsSheetRefresh({...pending,orderStatus:'EXPIRED',paymentStatus:'UNKNOWN'}),true)
   assert.match(sheetMessage({...pending,orderStatus:'EXPIRED',refundStatus:'REQUESTED'}),/기다리고/)
   assert.doesNotMatch(sheetMessage({...pending,orderStatus:'EXPIRED',refundStatus:'REQUESTED'}),/완료/)
   assert.match(sheetMessage({...pending,orderStatus:'EXPIRED',refundStatus:'SUCCEEDED'}),/완료/)

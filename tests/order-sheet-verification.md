@@ -31,3 +31,11 @@ Cart itemId/version, skuId, productId를 구별한다. 신규 Cart 요청은 car
 `e2e:cart-backend`는현재새주문서실응답을사용하며 Core응답을intercept하지않는다. CART_E2E_BACKEND_SHA/FRONTEND_SHA/PRODUCT_IDS/COUPON_ID/COUPON_DISCOUNT와격리로그인입력이필수다. 개인정보·JWT·실paymentKey를로그/첨부에남기지않고생성한Cart만정리한다. PAID주문은의미없이취소/환불하지않는다. 이전3b44/d588의legacy검증은[이전기록](cart-backend-verification.md)에당시증거로보존한다.
 
 2026-11-16 독립 체크포인트: 단위·소비자계약94건, fixture브라우저12건 실패/오류/스킵0, lint/build 통과다. Vite의기존500KB번들안내는빌드실패가아니다. 단건가격변경중오래된견적주문차단·Cart버전과선택·생성/승인응답유실·202/UNKNOWN·인증취소/실패/기한후인증·환불요청/실패/성공·legacy조회와0원확정반영을검사했다. 실제API환경은아직준비중이며이결과를실서비스연계성공으로세지않는다.
+
+## 실제 Cart 승인 체크포인트
+
+Core `7a64bbbd11cc37f2960854886de18f4750241cf0`, 수정 없는 팀원 Payment `2c6aa250c106ce471b0335e3ad0ec8bdcc3a3dd9`, Frontend 앱 `50f129cbfd7e34c407fd81e054bda3b952342e14`에서 실제 Cart 브라우저1건이24.4초(전체25.6초)에 통과했다. 당시 하네스에는 로그인 복원이 끝난 Cart 화면을 기다리는1줄의미커밋수정이있었고앱소스는clean이었다. 첫 실행은Cart진입즉시reload로로그인화면에돌아가합계미표시로실패했으며주문/승인0·본인Cart정리완료다. 회전refreshToken대역의세션복원구간을별도probe로확인한뒤화면준비를기다려재실행했다. 첫실패를숨기거나금액/수량검사를약화하지않았다.
+
+상품73001/SKU93001·단가4000, 상품73002/SKU93002·단가3000과별도CartID를실제응답에서추적했다. 수량3+1의총액15000·선택SKU쿠폰2000·예상실결제13000을전달했다. 준비PENDING/processing기한null,실승인202/PROCESSING,새로고침후PAID·승인1회·쿠폰USED를확인했다. 승인전변경한Cart는수량4/다음version으로보존됐고같은version의다른Cart는삭제됐다. 본인잔여Cart만삭제했다.
+
+PaymentApproved `e1ba6f1c-f1d1-413a-baa9-050bd22906d3`, 실제topic `payment.execution-results.v1` partition0/offset0,Core그룹`commercecore-payment-results-v1` committedoffset1을Backend담당이보존했다. 이환경은HTTP복구조회도켜져있어최초PAID전이가Kafka만의결과라고단정하지않는다. 원증거는 `/tmp/order331-followup-browser/kafka-PG-f8f8eba6-739d-4e45-be84-1de0c14250b4.json` 및동일폴더cart-pending-outbox/DB/delivery이고브라우저증거는 `/tmp/frontend-order-sheet-20261116/cart-pending/`에인증정보없이보존했다. 명시적Member/Notification/인증/PG대역이며실SDK/실PG가아니다.

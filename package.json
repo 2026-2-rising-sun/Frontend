@@ -20,7 +20,8 @@
     "local:kind": "node scripts/kind-local.mjs",
     "local:frontend": "node scripts/local-frontend.mjs",
     "local:down": "node scripts/kind-local.mjs down",
-    "e2e:cart-backend": "playwright test --config playwright.cart-backend.config.ts"
+    "e2e:cart-backend": "playwright test --config playwright.cart-backend.config.ts",
+    "e2e:order-sheet-backend": "playwright test --config playwright.order-sheet-backend.config.ts"
   },
   "dependencies": {
     "hls.js": "^1.7.3",
