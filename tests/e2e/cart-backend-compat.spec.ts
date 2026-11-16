@@ -39,10 +39,17 @@ test('실제 Core·Payment와 인증대역에서 쿠폰 주문·승인 결과·C
     expect(view.order.discountAmount).toBe(Number(required('CART_E2E_COUPON_DISCOUNT')))
     expect(view.order.totalAmount).toBe(price*3+secondPrice)
     await expect(page).toHaveURL(new RegExp(`/order-sheets/${number}`));await expect(page.getByText('결제 인증을 진행해 주세요',{exact:true})).toBeVisible()
+    const scenario=process.env.CART_E2E_AUTH_SCENARIO??'pending'
+    await page.goto(`/order-sheets/${number}?authDoubleScenario=${encodeURIComponent(scenario)}`)
+    await expect(page.getByText('결제 인증을 진행해 주세요',{exact:true})).toBeVisible()
     expect(calls.filter(c=>c.path.endsWith('/approval')).length).toBe(0)
     // 승인 전에 수정한 Cart 행은 원본 version과 달라져 성공 후에도 보존돼야 한다.
     const changed=await page.request.patch(`${api}/cart/items/${first.id}`,{headers,data:{quantity:4}});expect(changed.status()).toBe(200);const current=await changed.json();expect(current.version).toBe(first.version+2)
-    await page.getByRole('button',{name:'결제 인증하기',exact:true}).click();await expect(page.getByText('결제가 완료되었어요',{exact:true})).toBeVisible({timeout:45000})
+    const approvalResponse=page.waitForResponse(r=>new URL(r.url()).pathname.endsWith('/payment/approval'))
+    await page.getByRole('button',{name:'결제 인증하기',exact:true}).click()
+    const approval=await approvalResponse
+    if(scenario==='pending'){expect(approval.status()).toBe(202);const state=await approval.json();expect(state.orderStatus).toBe('PROCESSING');expect(state.processingExpiresAt).not.toBeNull();await page.reload()}
+    await expect(page.getByText('결제가 완료되었어요',{exact:true})).toBeVisible({timeout:45000})
     await page.reload();await expect(page.getByText('결제가 완료되었어요',{exact:true})).toBeVisible();expect(calls.filter(c=>c.path.endsWith('/approval')).length).toBe(1)
     const final=await page.request.get(`${api}/order-sheets/${number}`,{headers});expect(final.status()).toBe(200);const finalView=await final.json();expect(finalView.payment.orderStatus).toBe('PAID');expect(finalView.order.payableAmount).toBe(view.order.payableAmount)
     const rows:CartProductGroupDto[]=await(await page.request.get(`${api}/cart/items`,{headers})).json();const all=rows.flatMap(g=>g.items)

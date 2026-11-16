@@ -74,7 +74,7 @@ function CartCheckoutForm({ quote, cart, couponId, onCouponChange, refresh, bloc
     inFlight.current = true; setBusy(true); setError('')
     try {
       const active = await activeCheckout(api)
-      if (active) { navigate(active, { replace: true }); return }
+      if (active) { pending.current.clear(); navigate(active, { replace: true }); return }
       const view = await api.orderSheets.create(input, pending.current.key)
       rememberSheet(session.memberId, view.order.orderNumber)
       pending.current.clear()
@@ -82,7 +82,7 @@ function CartCheckoutForm({ quote, cart, couponId, onCouponChange, refresh, bloc
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '주문 응답을 확인하지 못했어요. 같은 입력으로 재시도해 주세요.')
       // 응답 유실 뒤 같은 입력/키를 유지한다. 새·기존 진행 주문을 구분해 복구한다.
-      try { const active = await activeCheckout(api); if (active) navigate(active, { replace: true }) } catch { /* 조회 실패는 원래 키를 보존한다 */ }
+      try { const active = await activeCheckout(api); if (active) { pending.current?.clear(); navigate(active, { replace: true }) } } catch { /* 조회 실패는 원래 키를 보존한다 */ }
     } finally { inFlight.current = false; setBusy(false) }
   }
   return <form className={styles.layout} onSubmit={submit}><div className={styles.main}>

@@ -54,18 +54,18 @@ function CheckoutForm({ product, initialQuantity, cartItemId }: { product: Pick<
     if (!name.trim() || name.trim().length > 64 || !/^[0-9-]{9,32}$/.test(phone.trim()) || !agreed) { setError('이름·연락처·결제 동의를 확인해 주세요.'); return }
     if (!Number.isSafeInteger(quote.skuId) || !quote.skuId || (quote.payableAmount ?? quote.totalAmount) <= 0) { setError('현재 주문서의 SKU와 실결제액을 확인해 주세요.'); return }
     const input = { items: [{ skuId: String(quote.skuId), quantity }], buyerName: name.trim(), buyerPhone: phone.trim(), expectedAmount: quote.payableAmount ?? quote.totalAmount, ...(couponId ? { couponId, couponSkuId: String(quote.skuId) } : {}) }
+    const identity = requestIdentity(session.memberId, 'sheet-direct', input)
     inFlight.current = true; setBusy(true); setError('')
     try {
       const active = await activeCheckout(api)
-      if (active) { navigate(active, { replace: true }); return }
-      const identity = requestIdentity(session.memberId, 'sheet-direct', input)
+      if (active) { identity.clear(); navigate(active, { replace: true }); return }
       const view = await api.orderSheets.create(input, identity.key)
       rememberSheet(session.memberId, view.order.orderNumber)
       identity.clear()
       navigate(`/order-sheets/${encodeURIComponent(view.order.orderNumber)}`, { replace: true })
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : '주문 응답을 확인하지 못했어요.')
-      try { const active = await activeCheckout(api); if (active) navigate(active, { replace: true }) } catch { /* 같은 입력으로 재요청할 때 원래 키를 유지한다 */ }
+      try { const active = await activeCheckout(api); if (active) { identity.clear(); navigate(active, { replace: true }) } } catch { /* 같은 입력으로 재요청할 때 원래 키를 유지한다 */ }
     }
     finally { inFlight.current = false; setBusy(false) }
   }

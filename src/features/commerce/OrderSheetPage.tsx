@@ -32,7 +32,11 @@ function SheetScope({ number }: { number: string }) {
         setView(next); setLoadError('')
         if (session) {
           rememberSheet(session.memberId, number)
-          if (!['PENDING', 'PROCESSING'].includes(next.payment.orderStatus) && next.payment.paymentStatus !== 'UNKNOWN') saveApproval(session.memberId, number, null)
+          if (!['PENDING', 'PROCESSING'].includes(next.payment.orderStatus)) {
+            const saved = savedApproval(session.memberId, number)
+            if (saved) requestIdentity(session.memberId, `sheet-approval:${number}`, saved).clear()
+            saveApproval(session.memberId, number, null)
+          }
         }
         if (!needsSheetRefresh(next.payment)) return
       } catch (cause) {
@@ -50,7 +54,12 @@ function SheetScope({ number }: { number: string }) {
     if (inFlight.current || !session || !view) return
     inFlight.current = true; setBusy(true); setError('')
     try {
-      if (action === 'cancel') { await api.orderSheets.cancel(number); saveApproval(session.memberId, number, null); return }
+      if (action === 'cancel') {
+        await api.orderSheets.cancel(number)
+        const saved = savedApproval(session.memberId, number)
+        if (saved) requestIdentity(session.memberId, `sheet-approval:${number}`, saved).clear()
+        saveApproval(session.memberId, number, null); return
+      }
       if (action === 'prepare') { await api.orderSheets.prepare(number); return }
       let result = savedApproval(session.memberId, number)
       if (action === 'authenticate') {

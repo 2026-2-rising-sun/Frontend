@@ -74,6 +74,7 @@ test('상품 그룹의 버전·선택을 새 주문서에 보존하고 인증 �
   await page.getByRole('button',{name:'결제 인증하기',exact:true}).click();await expect(page.getByText('결제 결과를 확인하고 있어요',{exact:true})).toBeVisible()
   await page.reload();await expect(page.getByText('결제 결과를 확인하고 있어요',{exact:true})).toBeVisible();expect(approvals).toBe(1)
   status='PAID';await page.getByRole('button',{name:'주문 상태 다시 확인'}).click();await expect(page.getByText('결제가 완료되었어요',{exact:true})).toBeVisible()
+  expect(await page.evaluate(()=>Object.keys(sessionStorage).filter(k=>k==='commerce:buyer:sheet-cart'||k==='commerce:buyer:sheet-approval:OS-1'||k==='sheet:buyer:OS-1:approval'))).toEqual([])
   await page.screenshot({path:'test-artifacts/order-sheet-desktop.png',fullPage:true});await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);await page.screenshot({path:'test-artifacts/order-sheet-mobile.png',fullPage:true})
 })
 
