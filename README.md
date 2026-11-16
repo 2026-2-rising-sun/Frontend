@@ -29,4 +29,4 @@ kind 수동 환경은 `npm run local:kind` → `npm run local:frontend`로 실�
 
 새 단건/Cart 주문은 `/v1/order-sheets`를 사용합니다. 결제 준비·창 열기는 PENDING을 유지하고 실제 인증 결과 뒤에만 승인 요청을 보냅니다. 서버가 준 PENDING/PROCESSING 기한을 각각 표시하며 202·UNKNOWN·응답 유실은 같은 주문/요청키로 조회·복구합니다. 늦은 승인 환불요청과 환불완료를 구별하고 기존legacy주문조회·진행중결제·환불화면은유지합니다.
 
-현재 앱에는 실제 인증 SDK·공개키·고객키·returnURL 설정이 없습니다. 인증 포트는 분리했지만 미설정 상태를 완료로 표시하지 않습니다. 개발용 `VITE_PG_AUTH_DOUBLE_URL`을 명시한 로컬 환경에서만 테스트 인증 대역을 연결하며 화면에도 대역임을 표시합니다. 실 SDK·PG 인증 증거로 계산하지 않습니다. 계약기준·상태·환경·검증 결과와 한계는 [새 주문서 검증](tests/order-sheet-verification.md)을 참조하세요.
+공식 Toss SDK2.10.0의 위젯 provider와 리다이렉트 콜백을 연결했습니다. 공개키와 회원별 customerKey는 `bootstrap({ paymentWidgetConfiguration })`의 인증된 설정 공급자가 주입하며, 현재 프로젝트에는 이 공급원이 없습니다. 회원ID를 고객키로 추정하거나 키를 발급하지 않고 미설정 앱은 인증을 시작하지 않습니다. 개발용 `VITE_PG_AUTH_DOUBLE_URL`을 명시한 로컬 환경에서만 테스트 인증 대역을 연결하며 화면에도 대역임을 표시합니다. 실 SDK·PG 인증 증거로 계산하지 않습니다. 계약기준·상태·환경·검증 결과와 한계는 [새 주문서 검증](tests/order-sheet-verification.md)을 참조하세요.
