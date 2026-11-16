@@ -10,6 +10,7 @@ test('바로 구매 수량 변경 중에는 이전 견적으로 주문하지 않
     const request = route.request(); const url = new URL(request.url())
     if (url.pathname.includes('/auth/')) return route.fulfill({ json: { success: true, data: { accessToken: 'token', refreshToken: 'refresh' } } })
     if (url.pathname.endsWith('/members/me')) return route.fulfill({ json: { success: true, data: { memberId: 'buyer', email: 'buyer@test.dev', displayName: '회원', roles: ['USER'] } } })
+    if (url.pathname.endsWith('/order-sheets/active')) return route.fulfill({ status: 204 })
     if (url.pathname.endsWith('/payment-groups/active')) return route.fulfill({ status: 204 })
     if (url.pathname.endsWith('/products/1')) return route.fulfill({ json: { productId: 1, name: '상품', mainImageUrl: null, salesStatus: 'ON_SALE', price: 10000, available: 5 } })
     if (url.pathname.endsWith('/orders/checkout')) {
@@ -17,7 +18,7 @@ test('바로 구매 수량 변경 중에는 이전 견적으로 주문하지 않
         await delayed
         return route.fulfill({ status: 409, json: { code: 'CONFLICT', message: '최신 가격을 확인해 주세요.' } })
       }
-      return route.fulfill({ json: { unitPrice: 10000, totalAmount: 10000, orderable: true, reason: null } })
+      return route.fulfill({ json: { skuId: 101, available: 5, productName: '상품', unitPrice: 10000, totalAmount: 10000, orderable: true, reason: null } })
     }
     if (url.pathname.endsWith('/orders') && request.method() === 'POST') creates++
     return route.fulfill({ status: 404 })
@@ -35,48 +36,45 @@ test('바로 구매 수량 변경 중에는 이전 견적으로 주문하지 않
   await expect(submit).toBeDisabled()
   expect(creates).toBe(0)
 })
-test('상품 그룹 응답의 선택·수량 변경과 주문·결제 복구 및 모바일 화면을 보존한다', async ({ page }) => {
-  let status = 'PENDING_PAYMENT'; let starts = 0; let quoteBodies: unknown[] = []
-  const cart = [{ id: 1, productId: 1, quantity: 2, version: 0 }, { id: 2, productId: 2, quantity: 1, version: 0 }]
-  const orders = [1, 2].map(n => ({ orderNumber: 'OD-' + n, groupNumber: 'PG-1', status, productName: '상품 ' + n, quantity: n === 1 ? 2 : 1, unitPrice: n === 1 ? 10000 : 5000, totalAmount: n === 1 ? 20000 : 5000, buyerName: '회원', createdAt: new Date().toISOString(), expiresAt: new Date(Date.now() + 900000).toISOString() }))
-  const group = () => ({ groupNumber: 'PG-1', status, totalAmount: 25000, expiresAt: orders[0].expiresAt, orders: orders.map(o => ({ ...o, status })), paymentId: starts ? 9 : null })
-  let created = false
+test('상품 그룹의 버전·선택을 새 주문서에 보존하고 인증 뒤에만 승인하며 응답유실·새로고침을 복구한다', async ({ page }) => {
+  let status = 'PENDING'; let approvals = 0; let created = false
+  let createBody: Record<string, unknown> = {}; const quotes: unknown[] = []
+  const cart = [{ id: 11, productId: 41, skuId: 71, quantity: 2, version: 0 }, { id: 12, productId: 42, skuId: 72, quantity: 1, version: 0 }]
+  const expiresAt = new Date(Date.now() + 600000).toISOString()
+  const processingExpiresAt = new Date(Date.now() + 1200000).toISOString()
+  const payment = () => ({ orderNumber:'OS-1', orderStatus:status, paymentId:9, paymentStatus:status === 'PROCESSING' ? 'UNKNOWN' : status === 'PAID' ? 'APPROVED':'CREATED',pgOrderId:'pg-latest',amount:25000,expiresAt,processingExpiresAt:status === 'PENDING' ? null:processingExpiresAt,refundStatus:null })
+  const view = () => ({order:{orderNumber:'OS-1',status,totalAmount:25000,discountAmount:0,payableAmount:25000,expiresAt,processingExpiresAt:payment().processingExpiresAt,items:cart.map(i=>({orderItemId:i.id+100,skuId:i.skuId,productId:i.productId,productName:'상품 '+i.productId,unitPrice:i.id===11?10000:5000,quantity:i.quantity,sourceCartItemId:i.id,sourceCartVersion:i.version}))},payment:payment()})
+  await page.route('http://127.0.0.1:57040/fixture/authentications', route => { const input=route.request().postDataJSON(); expect(input.pgOrderId).toBe('pg-latest'); return route.fulfill({json:{label:'PG_AUTH_DOUBLE',outcome:'authenticated',paymentKey:'authenticated-only',orderId:input.pgOrderId,amount:input.amount}}) })
   await page.route(/\/api\/(member|commercecore|catalog|live)\//, async route => {
-    const request = route.request(); const path = new URL(request.url()).pathname
-    const json = (body: unknown) => route.fulfill({ json: body })
-    if (path.includes('/auth/')) return json({ success: true, data: { accessToken: 'test-token', refreshToken: 'test-refresh' } })
-    if (path.endsWith('/members/me')) return json({ success: true, data: { memberId: '00000000-0000-0000-0000-000000000001', displayName: '회원', email: 'user@test.dev', roles: ['USER'] } })
-    if (path.endsWith('/payment-groups/active')) return created ? json(group()) : route.fulfill({ status: 204 })
-    if (path.endsWith('/cart/items/1') && request.method() === 'PATCH') { cart[0].quantity = request.postDataJSON().quantity; cart[0].version++; return json(cart[0]) }
-    if (path.endsWith('/cart/items')) return json(cart.map(item => ({ productId: item.productId, productName: '상품 ' + item.productId, mainImageUrl: null, saleEnabled: true, items: [{ ...item, skuId: 100 + item.id, unitPrice: item.id === 1 ? 10000 : 5000, available: 10, skuStatus: 'ON_SALE', purchasable: true }] })))
-    if (path.includes('/catalog/v1/products/')) { const n = Number(path.split('/').pop()); return json({ success: true, data: { productId: n, name: '상품 ' + n, mainImageUrl: null, salesStatus: 'ON_SALE', price: n === 1 ? 10000 : 5000, available: 10 } }) }
-    if (path.endsWith('/cart/checkout')) { quoteBodies.push(request.postDataJSON()); return json({ items: cart.map(i => ({ itemId: i.id, version: i.version, productId: i.productId, productName: '상품 ' + i.productId, quantity: i.quantity, unitPrice: i.id === 1 ? 10000 : 5000, totalAmount: i.id === 1 ? 20000 : 5000 })), totalAmount: 25000 }) }
-    if (path.endsWith('/cart/orders')) { expect(request.headers()['x-idempotency-key']).toBeTruthy(); created = true; return route.abort('connectionreset') }
-    if (path.endsWith('/payments')) { expect(request.headers()['x-idempotency-key']).toBeTruthy(); starts++; status = 'PAYMENT_CONFIRMING'; return route.abort('connectionreset') }
-    if (path.endsWith('/payment-groups/PG-1')) return json(group())
-    return route.fulfill({ status: 404, json: { message: path } })
+    const request=route.request(); const path=new URL(request.url()).pathname; const json=(body:unknown)=>route.fulfill({json:body})
+    if(path.includes('/auth/'))return json({success:true,data:{accessToken:'test-token',refreshToken:'test-refresh'}})
+    if(path.endsWith('/members/me'))return json({success:true,data:{memberId:'buyer',displayName:'회원',email:'user@test.dev',roles:['USER']}})
+    if(path.endsWith('/order-sheets/active'))return created?json(view()):route.fulfill({status:204})
+    if(path.endsWith('/payment-groups/active'))return route.fulfill({status:204})
+    if(path.endsWith('/cart/items/11')&&request.method()==='PATCH'){cart[0].quantity=request.postDataJSON().quantity;cart[0].version++;return json(cart[0])}
+    if(path.endsWith('/cart/items'))return json(cart.map(i=>({productId:i.productId,productName:'상품 '+i.productId,saleEnabled:true,items:[{...i,unitPrice:i.id===11?10000:5000,available:10,purchasable:true}]})))
+    if(path.endsWith('/cart/checkout')){quotes.push(request.postDataJSON());return json({items:cart.map(i=>({itemId:i.id,version:i.version,productId:i.productId,productName:'상품 '+i.productId,quantity:i.quantity,unitPrice:i.id===11?10000:5000,totalAmount:i.id===11?20000:5000})),totalAmount:25000,discountAmount:0,payableAmount:25000})}
+    if(path.endsWith('/order-sheets')&&request.method()==='POST'){created=true;createBody=request.postDataJSON();return route.abort('connectionreset')}
+    if(path.endsWith('/order-sheets/OS-1'))return json(view())
+    if(path.endsWith('/payment/checkouts'))return json(payment())
+    if(path.endsWith('/payment/approval')){expect(request.postDataJSON()).toEqual({paymentKey:'authenticated-only',pgOrderId:'pg-latest',amount:25000});approvals++;status='PROCESSING';return route.abort('connectionreset')}
+    return route.fulfill({status:404})
   })
-  await page.goto('/login'); await page.getByLabel('아이디 또는 이메일').fill('user@test.dev'); await page.getByLabel('비밀번호', { exact: true }).fill('password'); await page.getByRole('button', { name: '로그인', exact: true }).click(); await expect(page.getByRole('heading', { name: '내 계정', exact: true })).toBeVisible()
-  await page.goto('/cart'); await expect(page.getByRole('region', { name: '장바구니 합계' })).toContainText('25,000원')
-  await page.getByLabel('상품 2 선택').uncheck(); await expect(page.getByRole('region', { name: '장바구니 합계' })).toContainText('20,000원')
-  const row = page.locator('section').filter({ has: page.getByRole('heading', { name: '상품 1', exact: true }) })
-  await row.getByRole('button', { name: '수량 늘리기' }).click(); await expect(page.getByRole('region', { name: '장바구니 합계' })).toContainText('30,000원')
-  await expect(page.getByLabel('상품 2 선택')).not.toBeChecked()
-  await row.getByRole('button', { name: '수량 줄이기' }).click(); await expect(page.getByRole('region', { name: '장바구니 합계' })).toContainText('20,000원')
-  await page.getByLabel('전체 선택').check(); await page.getByRole('link', { name: '선택 상품 주문', exact: true }).click()
-  await expect(page.getByRole('heading', { name: '선택 상품 주문서', exact: true })).toBeVisible()
-  await expect.poll(() => quoteBodies[0]).toEqual({ items: [{ itemId: 1, version: 2 }, { itemId: 2, version: 0 }] })
-  await page.getByLabel('연락처').fill('01012345678'); await page.getByLabel('상품별 주문과 통합 결제 금액을 확인했습니다').check()
-  await page.getByRole('button', { name: '통합 주문 만들기' }).click(); await expect(page.getByRole('button', { name: '통합 결제하기' })).toBeVisible()
-  await page.getByRole('button', { name: '통합 결제하기' }).click(); await expect(page.getByText('결제 결과를 확인하고 있어요', { exact: true })).toBeVisible()
-  await page.reload(); await expect(page.getByText('결제 결과를 확인하고 있어요', { exact: true })).toBeVisible(); expect(starts).toBe(1)
-  status = 'PAID'; await page.getByRole('button', { name: '결과 다시 확인' }).click(); await expect(page.getByText('통합 결제가 완료되었어요', { exact: true })).toBeVisible()
-  await expect(page.getByRole('link', { name: '주문 OD-1', exact: true })).toBeVisible(); await expect(page.getByRole('link', { name: '주문 OD-2', exact: true })).toBeVisible()
-  await page.screenshot({ path: 'test-artifacts/checkout-group-desktop.png', fullPage: true })
-  await page.setViewportSize({ width: 390, height: 844 }); expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
-  await page.evaluate(() => window.scrollTo(0, 0))
-  await expect.poll(() => page.getByRole('banner').evaluate(e => e.getBoundingClientRect().top)).toBe(0)
-  await page.screenshot({ path: 'test-artifacts/checkout-group-mobile.png', fullPage: true })
+  await page.goto('/login');await page.getByLabel('아이디 또는 이메일').fill('user@test.dev');await page.getByLabel('비밀번호',{exact:true}).fill('password');await page.getByRole('button',{name:'로그인',exact:true}).click();await expect(page.getByRole('heading',{name:'내 계정',exact:true})).toBeVisible()
+  await page.goto('/cart');const total=page.getByRole('region',{name:'장바구니 합계'});await expect(total).toContainText('25,000원')
+  await page.getByLabel('상품 42 선택').uncheck();await expect(total).toContainText('20,000원')
+  const row=page.locator('section').filter({has:page.getByRole('heading',{name:'상품 41',exact:true})})
+  await row.getByRole('button',{name:'수량 늘리기'}).click();await expect(total).toContainText('30,000원');await expect(page.getByLabel('상품 42 선택')).not.toBeChecked()
+  await row.getByRole('button',{name:'수량 줄이기'}).click();await expect(total).toContainText('20,000원')
+  await page.getByLabel('전체 선택').check();await page.getByRole('link',{name:'선택 상품 주문',exact:true}).click()
+  await expect.poll(()=>quotes[0]).toEqual({items:[{itemId:11,version:2},{itemId:12,version:0}]})
+  await page.getByLabel('연락처').fill('01012345678');await page.getByLabel('상품별 주문과 통합 결제 금액을 확인했습니다').check();await page.getByRole('button',{name:'통합 주문 만들기'}).click()
+  await expect(page).toHaveURL(/order-sheets\/OS-1/);expect(createBody).toMatchObject({cartItems:[{itemId:11,version:2},{itemId:12,version:0}],expectedAmount:25000})
+  await expect(page.getByText('결제 인증을 진행해 주세요',{exact:true})).toBeVisible();expect(approvals).toBe(0)
+  await page.getByRole('button',{name:'결제 인증하기',exact:true}).click();await expect(page.getByText('결제 결과를 확인하고 있어요',{exact:true})).toBeVisible()
+  await page.reload();await expect(page.getByText('결제 결과를 확인하고 있어요',{exact:true})).toBeVisible();expect(approvals).toBe(1)
+  status='PAID';await page.getByRole('button',{name:'주문 상태 다시 확인'}).click();await expect(page.getByText('결제가 완료되었어요',{exact:true})).toBeVisible()
+  await page.screenshot({path:'test-artifacts/order-sheet-desktop.png',fullPage:true});await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);await page.screenshot({path:'test-artifacts/order-sheet-mobile.png',fullPage:true})
 })
 
 test('changing payment group route clears previous purchase actions while the new group fails', async ({ page }) => {
@@ -194,4 +192,66 @@ test('Cart 그룹의 가격과 구매불가 표시를 Catalog 조회값으로 �
   await expect(page.getByText('현재 구매할 수 없는 상품이에요.', { exact: true })).toBeVisible()
   await expect(page.getByRole('link', { name: '선택 상품 주문', exact: true })).toHaveAttribute('aria-disabled', 'true')
   expect(catalogCalls).toBe(0)
+})
+
+for (const outcome of ['cancelled', 'failed', 'authenticated-after-expiry'] as const) {
+  test(`인증 ${outcome} 결과는 승인이나 주문 취소로 바꾸지 않는다`, async ({ page }) => {
+    let status='PENDING'; let approvals=0; let cancellations=0
+    const payment=()=>({orderNumber:'OS-auth',orderStatus:status,paymentId:5,paymentStatus:'CREATED',pgOrderId:'pg-auth',amount:4000,expiresAt:new Date(Date.now()+600000).toISOString(),processingExpiresAt:null,refundStatus:null})
+    await page.route('http://127.0.0.1:57040/fixture/authentications',route=>{
+      if(outcome==='authenticated-after-expiry')status='EXPIRED'
+      return route.fulfill({json:outcome==='authenticated-after-expiry'?{label:'PG_AUTH_DOUBLE',outcome:'authenticated',paymentKey:'test-key',orderId:'pg-auth',amount:4000}:{label:'PG_AUTH_DOUBLE',outcome}})
+    })
+    await page.route(/\/api\/(member|commercecore)\//,route=>{
+      const path=new URL(route.request().url()).pathname
+      if(path.includes('/auth/'))return route.fulfill({json:{success:true,data:{accessToken:'test',refreshToken:'refresh'}}})
+      if(path.endsWith('/members/me'))return route.fulfill({json:{success:true,data:{memberId:'auth-member',email:'user@test.dev',displayName:'회원',roles:['USER']}}})
+      if(path.endsWith('/payment/approval')){approvals++;return route.fulfill({status:500})}
+      if(path.endsWith('/cancel')){cancellations++;return route.fulfill({status:204})}
+      if(path.endsWith('/payment/checkouts'))return route.fulfill({json:payment()})
+      return route.fulfill({json:{order:{orderNumber:'OS-auth',status,totalAmount:4000,discountAmount:0,payableAmount:4000,items:[]},payment:payment()}})
+    })
+    await page.goto('/login');await page.getByLabel('아이디 또는 이메일').fill('user@test.dev');await page.getByLabel('비밀번호',{exact:true}).fill('password');await page.getByRole('button',{name:'로그인',exact:true}).click();await expect(page.getByRole('heading',{name:'내 계정',exact:true})).toBeVisible()
+    await page.goto('/order-sheets/OS-auth');await page.getByRole('button',{name:'결제 인증하기',exact:true}).click()
+    if(outcome==='cancelled')await expect(page.getByText('결제 인증을 취소했어요. 아직 승인 요청은 보내지 않았어요.')).toBeVisible()
+    else if(outcome==='failed')await expect(page.getByText('결제 인증에 실패했어요. 승인 요청은 보내지 않았어요.')).toBeVisible()
+    else await expect(page.getByText('주문 기한이 지났어요',{exact:true})).toBeVisible()
+    expect(approvals).toBe(0);expect(cancellations).toBe(0)
+  })
+}
+
+test('늦은 승인 환불요청·환불실패·환불성공을 구분하고 새 승인을 허용하지 않는다',async({page})=>{
+  let refundStatus='REQUESTED';let approvals=0
+  await page.route(/\/api\/(member|commercecore)\//,route=>{
+    const path=new URL(route.request().url()).pathname
+    if(path.includes('/auth/'))return route.fulfill({json:{success:true,data:{accessToken:'test',refreshToken:'refresh'}}})
+    if(path.endsWith('/members/me'))return route.fulfill({json:{success:true,data:{memberId:'late-member',email:'user@test.dev',displayName:'회원',roles:['USER']}}})
+    if(path.endsWith('/approval'))approvals++
+    return route.fulfill({json:{order:{orderNumber:'OS-late',status:'EXPIRED',totalAmount:4000,discountAmount:0,payableAmount:4000,items:[]},payment:{orderNumber:'OS-late',orderStatus:'EXPIRED',paymentStatus:'APPROVED',refundStatus,pgOrderId:'pg-late',amount:4000,expiresAt:new Date(Date.now()-60000).toISOString(),processingExpiresAt:null}}})
+  })
+  await page.goto('/login');await page.getByLabel('아이디 또는 이메일').fill('user@test.dev');await page.getByLabel('비밀번호',{exact:true}).fill('password');await page.getByRole('button',{name:'로그인',exact:true}).click();await expect(page.getByRole('heading',{name:'내 계정',exact:true})).toBeVisible()
+  await page.goto('/order-sheets/OS-late');await expect(page.getByText('늦은 승인 환불을 기다리고 있어요',{exact:true})).toBeVisible();await expect(page.getByRole('button',{name:'결제 인증하기',exact:true})).toHaveCount(0)
+  refundStatus='FAILED';await page.getByRole('button',{name:'주문 상태 다시 확인'}).click();await expect(page.getByText('늦은 승인 환불 결과를 확인해 주세요',{exact:true})).toBeVisible()
+  refundStatus='SUCCEEDED';await page.getByRole('button',{name:'주문 상태 다시 확인'}).click();await expect(page.getByText('늦은 승인 환불이 완료되었어요',{exact:true})).toBeVisible();expect(approvals).toBe(0)
+})
+
+test('단건은 견적의 명시적 SKU·쿠폰할인후 금액으로 새 주문서만 준비한다',async({page})=>{
+  let created:Record<string,unknown>|null=null;let approvals=0
+  const p={orderNumber:'OS-direct',orderStatus:'PENDING',paymentStatus:'CREATED',paymentId:1,pgOrderId:'pg-direct',amount:6000,expiresAt:new Date(Date.now()+600000).toISOString(),processingExpiresAt:null,refundStatus:null}
+  await page.route(/\/api\/(member|commercecore|catalog)\//,route=>{
+    const req=route.request();const path=new URL(req.url()).pathname
+    if(path.includes('/auth/'))return route.fulfill({json:{success:true,data:{accessToken:'test',refreshToken:'refresh'}}})
+    if(path.endsWith('/members/me'))return route.fulfill({json:{success:true,data:{memberId:'direct-member',email:'user@test.dev',displayName:'회원',roles:['USER']}}})
+    if(path.endsWith('/active'))return route.fulfill({status:204})
+    if(path.endsWith('/me/coupons'))return route.fulfill({json:{success:true,data:[{couponId:'coupon-direct',name:'직접쿠폰',fixedDiscount:2000,status:'AVAILABLE',expiresAt:new Date(Date.now()+86400000).toISOString()}]}})
+    if(path.endsWith('/products/41'))return route.fulfill({json:{productId:41,name:'상품41',price:4000,available:20,status:'ON_SALE',mainImageUrl:null}})
+    if(path.endsWith('/orders/checkout')){const coupon=new URL(req.url()).searchParams.has('couponId');return route.fulfill({json:{skuId:71,available:20,productName:'상품41',unitPrice:4000,totalAmount:8000,orderable:true,discountAmount:coupon?2000:0,payableAmount:coupon?6000:8000}})}
+    if(path.endsWith('/order-sheets')&&req.method()==='POST'){created=req.postDataJSON();return route.fulfill({status:201,json:{order:{orderNumber:'OS-direct',totalAmount:8000,discountAmount:2000,payableAmount:6000,items:[]},payment:p}})}
+    if(path.endsWith('/approval'))approvals++
+    if(path.endsWith('/order-sheets/OS-direct'))return route.fulfill({json:{order:{orderNumber:'OS-direct',totalAmount:8000,discountAmount:2000,payableAmount:6000,items:[]},payment:p}})
+    return route.fulfill({status:404})
+  })
+  await page.goto('/login');await page.getByLabel('아이디 또는 이메일').fill('user@test.dev');await page.getByLabel('비밀번호',{exact:true}).fill('password');await page.getByRole('button',{name:'로그인',exact:true}).click();await expect(page.getByRole('heading',{name:'내 계정',exact:true})).toBeVisible()
+  await page.goto('/checkout?productId=41&quantity=2');await page.getByRole('combobox',{name:'사용할 보유 쿠폰'}).selectOption('coupon-direct');await page.getByLabel('연락처').fill('01012345678');await page.getByLabel('주문 내용을 확인했으며 결제에 동의합니다').check();await page.getByRole('button',{name:'결제하기',exact:true}).click()
+  await expect(page).toHaveURL(/order-sheets\/OS-direct/);expect(created).toEqual({items:[{skuId:71,quantity:2}],buyerName:'회원',buyerPhone:'01012345678',expectedAmount:6000,couponId:'coupon-direct',couponSkuId:71});expect(approvals).toBe(0)
 })

@@ -1,3 +1,4 @@
+import { createOrderSheets } from './orderSheets'
 import { createNotifications } from './notifications'
 import { createRefunds } from './refunds'
 import { createPromotions } from './promotions'
@@ -36,6 +37,7 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
   const selection = (items: { itemId: string; version: number }[]) => items.map(i => ({ itemId: Number(i.itemId), version: i.version }))
   return {
     auth,
+    orderSheets: createOrderSheets(request),
     notifications: createNotifications(request),
     coupons: createCoupons(request),
     refunds: createRefunds(request),

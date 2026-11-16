@@ -2,6 +2,7 @@ import { ApiError, type ApiErrorCode } from '../../domain/errors'
 
 interface RequestOptions {
   headers?: Record<string, string>
+  timeoutMs?: number
   anonymous?: boolean
   responseType?: 'empty'
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE' | 'PUT'
@@ -53,15 +54,18 @@ export function createHttpClient(baseUrl: string, auth?: { accessToken: () => st
     if (token) headers.Authorization = `Bearer ${token}`
     if (options.body && !(options.body instanceof FormData)) headers['Content-Type'] = 'application/json'
     let response: Response
+    const controller = options.timeoutMs ? new AbortController() : undefined
+    const timer = controller ? setTimeout(() => controller.abort(), options.timeoutMs) : undefined
     try {
       response = await fetch(url, {
         method: options.method ?? 'GET',
+        signal: controller?.signal,
         headers,
         body: options.body instanceof FormData ? options.body : options.body ? JSON.stringify(options.body) : undefined,
       })
     } catch {
-      throw new ApiError('NETWORK', '서버에 연결하지 못했어요.')
-    }
+      throw new ApiError('NETWORK', options.timeoutMs ? '서버 응답을 확인하지 못했어요. 같은 주문을 다시 조회해 주세요.' : '서버에 연결하지 못했어요.')
+    } finally { if (timer) clearTimeout(timer) }
 
     if (!response.ok) {
       if (response.status === 401 && token) auth?.unauthorized(token)

@@ -1,3 +1,6 @@
+import { recentSheet } from './sheetRecovery'
+import { useSession } from '../auth/useSession'
+import { ActivePaymentGroup } from './ActivePaymentGroup'
 import { Link } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
 import { PageContainer } from '../../components/PageContainer'
@@ -7,9 +10,10 @@ import { usePaged } from '../../hooks/usePaged'
 import { formatPrice, formatFullDateTime } from '../../lib/format'
 import styles from './OrderLookupPage.module.css'
 export function OrderLookupPage() {
-  const api = useApi()
+  const api = useApi(); const session = useSession()
+  const recent = session ? recentSheet(session.memberId) : null
   const orders = usePaged(page => api.orders.list({ page, size: 20 }), [api])
-  return <PageContainer narrow><h1 className="t-h1">내 주문</h1>
+  return <PageContainer narrow><h1 className="t-h1">내 주문</h1><ActivePaymentGroup />{recent && <p><Link to={`/order-sheets/${encodeURIComponent(recent)}`}>최근 새 주문서 확인</Link></p>}
     <PagedView state={orders} skeleton={<Skeleton height={200} />} emptyTitle="주문 내역이 없어요">
       {items => items.map(order => <section key={order.orderNumber} className={styles.card}>
         <StatusBadge status={orderBadge(order.status)} /><Link to={`/orders/${encodeURIComponent(order.orderNumber)}`}>{order.productName}</Link>

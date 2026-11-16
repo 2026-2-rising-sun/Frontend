@@ -1,3 +1,6 @@
+import { OrderSheetPage } from '../features/commerce/OrderSheetPage'
+import { PaymentAuthenticationContext } from '../features/commerce/PaymentAuthenticationContext'
+import type { PaymentAuthentication } from '../domain/orderSheets'
 import { AlertSubscriptionsPage } from '../features/notifications/AlertSubscriptionsPage'
 import { BuyerRefundDetailPage } from '../features/refunds/BuyerRefundDetailPage'
 import { NotificationsPage } from '../features/notifications/NotificationsPage'
@@ -33,6 +36,7 @@ import { NotFoundPage } from './NotFoundPage'
 
 interface AppProps {
   api: Api
+  paymentAuthentication?: PaymentAuthentication
 }
 
 /** 화면 이동 시 항상 맨 위에서 시작한다. */
@@ -44,9 +48,9 @@ function ScrollToTop() {
   return null
 }
 
-function App({ api }: AppProps) {
+function App({ api, paymentAuthentication }: AppProps) {
   return (
-    <ApiContext.Provider value={api}>
+    <ApiContext.Provider value={api}><PaymentAuthenticationContext.Provider value={paymentAuthentication ?? null}>
       <BrowserRouter>
         <ScrollToTop />
         <Routes>
@@ -62,6 +66,7 @@ function App({ api }: AppProps) {
             <Route path="lives/:liveId" element={<LiveWatchPage />} />
             <Route path="coupons" element={<RequireSession><CouponsPage /></RequireSession>} />
             <Route path="cart" element={<RequireSession><CartPage /></RequireSession>} />
+            <Route path="order-sheets/:orderNumber" element={<RequireSession><OrderSheetPage /></RequireSession>} />
             <Route path="checkout/cart" element={<RequireSession><CartCheckoutPage /></RequireSession>} />
             <Route path="payment-groups/:groupNumber/refunds/:refundId" element={<RequireSession><BuyerRefundDetailPage /></RequireSession>} />
             <Route path="payment-groups/:groupNumber" element={<RequireSession><PaymentGroupPage /></RequireSession>} />
@@ -87,7 +92,7 @@ function App({ api }: AppProps) {
           </Route>
         </Routes>
       </BrowserRouter>
-    </ApiContext.Provider>
+    </PaymentAuthenticationContext.Provider></ApiContext.Provider>
   )
 }
 

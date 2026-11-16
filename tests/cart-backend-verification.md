@@ -41,3 +41,7 @@ Order `d588f70a28730f1dff6030e72a43139b06802866` + Frontend `3abc8113ecd2f9770e1
 유지 API는 기존 Cart CRUD·checkout·cart/orders·묶음 조회/미결제cancel이며 신규 `/v1/order-sheets` 공개 핸들러는 제외됐다는 Order 담당 인계를 받았다. 이번 자동 검사는 묶음 URL 이동까지 확인했으나 개별 묶음GET 응답은 캡처되지 않았다. 완료파일 뒤 추가 GET은 서버 종료로 connection refused였으므로 조회200으로 세지 않는다. 생성한 본인 미결제 묶음cancel204·Cart삭제와 후속GET200 빈배열을 확인하고 종료를 인계했다. 자체 fixture/Vite는 종료했다.
 
 이 최종 경로는 기존 legacy policy0/PT15M이며 최신600/600 설계 완료 증거가 아니다. 결제 API 호출0, 신규 Payment 연동/임시차단/대체계약 없음. 샘플의 `/v1/product-images/1`은404여서 이미지 fallback을 표시했으며 실제 이미지 제공자 성공으로 계산하지 않는다. 나머지 가격·텍스트·조작과390px 넘침 검사는 통과했다. 이전3b44의 세 실행과 이번 최종축소1건을 구분한다.
+
+## 후속 전환
+
+2026-11-16 새 OrderSheet API 소비자 전환은 [새 주문서 검증](order-sheet-verification.md)으로 이어진다. 위 legacy 실행은 당시 증거이며 현재 e2e:cart-backend는 새 계약을 검증하므로 과거 API 경로로 재실행한 결과로 오인하지 않는다.
