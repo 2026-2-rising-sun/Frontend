@@ -30,7 +30,7 @@ test('실제 단건 SKU·쿠폰·인증 취소와 실패·새 결제창·202 재
     await page.reload();await expect(page.getByText('결제가 완료되었어요',{exact:true})).toBeVisible({timeout:45000});expect(calls.filter(c=>c.path.endsWith('/approval')).length).toBe(1);expect(new Set(checkoutIds).size).toBe(3)
     const final=await(await page.request.get(`${api}/order-sheets/${number}`,{headers})).json();expect(final.payment.orderStatus).toBe('PAID');expect(final.payment.processingExpiresAt).toBe(processing.processingExpiresAt);expect(final.order.payableAmount).toBe(view.order.payableAmount)
     await page.screenshot({path:info.outputPath('direct-paid.png'),fullPage:true})
-    const cancelled=await create(page);numbers.push(cancelled.order.orderNumber);await page.getByRole('button',{name:'주문 취소',exact:true}).click();await expect(page.getByText('주문이 취소되었어요',{exact:true})).toBeVisible();expect((await page.request.get(`${api}/order-sheets/active`,{headers})).status()).toBe(204)
+    const cancelled=await create(page);numbers.push(cancelled.order.orderNumber);const cancelResponse=page.waitForResponse(r=>new URL(r.url()).pathname.endsWith(`/order-sheets/${cancelled.order.orderNumber}/cancel`)&&r.request().method()==='POST');await page.getByRole('button',{name:'주문 취소',exact:true}).click();expect((await cancelResponse).status()).toBe(204);await expect(page.getByText('주문이 취소되었어요',{exact:true})).toBeVisible();expect((await page.request.get(`${api}/order-sheets/active`,{headers})).status()).toBe(204)
     await writeFile(info.outputPath('direct-real-evidence.json'),JSON.stringify({backendSha,frontendSha,created:view,processing,final,cancelledOrder:cancelled.order.orderNumber,calls,checkoutIds,authentication:'PG_AUTH_DOUBLE',realPg:false},null,2))
   }finally{for(const number of numbers){const v=await(await page.request.get(`${api}/order-sheets/${number}`,{headers})).json();if(v.payment.orderStatus==='PENDING')expect((await page.request.post(`${api}/order-sheets/${number}/cancel`,{headers})).status()).toBe(204)}}
 })
@@ -61,7 +61,7 @@ test('실제 legacy 주문 재진입은 기존 번호와 기한을 보존하고 
 
 test('실제 PENDING 사용자 취소의 HTTP204와 후속 상태 표시를 함께 확인한다',async({page},info)=>{
   const headers=await login(page);const events:{path:string;status:number;orderStatus?:string}[]=[]
-  page.on('response',async r=>{const path=new URL(r.url()).pathname;if(path.startsWith('/api/commercecore/')){const item:{path:string;status:number;orderStatus?:string}={path,status:r.status()};events.push(item);if(r.ok()&&/\/order-sheets\/[^/]+$/.test(path)){const v=await r.json();item.orderStatus=v.payment?.orderStatus}}})
+  page.on('response',async r=>{const path=new URL(r.url()).pathname;if(path.startsWith('/api/commercecore/')){const item:{path:string;status:number;orderStatus?:string}={path,status:r.status()};events.push(item);if(r.status()===200&&/\/order-sheets\/[^/]+$/.test(path)){const v=await r.json().catch(()=>null);item.orderStatus=v?.payment?.orderStatus}}})
   const view=await create(page);const number=view.order.orderNumber
   try{
     await expect(page.getByText('결제 인증을 진행해 주세요',{exact:true})).toBeVisible()
