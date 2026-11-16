@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-// 기획전 목록(/exhibitions): 분류 칸, 진행 중 카드. 기획전 화면(/exhibitions/:id): 큰 배너, 묶음 탭, 상품 카드, 종료 안내
+// 기획전 목록(/exhibitions): 분류 칸, 진행 중 카드. 기획전 화면(/exhibitions/:id): 제목 줄, 포스터, 묶음 칸(전체, 묶음 하나), 묶음별 상품, 종료 안내
 const product = (id: number, name: string) => ({ productId: id, name, mainImageUrl: null, price: 10000, salesStatus: 'ON_SALE', available: 5 })
 const summary = (id: string, title: string, category: string) => ({ id, title, headline: [title], description: '설명', art: ['🎁'], tone: 'blush', category, startsAt: '2026-11-01T00:00:00+09:00', endsAt: '2026-11-30T23:59:00+09:00' })
 const exhibition = (id: string, endsAt: string) => ({
@@ -57,22 +57,42 @@ test('상단바 기획전에서 진행 중인 기획전 카드를 보고, 분류
   await expect(page.getByRole('heading', { level: 1, name: '겨울 보습 기획전' })).toBeVisible()
 })
 
-test('기획전은 기간과 묶음을 보여 주고, 탭을 누르면 그 묶음 상품만 보인다', async ({ page }) => {
+test('기획전은 제목 줄, 포스터, 묶음 칸, 묶음별 상품을 보여 주고, 묶음을 고르면 그 묶음 상품만 보인다', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-11-16T03:00:00Z') })
   await fixture(page)
+  await page.setViewportSize({ width: 1280, height: 800 })
   await page.goto('/exhibitions/winter')
   await expect(page.getByRole('heading', { level: 1, name: '겨울 보습 기획전' })).toBeVisible()
-  await expect(page.getByText('11/1 ~ 11/30')).toBeVisible()
-  const tabs = page.getByRole('tablist', { name: '기획전 묶음' })
-  await expect(tabs.getByRole('tab')).toHaveText(['전체', '수분결 단독', '스킨케어']) // 상품이 없는 묶음은 뺀다
-  await expect(page.getByRole('region', { name: '수분결 단독' })).toBeVisible()
-  await expect(page.getByRole('region', { name: '스킨케어' })).toBeVisible()
+  await expect(page.getByText('26.11.01 - 26.11.30')).toBeVisible()
+  await expect(page.getByText('11.1 - 11.30')).toBeVisible() // 포스터 안 기간
+  const nav = page.getByRole('navigation', { name: '기획전 묶음' })
+  await expect(nav.getByRole('button')).toHaveText(['전체', '수분결 단독', '스킨케어']) // 상품이 없는 묶음은 뺀다
+  await expect(page.getByRole('region', { name: '수분결 단독' }).getByRole('listitem')).toHaveCount(2)
 
-  await tabs.getByRole('tab', { name: '스킨케어' }).click()
-  await expect(page.getByRole('region', { name: '수분결 단독' })).toHaveCount(0)
-  await expect(page.getByRole('region', { name: '스킨케어' }).getByText('약산성 클렌저')).toBeVisible()
-  await page.getByText('약산성 클렌저').click()
+  await expect(nav.getByRole('button', { name: '전체' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('region', { name: '스킨케어' })).toBeVisible() // 전체는 모든 묶음
+
+  await nav.getByRole('button', { name: '스킨케어' }).click()
+  await expect(nav.getByRole('button', { name: '스킨케어' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('region', { name: '수분결 단독' })).toHaveCount(0) // 고른 묶음 상품만
+  await expect(page.getByText('수분 크림')).toHaveCount(0)
+  const skincare = page.getByRole('region', { name: '스킨케어' })
+  await expect(skincare).toBeInViewport()
+
+  await nav.getByRole('button', { name: '전체' }).click()
+  await expect(page.getByRole('region', { name: '수분결 단독' })).toBeVisible()
+  await nav.getByRole('button', { name: '스킨케어' }).click()
+  await skincare.getByText('약산성 클렌저').click()
   await expect(page).toHaveURL(/\/products\/3$/)
+})
+
+test('URL 버튼은 기획전 주소를 복사한다', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write'])
+  await fixture(page)
+  await page.goto('/exhibitions/winter')
+  await page.getByRole('button', { name: 'URL' }).click()
+  await expect(page.getByRole('status').filter({ hasText: '주소를 복사했어요' })).toBeVisible()
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toMatch(/\/exhibitions\/winter$/)
 })
 
 test('끝난 기획전은 상품 대신 종료 안내를 보여 준다', async ({ page }) => {
@@ -80,7 +100,7 @@ test('끝난 기획전은 상품 대신 종료 안내를 보여 준다', async (
   await fixture(page)
   await page.goto('/exhibitions/autumn')
   await expect(page.getByText('종료된 기획전이에요')).toBeVisible()
-  await expect(page.getByRole('tablist')).toHaveCount(0)
+  await expect(page.getByRole('navigation', { name: '기획전 묶음' })).toHaveCount(0)
   await expect(page.getByRole('link', { name: '기획전 목록' })).toHaveAttribute('href', '/exhibitions')
 })
 
