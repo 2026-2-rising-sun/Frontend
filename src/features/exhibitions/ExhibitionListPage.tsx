@@ -4,20 +4,20 @@ import { useApi } from '../../app/apiContext'
 import { AsyncView } from '../../components/AsyncView'
 import { PageContainer } from '../../components/PageContainer'
 import { ResultState, Skeleton, Thumbnail } from '../../components/ui'
-import { exhibitionState, type ExhibitionSummary } from '../../domain/exhibitions'
-import { PRODUCT_CATEGORIES, type Product } from '../../domain/types'
+import { EXHIBITION_CATEGORIES, exhibitionState, type ExhibitionSummary } from '../../domain/exhibitions'
+import type { Product } from '../../domain/types'
 import { useAsync } from '../../hooks/useAsync'
 import { formatPrice } from '../../lib/format'
 import { displayPrice } from '../shopping/liveDeal'
 import tones from './tones.module.css'
 import styles from './ExhibitionListPage.module.css'
 
-const FILTERS = [{ value: '', label: '전체' }, ...PRODUCT_CATEGORIES.map(category => ({ value: category.value.toLowerCase(), label: category.label }))]
+const FILTERS = [{ value: '', label: '전체' }, ...EXHIBITION_CATEGORIES]
 
 /**
  * 기획전 목록(/exhibitions). 위쪽 머리 띠와 분류 칸, 아래 "지금 진행 중인 행사예요" 카드 목록이다.
  * 카드는 큰 기획전 배너와 대표 상품 두 개다. 배너를 누르면 기획전 화면으로 간다.
- * 고른 분류는 주소(?category=beauty)에 남겨 새로 고침하거나 공유해도 그대로 보인다.
+ * 분류는 상단바보다 잘게 나눈 기획전 분류다. 고른 분류는 주소(?category=skincare)에 남겨 새로 고침하거나 공유해도 그대로 보인다.
  */
 export function ExhibitionListPage() {
   const api = useApi()
@@ -42,7 +42,7 @@ export function ExhibitionListPage() {
         <h2 id="exhibitions-heading" className={styles.heading}>지금 진행 중인 행사예요</h2>
         <AsyncView state={exhibitions} skeleton={<ul className={styles.cards}>{[0, 1].map(i => <li key={i}><Skeleton height={560} radius={4} /></li>)}</ul>}>
           {data => {
-            const shown = data.filter(item => exhibitionState(item, now) === 'ACTIVE' && (!selected || item.category?.toLowerCase() === selected))
+            const shown = data.filter(item => exhibitionState(item, now) === 'ACTIVE' && (!selected || item.category === selected))
             return shown.length ? <ul className={styles.cards}>{shown.map(item => <li key={item.id}><ExhibitionCard exhibition={item} /></li>)}</ul>
               : <ResultState type="empty" title="진행 중인 기획전이 없어요" message={selected ? '다른 분류를 골라 보세요.' : '새 기획전을 준비하고 있어요.'} />
           }}
