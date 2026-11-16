@@ -12,9 +12,10 @@ const categoryPath = (value: ProductCategory) => `/categories/${value.toLowerCas
 const NAV = [
   { to: '/today', label: '오특' },
   { to: '/lives', label: '라이브' },
+  { to: '/exhibitions', label: '기획전' },
   ...PRODUCT_CATEGORIES.map(category => ({ to: categoryPath(category.value), label: category.label })),
 ]
-/** 맨 위는 계정 메뉴(카테고리, 장바구니, 마이페이지, 로그인 상태, 알림), 가운데는 로고와 검색, 아래는 오특, 라이브, 대표 분류 탭이다. */
+/** 맨 위는 계정 메뉴(카테고리, 장바구니, 마이페이지, 로그인 상태, 알림), 가운데는 로고와 검색, 아래는 오특, 라이브, 기획전, 대표 분류 탭이다. */
 export function Header() {
   const session = useSession()
   const { auth } = useApi()

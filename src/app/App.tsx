@@ -3,6 +3,8 @@ import { BuyerRefundDetailPage } from '../features/refunds/BuyerRefundDetailPage
 import { NotificationsPage } from '../features/notifications/NotificationsPage'
 import { SellerCouponsPage, SellerCouponEditPage } from '../features/coupons/SellerCouponsPage'
 import { CouponsPage } from '../features/coupons/CouponsPage'
+import { ExhibitionListPage } from '../features/exhibitions/ExhibitionListPage'
+import { ExhibitionPage } from '../features/exhibitions/ExhibitionPage'
 import { SellerRefundListPage } from '../features/refunds/SellerRefundListPage'
 import { SellerRefundDetailPage } from '../features/refunds/SellerRefundDetailPage'
 import { CartCheckoutPage } from '../features/commerce/CartCheckoutPage'
@@ -63,6 +65,8 @@ function App({ api }: AppProps) {
             <Route path="products/:productId" element={<ProductDetailPage />} />
             <Route path="categories/:category" element={<CategoryPage />} />
             <Route path="ranking" element={<RankingPage />} />
+            <Route path="exhibitions" element={<ExhibitionListPage />} />
+            <Route path="exhibitions/:exhibitionId" element={<ExhibitionPage />} />
             <Route path="sale" element={<SalePage />} />
             <Route path="today" element={<LiveListPage todayOnly />} />
             <Route path="lives" element={<LiveListPage />} />
