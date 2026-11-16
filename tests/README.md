@@ -32,3 +32,6 @@ Cart 그룹 응답 호환은 `cartCheckout.test.ts`에서 서로 다른 productI
 
 
 `npm run e2e:cart-backend`는 이미 기동된 격리 Frontend/Core·팀원Payment와 명시적 인증/PG대역을 대상으로 새 주문서 쿠폰·승인후상태·Cart 버전 조건부 정리를 검사합니다. `E2E_BASE_URL`, `CART_E2E_PRODUCT_IDS`(단일SKU상품2개), 격리로그인 `CART_E2E_EMAIL`/`CART_E2E_PASSWORD`, 정확 `CART_E2E_BACKEND_SHA`/`CART_E2E_FRONTEND_SHA`, `CART_E2E_COUPON_ID`/`CART_E2E_COUPON_DISCOUNT`가 필요합니다. 실제Core응답을intercept하지않으며승인요청을실행하므로소유자와합의한테스트회원/PG대역만사용합니다. 자신이만든Cart만정리하고PAID주문에임의환불을실행하지않습니다. 인증헤더/JWT/paymentKey원문을증거에남기지않습니다. [상태와 검증 경계](order-sheet-verification.md)에실SDK미연결·실PG미검증및당시실행결과를명시합니다.
+
+
+`npm run e2e:order-sheet-backend`는 이미 준비된 격리 환경을 사용합니다. `--grep`으로 실단건/legacy재진입/사용자취소/late/SDK인터페이스콜백을각각선택합니다. 신원·상품·쿠폰·정확SHA는 ORDER_SHEET_E2E_*로주입하며late는소유자와사전협의한LATE_SIGNAL_FILE을사용합니다. SDK인터페이스대역과실Core/Payment/Kafka,실SDK미실행은 [검증 기록](order-sheet-verification.md)에서구분합니다. 재시도0이며실패실행도보존합니다.

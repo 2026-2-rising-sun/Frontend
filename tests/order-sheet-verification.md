@@ -79,4 +79,17 @@ Cart PG-f8f8eba6-739d-4e45-be84-1de0c14250b4/paymentId1의 PaymentApproved는 ev
 
 `e2e:cart-backend`는 CART_E2E_BACKEND_SHA/FRONTEND_SHA/PRODUCT_IDS/COUPON_ID/COUPON_DISCOUNT와격리로그인입력을요구한다. `e2e:order-sheet-backend`는 ORDER_SHEET_E2E_BACKEND_SHA/FRONTEND_SHA/EMAIL/PASSWORD/PRODUCT_ID/SKU_ID와선택된시나리오의COUPON_ID/COUPON_DISCOUNT/LEGACY_GROUP/LATE_SIGNAL_FILE을요구한다. late는Backend소유자와협의해정확그주문만제어하며일반브라우저에제어API/token을노출하지않는다.
 
-최신 Backend 고정 SHA에서 SDK 인터페이스 대역의 Redirect 콜백→실 Core 승인 검증을 추가한 뒤 정확 소스/환경/결과를 이어 기록한다. 이 검사는 실제 SDK 원격 구현·실 PG·실 환불 완료를 입증하지 않는다. 고객키 공급원과 상점 설정은 별도 제공이 필요하다. merge/ready/배포는 하지 않는다.
+최신 Backend 고정 SHA의 SDK 인터페이스 대역 Redirect 콜백→실 Core 승인 검증 결과는 아래에 기록했다. 이 검사는 실제 SDK 원격 구현·실 PG·실 환불 완료를 입증하지 않는다. 고객키 공급원과 상점 설정은 별도 제공이 필요하다. merge/ready/배포는 하지 않는다.
+
+
+## 최신 SDK 콜백 실API 결과와 최종 인계
+
+Core `4e99a0f5f86fb7f302aa8c2eb09bf02040f8650c` + Frontend `94b1bee1f78ec7c5a624f374a8f5bcedccfe9c5c`에서 콜백 실API1건이30.2초(전체31.4초)에 실패·스킵0으로 통과했다. 이 Core는 policy1/2 미연결active409 보완을 포함한 불변 jar이며 Payment는 위2c6aa250 그대로다. HTTP복구조회는false였다. 이전7a64검증이과거policy2까지포함했다고확대하지않는다.
+
+주문PG-6bcecdcb-c7d9-4acb-8639-ad4a6ef962c2/paymentId11, SKU93002 수량2/실지불6000이다. 실제provider소스에SDK인터페이스대역을주입해setAmount/결제수단·약관렌더/requestPayment순서를확인하고, PG_AUTH_DOUBLE이준인증결과를실제successUrl로전달했다. 콜백은nonce/창/금액을대조한뒤Core승인202→PAID/처리기한불변/새로고침·승인1회를확인했다. 원격TossSDK요청은0이며실제SDK원격구현의실행성공이아니다. 인증키가주소와후속API Referer에남지않는것도검사했다. 원증거와390px/desktop화면은 `/tmp/frontend-order-sheet-20261116/widget-callback/`에보존했다.
+
+최종선택실API시나리오는Cart·단건·독립취소·legacy재진입·late·SDK인터페이스콜백의6건이각각통과했다. 앞선3회의실패(세션준비전reload,취소UI5초미확인,204진단body파싱)는삭제하지않고위와같이구분한다. 최종콜백뒤추가실API호출은멈췄고자체Vite와이전세션fixture의남은프로세스0을확인했다. Backend소유자에게정확주문번호를전달해마지막DB/Kafka를보존한뒤본인환경만정리하도록인계했다.
+
+실제상점의client/secret키세트, 회원별customerKey공급원, 그공급자를기본main.tsx의bootstrap에연결하는운영설정은아직없다. provider/콜백코드가존재하는것과현재배포앱의실인증이활성화된것을구분한다. 이PR은그공급원HTTP계약을새로만들거나고객키/자격증명을발급하지않는다. 실SDK원격실행·실PG/실계좌·늦은승인실환불완료는미검증/후속이다. 전체Order요구수용·merge가능·ready·배포완료로보고하지않는다.
+
+PR작성자는Frontend담당이다. 2026-11-16 Backend writing.md의쉬운설명/PR작성절을읽고PR81의base dev·실제HEAD/diff를확인해제목/본문을전환범위로다시작성했다. 게시후본문전체를읽어과거“SDK패키지없음/실API대기”문구가현재구현/검증결과와모순되지않게고쳤다. 코디네이터에게최종설명검토를요청하고별도감독결과와구분한다. 후속기록커밋은검증한앱/계약/SDK코드를바꾸지않는다.
