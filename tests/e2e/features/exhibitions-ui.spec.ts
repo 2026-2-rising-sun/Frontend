@@ -16,9 +16,9 @@ async function fixture(page: Page) {
   await page.route(/\/api\/(member|catalog|commercecore|live|notification)\//, route => {
     const path = new URL(route.request().url()).pathname
     if (path.endsWith('/catalog/v1/exhibitions')) return route.fulfill({ json: [
-      { ...summary('winter', '겨울 보습 기획전', 'BEAUTY'), previewProducts: [{ ...product(1, '수분 크림'), brandName: '수분결', originalPrice: 15000 }, product(2, '수분 토너'), product(3, '약산성 클렌저')] },
-      { ...summary('strawberry', '딸기 간식 선물전', 'FOOD'), previewProducts: [product(4, '설향 딸기')] },
-      { ...summary('autumn', '가을 기획전', 'FOOD'), endsAt: '2026-11-10T23:59:00+09:00', previewProducts: [] }, // 끝난 기획전은 빼고 보인다
+      { ...summary('winter', '겨울 보습 기획전', 'skincare'), previewProducts: [{ ...product(1, '수분 크림'), brandName: '수분결', originalPrice: 15000 }, product(2, '수분 토너'), product(3, '약산성 클렌저')] },
+      { ...summary('strawberry', '딸기 간식 선물전', 'fresh'), previewProducts: [product(4, '설향 딸기')] },
+      { ...summary('autumn', '가을 기획전', 'fresh'), endsAt: '2026-11-10T23:59:00+09:00', previewProducts: [] }, // 끝난 기획전은 빼고 보인다
     ] })
     if (path.endsWith('/exhibitions/winter')) return route.fulfill({ json: exhibition('winter', '2026-11-30T23:59:00+09:00') })
     if (path.endsWith('/exhibitions/autumn')) return route.fulfill({ json: exhibition('autumn', '2026-11-10T23:59:00+09:00') })
@@ -44,10 +44,11 @@ test('상단바 기획전에서 진행 중인 기획전 카드를 보고, 분류
 
   const filters = page.getByRole('group', { name: '기획전 분류' })
   await expect(filters.getByRole('button', { name: '전체' })).toHaveAttribute('aria-pressed', 'true')
-  await filters.getByRole('button', { name: '식품' }).click()
-  await expect(page).toHaveURL(/category=food/)
+  await expect(filters.getByRole('button')).toHaveCount(20) // 전체와 기획전 분류 19개
+  await filters.getByRole('button', { name: '신선식품' }).click()
+  await expect(page).toHaveURL(/category=fresh/)
   await expect(list.getByRole('article')).toHaveText([/딸기 간식 선물전|설향 딸기/])
-  await filters.getByRole('button', { name: '패션' }).click()
+  await filters.getByRole('button', { name: '반려동물' }).click()
   await expect(list.getByText('진행 중인 기획전이 없어요')).toBeVisible()
   await filters.getByRole('button', { name: '전체' }).click()
 

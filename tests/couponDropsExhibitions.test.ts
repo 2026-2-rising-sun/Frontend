@@ -45,12 +45,12 @@ test('기획전은 카탈로그에서 받고, 모르는 배너 색은 기본색�
   const urls: URL[] = []
   globalThis.fetch = async url => {
     urls.push(new URL(String(url)))
-    const summary = { id: 7, title: '겨울 보습 기획전', headline: ['겨울', '보습'], description: '설명', art: ['🧴'], tone: 'neon', category: 'BEAUTY', startsAt: '2026-11-01T00:00:00Z', endsAt: '2026-11-30T14:59:00Z' }
+    const summary = { id: 7, title: '겨울 보습 기획전', headline: ['겨울', '보습'], description: '설명', art: ['🧴'], tone: 'neon', category: 'skincare', startsAt: '2026-11-01T00:00:00Z', endsAt: '2026-11-30T14:59:00Z' }
     return envelope(urls.length === 1 ? [summary] : { ...summary, sections: [{ title: '스킨케어', products: [{ productId: 3, name: '수분 크림', mainImageUrl: null, price: 10000, salesStatus: 'ON_SALE' }] }] })
   }
   const api = createHttpApi('/api')
   const [summary] = await api.exhibitions.list()
-  assert.equal(summary.id, '7'); assert.equal(summary.tone, 'lavender'); assert.equal(summary.category, 'BEAUTY'); assert.deepEqual(summary.previewProducts, []) // 대표 상품이 없으면 빈 목록
+  assert.equal(summary.id, '7'); assert.equal(summary.tone, 'lavender'); assert.equal(summary.category, 'skincare'); assert.deepEqual(summary.previewProducts, []) // 대표 상품이 없으면 빈 목록
   const exhibition = await api.exhibitions.get('7')
   assert.equal(exhibition.sections[0].products[0].id, '3'); assert.equal(exhibition.sections[0].products[0].status, 'SELLING')
   assert.deepEqual(urls.map(url => url.pathname), ['/api/catalog/v1/exhibitions', '/api/catalog/v1/exhibitions/7'])
