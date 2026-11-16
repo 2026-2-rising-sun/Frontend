@@ -90,7 +90,7 @@ function SheetScope({ number }: { number: string }) {
     {!view && !error && <p>주문을 조회하고 있어요.</p>}
     {payment && view && <>
       <Alert type={payment.orderStatus === 'PAID' ? 'success' : 'info'} title={sheetMessage(payment)}>
-        {payment.orderStatus === 'PROCESSING' || payment.paymentStatus === 'UNKNOWN' ? '결과가 확정되기 전에는 새 주문이나 새 결제를 만들지 않습니다.' : '결제 준비와 인증만으로 승인 완료가 되지 않습니다.'}
+        {payment.refundStatus === 'REQUESTED' ? '종료된 주문은 복원하지 않으며 실제 환불 결과를 기다립니다.' : payment.orderStatus === 'PROCESSING' || payment.paymentStatus === 'UNKNOWN' ? '결과가 확정되기 전에는 새 주문이나 새 결제를 만들지 않습니다.' : payment.orderStatus === 'PENDING' ? '결제 준비와 인증만으로 승인 완료가 되지 않습니다.' : payment.orderStatus === 'PAID' ? '서버가 주문의 결제 완료를 확인했어요.' : '서버가 확인한 주문과 환불 상태를 표시합니다.'}
         {remaining !== null && <p>{payment.orderStatus === 'PENDING' ? '인증 가능 시간' : '승인 처리 기한'} {formatRemaining(remaining)}</p>}
         {remaining === 0 && <p>서버에서 종료와 늦은 승인 결과를 확인하고 있어요.</p>}
       </Alert>

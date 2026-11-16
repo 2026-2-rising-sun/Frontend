@@ -39,3 +39,7 @@ Core `7a64bbbd11cc37f2960854886de18f4750241cf0`, 수정 없는 팀원 Payment `2
 상품73001/SKU93001·단가4000, 상품73002/SKU93002·단가3000과별도CartID를실제응답에서추적했다. 수량3+1의총액15000·선택SKU쿠폰2000·예상실결제13000을전달했다. 준비PENDING/processing기한null,실승인202/PROCESSING,새로고침후PAID·승인1회·쿠폰USED를확인했다. 승인전변경한Cart는수량4/다음version으로보존됐고같은version의다른Cart는삭제됐다. 본인잔여Cart만삭제했다.
 
 PaymentApproved `e1ba6f1c-f1d1-413a-baa9-050bd22906d3`, 실제topic `payment.execution-results.v1` partition0/offset0,Core그룹`commercecore-payment-results-v1` committedoffset1을Backend담당이보존했다. 이환경은HTTP복구조회도켜져있어최초PAID전이가Kafka만의결과라고단정하지않는다. 원증거는 `/tmp/order331-followup-browser/kafka-PG-f8f8eba6-739d-4e45-be84-1de0c14250b4.json` 및동일폴더cart-pending-outbox/DB/delivery이고브라우저증거는 `/tmp/frontend-order-sheet-20261116/cart-pending/`에인증정보없이보존했다. 명시적Member/Notification/인증/PG대역이며실SDK/실PG가아니다.
+
+단건 첫 실API 실행은 SKU93001/쿠폰2000/실지불6000·인증취소/실패 후 PENDING 및 원래기한유지·서로다른결제창3개·승인202후PAID/승인1회까지확인했으나추가주문취소UI에서5초안에CANCELLED가표시되지않아테스트전체는실패다. 추가주문은finally에서본인PENDING만취소했고실GET CANCELLED/newactive204를확인했다. 처음에는취소HTTP이벤트를보존하지못해원인을단정하지않으며HTTP204/후속GET/화면을동시에기록하는별도검사를추가했다. 기존USED쿠폰을되돌리지않고Backend담당이새로발급한재검증쿠폰만사용한다. 실패화면/첫PAID화면은 `/tmp/frontend-order-sheet-20261116/direct-first-failed/`에보존했다.
+
+legacy전용계정재진입실API1건은8.0초(전체8.9초)에통과했다. 새active204/기존active200을구분하고기존번호와기한을유지했으며신규order-sheets POST0/결제실행0이다. 기존주문은취소하거나연장하지않았다. 최신독립회귀는단위94/fixture브라우저13·lint/build통과다.

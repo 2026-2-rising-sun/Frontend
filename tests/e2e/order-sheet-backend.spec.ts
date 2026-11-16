@@ -58,3 +58,20 @@ test('실제 legacy 주문 재진입은 기존 번호와 기한을 보존하고 
   await expect(page.getByText('결제를 진행해 주세요',{exact:true})).toBeVisible();const after=await(await page.request.get(`${api}/payment-groups/${number}`,{headers})).json();expect(after.expiresAt).toBe(before.expiresAt);expect(after.status).toBe(before.status);expect(creates).toBe(0);expect(approvals).toBe(0)
   await writeFile(info.outputPath('legacy-reentry-evidence.json'),JSON.stringify({backendSha:required('ORDER_SHEET_E2E_BACKEND_SHA'),frontendSha:required('ORDER_SHEET_E2E_FRONTEND_SHA'),number,before,after,newOrderCreates:creates,paymentExecutions:approvals},null,2))
 })
+
+test('실제 PENDING 사용자 취소의 HTTP204와 후속 상태 표시를 함께 확인한다',async({page},info)=>{
+  const headers=await login(page);const events:{path:string;status:number;orderStatus?:string}[]=[]
+  page.on('response',async r=>{const path=new URL(r.url()).pathname;if(path.startsWith('/api/commercecore/')){const item:{path:string;status:number;orderStatus?:string}={path,status:r.status()};events.push(item);if(r.ok()&&/\/order-sheets\/[^/]+$/.test(path)){const v=await r.json();item.orderStatus=v.payment?.orderStatus}}})
+  const view=await create(page);const number=view.order.orderNumber
+  try{
+    await expect(page.getByText('결제 인증을 진행해 주세요',{exact:true})).toBeVisible()
+    const cancelled=page.waitForResponse(r=>new URL(r.url()).pathname.endsWith(`/order-sheets/${number}/cancel`)&&r.request().method()==='POST')
+    await page.getByRole('button',{name:'주문 취소',exact:true}).click();expect((await cancelled).status()).toBe(204)
+    await expect(page.getByText('주문이 취소되었어요',{exact:true})).toBeVisible()
+    const final=await(await page.request.get(`${api}/order-sheets/${number}`,{headers})).json();expect(final.payment.orderStatus).toBe('CANCELLED');expect((await page.request.get(`${api}/order-sheets/active`,{headers})).status()).toBe(204)
+    await writeFile(info.outputPath('cancel-real-evidence.json'),JSON.stringify({backendSha:required('ORDER_SHEET_E2E_BACKEND_SHA'),frontendSha:required('ORDER_SHEET_E2E_FRONTEND_SHA'),created:view,final,events},null,2))
+  }finally{
+    await writeFile(info.outputPath('cancel-http-events.json'),JSON.stringify(events,null,2))
+    const v=await(await page.request.get(`${api}/order-sheets/${number}`,{headers})).json();if(v.payment.orderStatus==='PENDING')await page.request.post(`${api}/order-sheets/${number}/cancel`,{headers})
+  }
+})

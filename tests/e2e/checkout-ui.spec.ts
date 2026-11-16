@@ -256,3 +256,16 @@ test('단건은 견적의 명시적 SKU·쿠폰할인후 금액으로 새 주문
   await page.goto('/checkout?productId=41&quantity=2');await page.getByRole('combobox',{name:'사용할 보유 쿠폰'}).selectOption('coupon-direct');await page.getByLabel('연락처').fill('01012345678');await page.getByLabel('주문 내용을 확인했으며 결제에 동의합니다').check();await page.getByRole('button',{name:'결제하기',exact:true}).click()
   await expect(page).toHaveURL(/order-sheets\/OS-direct/);expect(created).toEqual({items:[{skuId:71,quantity:2}],buyerName:'회원',buyerPhone:'01012345678',expectedAmount:6000,couponId:'coupon-direct',couponSkuId:71});expect(approvals).toBe(0)
 })
+
+test('새 주문서 사용자 취소는 한 번 요청하고 서버 취소 상태를 다시 표시한다',async({page})=>{
+  let cancelled=false;let calls=0
+  await page.route(/\/api\/(member|commercecore)\//,route=>{
+    const path=new URL(route.request().url()).pathname
+    if(path.includes('/auth/'))return route.fulfill({json:{success:true,data:{accessToken:'test',refreshToken:'refresh'}}})
+    if(path.endsWith('/members/me'))return route.fulfill({json:{success:true,data:{memberId:'cancel-member',email:'user@test.dev',displayName:'회원',roles:['USER']}}})
+    if(path.endsWith('/cancel')){calls++;cancelled=true;return route.fulfill({status:204})}
+    return route.fulfill({json:{order:{orderNumber:'OS-cancel',status:cancelled?'CANCELLED':'PENDING',totalAmount:4000,discountAmount:0,payableAmount:4000,items:[]},payment:{orderNumber:'OS-cancel',orderStatus:cancelled?'CANCELLED':'PENDING',paymentStatus:'CREATED',paymentId:5,pgOrderId:'pg-cancel',amount:4000,expiresAt:new Date(Date.now()+600000).toISOString(),processingExpiresAt:null,refundStatus:null}}})
+  })
+  await page.goto('/login');await page.getByLabel('아이디 또는 이메일').fill('user@test.dev');await page.getByLabel('비밀번호',{exact:true}).fill('password');await page.getByRole('button',{name:'로그인',exact:true}).click();await expect(page.getByRole('heading',{name:'내 계정',exact:true})).toBeVisible();await page.goto('/order-sheets/OS-cancel')
+  await page.getByRole('button',{name:'주문 취소',exact:true}).click();await expect(page.getByText('주문이 취소되었어요',{exact:true})).toBeVisible();expect(calls).toBe(1);await expect(page.getByRole('button',{name:'결제 인증하기',exact:true})).toHaveCount(0)
+})
