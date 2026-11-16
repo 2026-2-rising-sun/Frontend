@@ -52,3 +52,9 @@ test('네트워크 시간초과는 승인 실패로 만들거나 자동 재전�
   await assert.rejects(createHttpClient('/api')('/commercecore/v1/order-sheets/OS-A/payment/approval',{method:'POST',timeoutMs:1,body:payload}),/같은 주문/)
   assert.equal(calls,1);assert.equal(requestIdentity('timeout-member','sheet-approval:OS-A',payload).key,before)
 })
+
+test('새active409는정책미연결주문부재로해석하거나legacy우회하지않는다',async()=>{
+  const paths:string[]=[]
+  globalThis.fetch=async url=>{paths.push(new URL(String(url)).pathname);return Response.json({code:'CONFLICT',message:'기존 진행 주문의 연결을 확인해 주세요.'},{status:409})}
+  await assert.rejects(activeCheckout(createHttpApi('/api')),/기존 진행 주문/);assert.deepEqual(paths,['/api/commercecore/v1/order-sheets/active'])
+})

@@ -75,3 +75,37 @@ test('실제 PENDING 사용자 취소의 HTTP204와 후속 상태 표시를 함�
     const v=await(await page.request.get(`${api}/order-sheets/${number}`,{headers})).json();if(v.payment.orderStatus==='PENDING')await page.request.post(`${api}/order-sheets/${number}/cancel`,{headers})
   }
 })
+
+test('실 위젯 provider 소스와 SDK인터페이스 대역의 콜백을 실제 Core 승인으로 연결한다',async({page},info)=>{
+  const headers=await login(page);const backendSha=required('ORDER_SHEET_E2E_BACKEND_SHA');const frontendSha=required('ORDER_SHEET_E2E_FRONTEND_SHA');const calls:{path:string;status:number;referer:string}[]=[];let externalSdkRequests=0
+  page.on('request',r=>{if(new URL(r.url()).hostname.includes('tosspayments'))externalSdkRequests++})
+  page.on('response',r=>{const path=new URL(r.url()).pathname;if(path.startsWith('/api/'))calls.push({path,status:r.status(),referer:r.request().headers().referer??''})})
+  const member=await(await page.request.get('/api/member/v1/members/me',{headers})).json();const created=await create(page);const number=created.order.orderNumber
+  try{
+    await expect(page.getByText('결제 인증을 진행해 주세요',{exact:true})).toBeVisible()
+    const r=await page.request.post(`${api}/order-sheets/${number}/payment/checkouts`,{headers});expect(r.status()).toBe(200);const ready=await r.json();expect(ready.orderStatus).toBe('PENDING');expect(ready.processingExpiresAt).toBeNull()
+    await page.evaluate(async(input)=>{
+      const {tossWidgetAuthentication}=await import('/src/features/commerce/tossWidgetAuthentication.ts')
+      const log:string[]=[];const save=()=>sessionStorage.setItem('SDK_INTERFACE_DOUBLE:real-calls',JSON.stringify(log))
+      const provider=tossWidgetAuthentication({memberId:()=>input.memberId,configuration:async()=>({clientKey:'test_gck_SDK_INTERFACE_DOUBLE_ONLY',customerKey:'SDK_INTERFACE_DOUBLE_CUSTOMER_ONLY'}),load:async()=>({widgets:()=>({
+        setAmount:async({value,currency}:{value:number;currency:string})=>{if(value!==input.amount||currency!=='KRW')throw new Error('금액누락');log.push('setAmount');save()},
+        renderPaymentMethods:async({selector}:{selector:string})=>{document.querySelector(selector)!.textContent='SDK 인터페이스 대역 — 실제 SDK/PG 인증 아님';log.push('renderPaymentMethods');save();return{destroy:async()=>undefined}},
+        renderAgreement:async()=>{log.push('renderAgreement');save();return{destroy:async()=>undefined}},
+        requestPayment:async(request:{orderId:string;successUrl:string;failUrl:string})=>{
+          if(request.orderId!==input.pgOrderId)throw new Error('결제창ID변경');log.push('requestPayment');save()
+          const r=await fetch('http://127.0.0.1:57040/fixture/authentications',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({orderNumber:input.number,pgOrderId:request.orderId,amount:input.amount,outcome:'authenticated',scenario:'pending'})});const result=await r.json();if(result.label!=='PG_AUTH_DOUBLE'||result.outcome!=='authenticated')throw new Error('인증대역오류')
+          const url=new URL(request.successUrl);url.searchParams.set('paymentKey',result.paymentKey);url.searchParams.set('orderId',result.orderId);url.searchParams.set('amount',String(result.amount));window.location.assign(url.href)
+        },
+      })})as never})
+      void provider.authenticate({orderNumber:input.number,pgOrderId:input.pgOrderId,amount:input.amount})
+    },{memberId:member.data.memberId,number,pgOrderId:ready.pgOrderId,amount:ready.amount})
+    await expect(page.getByRole('dialog',{name:'결제 수단 선택'})).toBeVisible();expect(calls.filter(c=>c.path.endsWith('/approval')).length).toBe(0)
+    const approved=page.waitForResponse(r=>new URL(r.url()).pathname.endsWith('/approval'));await page.getByRole('button',{name:'선택한 수단으로 인증',exact:true}).click();const response=await approved;expect(response.status()).toBe(202);const processing=await response.json();expect(processing.orderStatus).toBe('PROCESSING')
+    await expect(page.getByText('결제가 완료되었어요',{exact:true})).toBeVisible({timeout:45000});expect(calls.filter(c=>c.path.endsWith('/approval')).length).toBe(1);expect(externalSdkRequests).toBe(0);expect(calls.every(c=>!c.referer.includes('paymentKey'))).toBe(true)
+    const final=await(await page.request.get(`${api}/order-sheets/${number}`,{headers})).json();expect(final.payment.orderStatus).toBe('PAID');expect(final.payment.processingExpiresAt).toBe(processing.processingExpiresAt);expect(page.url()).not.toContain('paymentKey')
+    const sdkCalls=await page.evaluate(()=>JSON.parse(sessionStorage.getItem('SDK_INTERFACE_DOUBLE:real-calls')??'[]'));expect(sdkCalls).toEqual(['setAmount','renderPaymentMethods','renderAgreement','requestPayment'])
+    await page.screenshot({path:info.outputPath('widget-callback-paid.png'),fullPage:true});await page.setViewportSize({width:390,height:844});expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(390);await page.screenshot({path:info.outputPath('widget-callback-paid-mobile.png'),fullPage:true})
+    await page.reload();await expect(page.getByText('결제가 완료되었어요',{exact:true})).toBeVisible();expect(calls.filter(c=>c.path.endsWith('/approval')).length).toBe(1)
+    await writeFile(info.outputPath('widget-callback-real-evidence.json'),JSON.stringify({backendSha,frontendSha,created,ready,processing,final,calls,sdkCalls,sdkBinaryExecuted:false,sdkInterfaceDouble:true,authentication:'PG_AUTH_DOUBLE',realPg:false},null,2))
+  }finally{const v=await(await page.request.get(`${api}/order-sheets/${number}`,{headers})).json();if(v.payment.orderStatus==='PENDING')expect((await page.request.post(`${api}/order-sheets/${number}/cancel`,{headers})).status()).toBe(204)}
+})

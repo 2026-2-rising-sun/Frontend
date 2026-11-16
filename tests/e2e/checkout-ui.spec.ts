@@ -269,3 +269,46 @@ test('새 주문서 사용자 취소는 한 번 요청하고 서버 취소 상�
   await page.goto('/login');await page.getByLabel('아이디 또는 이메일').fill('user@test.dev');await page.getByLabel('비밀번호',{exact:true}).fill('password');await page.getByRole('button',{name:'로그인',exact:true}).click();await expect(page.getByRole('heading',{name:'내 계정',exact:true})).toBeVisible();await page.goto('/order-sheets/OS-cancel')
   await page.getByRole('button',{name:'주문 취소',exact:true}).click();await expect(page.getByText('주문이 취소되었어요',{exact:true})).toBeVisible();expect(calls).toBe(1);await expect(page.getByRole('button',{name:'결제 인증하기',exact:true})).toHaveCount(0)
 })
+
+test('실 위젯 provider의 SDK 인터페이스 대역에서 렌더→리다이렉트→Core승인을 검증한다',async({page})=>{
+  let status='PENDING';let approvals=0;const referrers:string[]=[]
+  const payment=()=>({orderNumber:'OS-sdk',orderStatus:status,paymentStatus:status==='PENDING'?'CREATED':'UNKNOWN',paymentId:1,pgOrderId:'pg-sdk',amount:4000,expiresAt:new Date(Date.now()+600000).toISOString(),processingExpiresAt:status==='PENDING'?null:new Date(Date.now()+600000).toISOString(),refundStatus:null})
+  page.on('request',r=>{if(new URL(r.url()).pathname.startsWith('/api/'))referrers.push(r.headers().referer??'')})
+  await page.route(/\/api\/(member|commercecore)\//,route=>{
+    const path=new URL(route.request().url()).pathname
+    if(path.includes('/auth/'))return route.fulfill({json:{success:true,data:{accessToken:'test',refreshToken:'refresh'}}})
+    if(path.endsWith('/members/me'))return route.fulfill({json:{success:true,data:{memberId:'sdk-member',email:'user@test.dev',displayName:'회원',roles:['USER']}}})
+    if(path.endsWith('/approval')){approvals++;expect(route.request().postDataJSON()).toEqual({paymentKey:'SDK_INTERFACE_DOUBLE_ONLY',pgOrderId:'pg-sdk',amount:4000});status='PROCESSING';return route.fulfill({status:202,json:payment()})}
+    return route.fulfill({json:{order:{orderNumber:'OS-sdk',status,totalAmount:4000,discountAmount:0,payableAmount:4000,items:[]},payment:payment()}})
+  })
+  await page.goto('/login');await page.getByLabel('아이디 또는 이메일').fill('user@test.dev');await page.getByLabel('비밀번호',{exact:true}).fill('password');await page.getByRole('button',{name:'로그인',exact:true}).click();await expect(page.getByRole('heading',{name:'내 계정',exact:true})).toBeVisible();await page.goto('/order-sheets/OS-sdk');await expect(page.getByText('결제 인증을 진행해 주세요',{exact:true})).toBeVisible()
+  await page.evaluate(async()=>{
+    const {tossWidgetAuthentication}=await import('/src/features/commerce/tossWidgetAuthentication.ts')
+    const calls:string[]=[];const save=()=>sessionStorage.setItem('SDK_INTERFACE_DOUBLE:calls',JSON.stringify(calls))
+    const provider=tossWidgetAuthentication({memberId:()=> 'sdk-member',configuration:async()=>({clientKey:'test_gck_SDK_INTERFACE_DOUBLE',customerKey:'SDK_INTERFACE_DOUBLE_CUSTOMER'}),load:async()=>({widgets:()=>({
+      setAmount:async({value,currency}:{value:number;currency:string})=>{if(value!==4000||currency!=='KRW')throw new Error('금액누락');calls.push('setAmount');save()},
+      renderPaymentMethods:async({selector}:{selector:string})=>{document.querySelector(selector)!.textContent='SDK 인터페이스 대역 — 실제 SDK/PG 아님';calls.push('renderPaymentMethods');save();return{destroy:async()=>undefined}},
+      renderAgreement:async()=>{calls.push('renderAgreement');save();return{destroy:async()=>undefined}},
+      requestPayment:async(input:{orderId:string;successUrl:string;failUrl:string})=>{if(input.orderId!=='pg-sdk')throw new Error('ID변경');calls.push('requestPayment');save();window.location.assign(input.successUrl+'&paymentKey=SDK_INTERFACE_DOUBLE_ONLY&orderId=pg-sdk&amount=4000')},
+    })})as never})
+    void provider.authenticate({orderNumber:'OS-sdk',pgOrderId:'pg-sdk',amount:4000})
+  })
+  await expect(page.getByRole('dialog',{name:'결제 수단 선택'})).toBeVisible();expect(approvals).toBe(0);await page.getByRole('button',{name:'선택한 수단으로 인증',exact:true}).click()
+  await expect(page.getByText('결제 결과를 확인하고 있어요',{exact:true})).toBeVisible();expect(approvals).toBe(1);expect(page.url()).not.toContain('paymentKey')
+  expect(await page.evaluate(()=>JSON.parse(sessionStorage.getItem('SDK_INTERFACE_DOUBLE:calls')??'[]'))).toEqual(['setAmount','renderPaymentMethods','renderAgreement','requestPayment']);expect(referrers.every(x=>!x.includes('paymentKey'))).toBe(true)
+  status='PAID';await page.getByRole('button',{name:'주문 상태 다시 확인'}).click();await expect(page.getByText('결제가 완료되었어요',{exact:true})).toBeVisible();await page.reload();await expect(page.getByText('결제가 완료되었어요',{exact:true})).toBeVisible();expect(approvals).toBe(1)
+})
+
+test('위젯 실패 URL에 orderId가 없어도 주문으로 복원하며 승인·자동취소하지 않는다',async({page})=>{
+  let mutations=0
+  await page.route(/\/api\/(member|commercecore)\//,route=>{
+    const path=new URL(route.request().url()).pathname
+    if(path.includes('/auth/'))return route.fulfill({json:{success:true,data:{accessToken:'test',refreshToken:'refresh'}}})
+    if(path.endsWith('/members/me'))return route.fulfill({json:{success:true,data:{memberId:'widget-fail-member',email:'user@test.dev',displayName:'회원',roles:['USER']}}})
+    if(route.request().method()==='POST')mutations++
+    return route.fulfill({status:404})
+  })
+  await page.goto('/login');await page.getByLabel('아이디 또는 이메일').fill('user@test.dev');await page.getByLabel('비밀번호',{exact:true}).fill('password');await page.getByRole('button',{name:'로그인',exact:true}).click();await expect(page.getByRole('heading',{name:'내 계정',exact:true})).toBeVisible()
+  const url=await page.evaluate(async()=>{const {beginWidgetReturn}=await import('/src/features/commerce/widgetReturn.ts');return beginWidgetReturn({memberId:'widget-fail-member',orderNumber:'OS-fail',pgOrderId:'pg-fail',amount:4000},window.location.origin).failUrl})
+  await page.goto(url+'&code=PAY_PROCESS_CANCELED');await expect(page.getByText('결제 인증을 취소했어요. 승인 요청은 보내지 않았어요.')).toBeVisible();expect(page.url()).not.toContain('state=');expect(mutations).toBe(0)
+})

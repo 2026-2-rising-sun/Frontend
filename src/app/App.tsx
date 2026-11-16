@@ -1,3 +1,4 @@
+import { PaymentReturnPage } from '../features/commerce/PaymentReturnPage'
 import { OrderSheetPage } from '../features/commerce/OrderSheetPage'
 import { PaymentAuthenticationContext } from '../features/commerce/PaymentAuthenticationContext'
 import type { PaymentAuthentication } from '../domain/orderSheets'
@@ -66,6 +67,7 @@ function App({ api, paymentAuthentication }: AppProps) {
             <Route path="lives/:liveId" element={<LiveWatchPage />} />
             <Route path="coupons" element={<RequireSession><CouponsPage /></RequireSession>} />
             <Route path="cart" element={<RequireSession><CartPage /></RequireSession>} />
+            <Route path="order-sheets/:orderNumber/payment-return" element={<RequireSession><PaymentReturnPage /></RequireSession>} />
             <Route path="order-sheets/:orderNumber" element={<RequireSession><OrderSheetPage /></RequireSession>} />
             <Route path="checkout/cart" element={<RequireSession><CartCheckoutPage /></RequireSession>} />
             <Route path="payment-groups/:groupNumber/refunds/:refundId" element={<RequireSession><BuyerRefundDetailPage /></RequireSession>} />

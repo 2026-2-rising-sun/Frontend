@@ -1,3 +1,5 @@
+import { approveAuthenticatedPayment } from './sheetApproval'
+import { clearWidgetReturn } from './widgetReturn'
 import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
@@ -20,8 +22,8 @@ function SheetScope({ number }: { number: string }) {
   const [view, setView] = useState<SheetView | null>(null); const [error, setError] = useState('')
   const [loadError, setLoadError] = useState('')
   const [busy, setBusy] = useState(false); const [round, setRound] = useState(0); const [paused, setPaused] = useState(false)
-  const inFlight = useRef(false); const mounted = useRef(true)
-  useEffect(() => { mounted.current = true; return () => { mounted.current = false } }, [])
+  const inFlight = useRef(false); const mounted = useRef(true); const authenticationRequest = useRef<AbortController | null>(null)
+  useEffect(() => { mounted.current = true; return () => { mounted.current = false; authenticationRequest.current?.abort() } }, [])
   const reload = useCallback(() => { setPaused(false); setRound(n => n + 1) }, [])
   useEffect(() => {
     let disposed = false; let timer: ReturnType<typeof setTimeout> | undefined; let attempts = 0
@@ -36,6 +38,7 @@ function SheetScope({ number }: { number: string }) {
             const saved = savedApproval(session.memberId, number)
             if (saved) requestIdentity(session.memberId, `sheet-approval:${number}`, saved).clear()
             saveApproval(session.memberId, number, null)
+            clearWidgetReturn(session.memberId, number)
           }
         }
         if (!needsSheetRefresh(next.payment)) return
@@ -66,19 +69,15 @@ function SheetScope({ number }: { number: string }) {
         if (!authentication) throw new Error('결제 인증 설정이 준비되지 않았어요. 주문 기한 안에 다시 확인해 주세요.')
         const ready = await api.orderSheets.checkout(number)
         if (ready.orderStatus !== 'PENDING' || !ready.pgOrderId || ready.amount !== view.order.payableAmount) throw new Error('최신 결제 준비 상태를 다시 확인해 주세요.')
-        result = await authentication.authenticate({ orderNumber: number, pgOrderId: ready.pgOrderId, amount: ready.amount })
+        authenticationRequest.current = new AbortController()
+        result = await authentication.authenticate({ signal: authenticationRequest.current.signal, orderNumber: number, pgOrderId: ready.pgOrderId, amount: ready.amount })
         if (!result) { setError('결제 인증을 취소했어요. 아직 승인 요청은 보내지 않았어요.'); return }
         if (result.pgOrderId !== ready.pgOrderId || result.amount !== ready.amount || !result.paymentKey) throw new Error('인증 결과와 주문 금액이 일치하지 않아요.')
         saveApproval(session.memberId, number, result)
       }
       if (!result) throw new Error('저장된 인증 결과가 없어요. 주문 상태를 확인해 주세요.')
       if (!mounted.current) return
-      const latest = await api.orderSheets.get(number)
-      if (!mounted.current) return
-      if (latest.payment.orderStatus !== 'PENDING') return
-      if (latest.payment.pgOrderId !== result.pgOrderId || latest.payment.amount !== result.amount) throw new Error('저장된 인증의 결제창이 변경되었어요. 주문 상태를 확인해 주세요.')
-      const identity = requestIdentity(session.memberId, `sheet-approval:${number}`, result)
-      await api.orderSheets.approve(number, result, identity.key)
+      await approveAuthenticatedPayment(api.orderSheets, session.memberId, number, result, authenticationRequest.current?.signal)
       // 200/202/UNKNOWN은 화면 성공 판정이 아니다. 아래 조회가 주문·환불의 확정 상태를 보여 준다.
     } catch (cause) { setError(cause instanceof Error ? cause.message : '요청 결과가 확정되지 않았어요. 같은 주문을 다시 조회해 주세요.') }
     finally { inFlight.current = false; setBusy(false); reload() }

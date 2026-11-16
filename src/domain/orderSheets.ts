@@ -34,7 +34,7 @@ export interface OrderSheetsPort {
 /** 실제 SDK 구현은 팀원 인증 계약을 받은 뒤 연결한다. 준비 응답을 인증 결과로 만들지 않는다. */
 export interface PaymentAuthentication {
   label?: string
-  authenticate(input: { orderNumber: string; pgOrderId: string; amount: number }): Promise<AuthenticatedPayment | null>
+  authenticate(input: { orderNumber: string; pgOrderId: string; amount: number; signal?: AbortSignal }): Promise<AuthenticatedPayment | null>
 }
 export function sheetMessage(payment: SheetPayment): string {
   if (payment.refundStatus === 'REQUESTED') return '늦은 승인 환불을 기다리고 있어요'
