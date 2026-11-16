@@ -1,0 +1,16 @@
+.tile { display: flex; flex-direction: column; align-items: center; gap: var(--space-1); min-width: 0; text-align: center; }
+.thumb { width: 100%; margin-bottom: var(--space-2); }
+.tile:hover .name { text-decoration: underline; }
+.brand { color: var(--text-tertiary); font: 600 13px/20px var(--font-sans); }
+.name { display: -webkit-box; overflow: hidden; color: var(--text-primary); font: 400 14px/20px var(--font-sans); -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow-wrap: anywhere; }
+.price { display: flex; align-items: baseline; justify-content: center; flex-wrap: wrap; gap: 0 var(--space-2); }
+.price del { color: var(--text-tertiary); font: 400 13px/20px var(--font-sans); }
+.price strong { color: var(--color-live-600); font: 700 18px/26px var(--font-sans); }
+
+/* 혜택 표시: 작은 둥근 띠 */
+.tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px; margin-top: var(--space-1); }
+.tags > span { padding: 0 var(--space-2); border-radius: 999px; color: var(--color-neutral-0); font: 500 11px/18px var(--font-sans); }
+.sale { background: #e5636a; }
+.deal { background: var(--color-live-600); }
+.free { background: #6cb7e8; }
+.delivery { background: #e07bb5; }

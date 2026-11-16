@@ -3,12 +3,10 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
 import { AsyncView } from '../../components/AsyncView'
 import { PageContainer } from '../../components/PageContainer'
-import { ResultState, Skeleton, Thumbnail } from '../../components/ui'
+import { ResultState, Skeleton } from '../../components/ui'
 import { EXHIBITION_CATEGORIES, exhibitionState, type ExhibitionSummary } from '../../domain/exhibitions'
-import type { Product } from '../../domain/types'
 import { useAsync } from '../../hooks/useAsync'
-import { formatPrice } from '../../lib/format'
-import { displayPrice } from '../shopping/liveDeal'
+import { ExhibitionProductTile } from './ExhibitionProductTile'
 import tones from './tones.module.css'
 import styles from './ExhibitionListPage.module.css'
 
@@ -61,20 +59,7 @@ function ExhibitionCard({ exhibition }: { exhibition: ExhibitionSummary }) {
       <span className={styles.description}>{exhibition.description}</span>
     </Link>
     {products.length > 0 && <ul className={styles.products}>
-      {products.map(product => <li key={product.id}><ProductTile product={product} /></li>)}
+      {products.map(product => <li key={product.id}><ExhibitionProductTile product={product} /></li>)}
     </ul>}
   </article>
-}
-
-function ProductTile({ product }: { product: Product }) {
-  const shown = displayPrice(product)
-  return <Link to={`/products/${product.id}`} className={styles.product}>
-    <Thumbnail src={product.imageUrl} alt={product.name} className={styles.thumb} />
-    {product.brand && <span className={styles.brand}>{product.brand}</span>}
-    <span className={styles.name}>{product.name}</span>
-    <span className={styles.price}>
-      {shown.before !== null && <del aria-label={`할인 전 ${formatPrice(shown.before)}`}>{formatPrice(shown.before)}</del>}
-      <strong>{formatPrice(shown.price)}</strong>
-    </span>
-  </Link>
 }
