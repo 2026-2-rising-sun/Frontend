@@ -1,0 +1,7 @@
+/* 기획전 배너 바탕색. 글자는 어두운 색 그대로 읽히도록 밝은 색만 쓴다. 홈 광고 배너와 기획전 화면이 같이 쓴다. */
+.lavender { background: linear-gradient(110deg, #ddd0f0 0%, #efe7fb 100%); }
+.sky { background: linear-gradient(110deg, #dfe6f5 0%, #b9c8e6 100%); }
+.blush { background: linear-gradient(110deg, #fbe3e3 0%, #f2b8bd 100%); }
+.mint { background: linear-gradient(110deg, #dcf3e6 0%, #b6e3c8 100%); }
+.slate { background: linear-gradient(110deg, #e6e8ee 0%, #c5cad6 100%); }
+.peach { background: linear-gradient(110deg, #fde9d9 0%, #f8c9a6 100%); }
