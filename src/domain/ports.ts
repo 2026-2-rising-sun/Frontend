@@ -1,3 +1,4 @@
+import type { OrderSheetsPort } from './orderSheets'
 import type { RefundsPort } from './refunds'
 import type { CartSelection, CartCheckout, PaymentGroup } from './types'
 import type { CouponsPort, SellerCouponsPort } from './coupons'
@@ -9,7 +10,17 @@ export interface ChatMessage { messageId: string; broadcastId: number; displayNa
 export interface LikeTotal { broadcastId: number; total: number; version: number }
 export interface ViewerTotal { broadcastId: number; total: number; measuredAt: string; expiresAfterSeconds: number }
 export interface MyLike extends LikeTotal { liked: boolean; stateVersion: number }
-export interface CartItem { id: string; productId: string; quantity: number; version: number }
+export interface CartItem {
+  id: string; productId: string; quantity: number; version: number
+  skuId?: string | null
+  productName?: string | null
+  mainImageUrl?: string | null
+  saleEnabled?: boolean
+  unitPrice?: number | null
+  available?: number | null
+  skuStatus?: string | null
+  purchasable?: boolean
+}
 export interface ProductsPort {
   list(params?: ProductListParams): Promise<Paged<Product>>
   get(id: string): Promise<Product>
@@ -29,7 +40,7 @@ export interface LivesPort {
   eventsUrl(id: string): string
 }
 export interface OrdersPort {
-  checkout(id: string, quantity: number, couponId?: string): Promise<{ unitPrice: number; totalAmount: number; orderable: boolean; reason: string | null; discountAmount?: number; payableAmount?: number; couponId?: string | null }>
+  checkout(id: string, quantity: number, couponId?: string): Promise<{ productId?: number; productName?: string; available?: number; skuId?: number; unitPrice: number; totalAmount: number; orderable: boolean; reason: string | null; discountAmount?: number; payableAmount?: number; couponId?: string | null }>
   create(input: CreateOrderInput): Promise<Order>
   list(params?: PageParams): Promise<Paged<Order>>
   lookup(number: string): Promise<Order>
@@ -76,6 +87,7 @@ export interface SellerLivesPort {
   end(id: string): Promise<SellerLive>
 }
 export interface Api {
+  orderSheets: OrderSheetsPort
   auth: AuthPort
   promotions: PromotionsPort
   refunds: RefundsPort

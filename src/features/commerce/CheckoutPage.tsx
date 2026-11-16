@@ -1,10 +1,12 @@
 import { useCallback, useRef, useState, type FormEvent } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
 import { AsyncView } from '../../components/AsyncView'
 import { PageContainer } from '../../components/PageContainer'
 import { Alert, Button, Checkbox, Input, QuantityStepper, Skeleton } from '../../components/ui'
 import { useAsync } from '../../hooks/useAsync'
+import { rememberSheet } from './sheetRecovery'
+import { activeCheckout } from './activeCheckout'
 import { requestIdentity } from './checkoutRecovery'
 import { ActivePaymentGroup } from './ActivePaymentGroup'
 import { useSession } from '../auth/useSession'
@@ -23,21 +25,18 @@ function CheckoutScope() {
   const quantity = Number(params.get('quantity') ?? 1)
   const cartItemId = params.get('cartItemId') ?? undefined
   const data = useAsync(async () => {
-    let id = productId; let selectedQuantity = Number.isSafeInteger(quantity) && quantity > 0 ? quantity : 1
-    if (cartItemId) {
-      const item = (await api.cart.list()).find(item => item.id === cartItemId)
-      if (!item) throw new Error('장바구니 항목이 없어요. 장바구니에서 다시 선택해 주세요.')
-      id = item.productId; selectedQuantity = item.quantity
-    }
-    return { product: await api.products.get(id), quantity: selectedQuantity }
-  }, [api, productId, cartItemId, quantity])
+    const selectedQuantity = Number.isSafeInteger(quantity) && quantity > 0 ? quantity : 1
+    const quote = await api.orders.checkout(productId, selectedQuantity)
+    return { product: { id: productId, name: quote.productName ?? '상품', price: quote.unitPrice, stock: quote.available ?? null, imageUrl: null }, quantity: selectedQuantity }
+  }, [api, productId, quantity])
+  if (cartItemId) return <Navigate replace to={`/checkout/cart?itemIds=${encodeURIComponent(cartItemId)}`} />
   return <PageContainer><h1 className="t-h1">주문서</h1><ActivePaymentGroup /><AsyncView state={data} skeleton={<Skeleton height={320} />}>
     {value => <CheckoutForm key={`${value.product.id}:${value.quantity}`} product={value.product} initialQuantity={value.quantity} cartItemId={cartItemId} />}
   </AsyncView></PageContainer>
 }
-function CheckoutForm({ product, initialQuantity, cartItemId }: { product: Product; initialQuantity: number; cartItemId?: string }) {
+function CheckoutForm({ product, initialQuantity, cartItemId }: { product: Pick<Product, 'id' | 'name' | 'price' | 'stock' | 'imageUrl'>; initialQuantity: number; cartItemId?: string }) {
   const api = useApi(); const navigate = useNavigate(); const session = useSession()
-  const [quantity, setQuantity] = useState(cartItemId ? initialQuantity : Math.min(initialQuantity, Math.max(product.stock ?? 1, 1)))
+  const [quantity, setQuantity] = useState(cartItemId ? initialQuantity : Math.min(initialQuantity, Math.max(product.stock ?? initialQuantity, 1)))
   const [name, setName] = useState(session?.displayName ?? ''); const [phone, setPhone] = useState('')
   const [agreed, setAgreed] = useState(false); const [busy, setBusy] = useState(false); const [error, setError] = useState('')
   const [couponId, setCouponId] = useState('')
@@ -53,22 +52,20 @@ function CheckoutForm({ product, initialQuantity, cartItemId }: { product: Produ
     e.preventDefault()
     if (inFlight.current || !session || !quote?.orderable || checkout.loading || checkout.error) return
     if (!name.trim() || name.trim().length > 64 || !/^[0-9-]{9,32}$/.test(phone.trim()) || !agreed) { setError('이름·연락처·결제 동의를 확인해 주세요.'); return }
-    const input = { productId: product.id, quantity, expectedUnitPrice: quote.unitPrice, ordererName: name.trim(), ordererPhone: phone.trim(), cartItemId, ...(couponId ? { couponId } : {}) }
+    if (!Number.isSafeInteger(quote.skuId) || !quote.skuId || (quote.payableAmount ?? quote.totalAmount) <= 0) { setError('현재 주문서의 SKU와 실결제액을 확인해 주세요.'); return }
+    const input = { items: [{ skuId: String(quote.skuId), quantity }], buyerName: name.trim(), buyerPhone: phone.trim(), expectedAmount: quote.payableAmount ?? quote.totalAmount, ...(couponId ? { couponId, couponSkuId: String(quote.skuId) } : {}) }
+    const identity = requestIdentity(session.memberId, 'sheet-direct', input)
     inFlight.current = true; setBusy(true); setError('')
     try {
-      const check = await api.products.check(product.id, quantity)
-      if (!check.orderable) throw new Error('현재 재고로 주문할 수 없어요. 수량을 다시 확인해 주세요.')
-      const identity = requestIdentity(session?.memberId ?? 'anonymous', 'direct-order', input)
-      const order = await api.orders.create({ ...input, idempotencyKey: identity.key })
+      const active = await activeCheckout(api)
+      if (active) { identity.clear(); navigate(active, { replace: true }); return }
+      const view = await api.orderSheets.create(input, identity.key)
+      rememberSheet(session.memberId, view.order.orderNumber)
       identity.clear()
-      if (order.groupNumber) { navigate(`/payment-groups/${encodeURIComponent(order.groupNumber)}`, { replace: true }); return }
-      // 결제 시작이 실패하거나 응답이 유실되면 저장된 주문을 기준으로 복구한다.
-      let paymentId: string | undefined
-      try { paymentId = String((await api.payments.start(order.orderNumber)).paymentId) } catch { /* 결과 화면에서 재시도할 수 있다 */ }
-      navigate(`/orders/${encodeURIComponent(order.orderNumber)}`, { replace: true, state: { paymentId } })
+      navigate(`/order-sheets/${encodeURIComponent(view.order.orderNumber)}`, { replace: true })
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : '주문하지 못했어요.')
-      try { const active = await api.paymentGroups.active(); if (active) { requestIdentity(session?.memberId ?? 'anonymous', 'direct-order', input).clear(); navigate(`/payment-groups/${encodeURIComponent(active.groupNumber)}`, { replace: true }) } } catch { /* 재시도할 때 원래 키를 유지한다 */ }
+      setError(cause instanceof Error ? cause.message : '주문 응답을 확인하지 못했어요.')
+      try { const active = await activeCheckout(api); if (active) { identity.clear(); navigate(active, { replace: true }) } } catch { /* 같은 입력으로 재요청할 때 원래 키를 유지한다 */ }
     }
     finally { inFlight.current = false; setBusy(false) }
   }
@@ -77,7 +74,7 @@ function CheckoutForm({ product, initialQuantity, cartItemId }: { product: Produ
       {error && <Alert type="danger" title="주문을 확인해 주세요">{error}</Alert>}
       <section className={styles.card}><h2 className="t-h4">주문 상품</h2>
         <OrderSummary productName={product.name} unitPrice={quote?.unitPrice ?? product.price} quantity={quantity} imageUrl={product.imageUrl} />
-        <QuantityStepper value={quantity} onChange={setQuantity} max={Math.max(product.stock ?? 1, 1)} disabled={busy || !!cartItemId} />
+        <QuantityStepper value={quantity} onChange={setQuantity} max={Math.max(product.stock ?? initialQuantity, 1)} disabled={busy || !!cartItemId} />
         {cartItemId && <p className="t-caption">수량은 장바구니에서 변경할 수 있어요.</p>}
       </section>
       <section className={styles.card}><CouponPicker value={couponId} onChange={setCouponId} disabled={busy || !!cartItemId} canApply={canApplyCoupon} />{cartItemId && <p className="t-caption">쿠폰은 상품 바로 구매 또는 장바구니 선택 상품 주문서에서 적용할 수 있어요.</p>}</section>
@@ -89,9 +86,9 @@ function CheckoutForm({ product, initialQuantity, cartItemId }: { product: Produ
     <aside className={styles.side}><section className={styles.card}><h2 className="t-h4">결제 금액</h2>
       {checkout.error && <Alert type="danger" title="최신 금액을 확인하지 못했어요">{checkout.error.message}<Button variant="secondary" onClick={checkout.reload}>다시 조회</Button></Alert>}
       {quote && !quote.orderable && <Alert type="warning" title="지금은 주문할 수 없어요">판매 상태와 재고를 확인해 주세요.</Alert>}
-      <p>상품 금액 {formatPrice(quote?.totalAmount ?? product.price * quantity)}</p>{(quote?.discountAmount ?? 0) > 0 && <p>쿠폰 할인 -{formatPrice(quote?.discountAmount ?? 0)}</p>}<strong className="t-price-lg">{formatPrice(quote?.payableAmount ?? quote?.totalAmount ?? product.price * quantity)}</strong>{quote?.payableAmount === 0 && <p>0원 주문도 결제 완료 확인이 필요해요.</p>}
+      <p>상품 금액 {formatPrice(quote?.totalAmount ?? product.price * quantity)}</p>{(quote?.discountAmount ?? 0) > 0 && <p>쿠폰 할인 -{formatPrice(quote?.discountAmount ?? 0)}</p>}<strong className="t-price-lg">{formatPrice(quote?.payableAmount ?? quote?.totalAmount ?? product.price * quantity)}</strong>{quote?.payableAmount === 0 && <p>새 결제 계약은 양수 금액만 지원합니다. 쿠폰 선택을 확인해 주세요.</p>}{quote && !quote.skuId && <Alert type="warning" title="상품 식별자를 확인하지 못했어요">주문서를 다시 조회해 주세요.</Alert>}
       <Checkbox label="주문 내용을 확인했으며 결제에 동의합니다" checked={agreed} onChange={e => setAgreed(e.target.checked)} disabled={busy} />
-      <Button type="submit" size="L" fullWidth disabled={busy || checkout.loading || !!checkout.error || !quote?.orderable}>{busy ? '처리 중…' : '결제하기'}</Button>
+      <Button type="submit" size="L" fullWidth disabled={busy || checkout.loading || !!checkout.error || !quote?.orderable || !quote.skuId || (quote.payableAmount ?? quote.totalAmount) <= 0}>{busy ? '처리 중…' : '결제하기'}</Button>
     </section></aside>
   </form>
 }

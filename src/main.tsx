@@ -9,10 +9,10 @@ import { Button, ResultState } from './components/ui'
 
 // 모든 화면은 동일한 HTTP API 구현을 사용한다.
 const root = createRoot(document.getElementById('root')!)
-bootstrap().then(({ api }) => {
+bootstrap().then(({ api, paymentAuthentication }) => {
   root.render(
     <StrictMode>
-      <App api={api} />
+      <App api={api} paymentAuthentication={paymentAuthentication} />
     </StrictMode>,
   )
 }).catch(() => {

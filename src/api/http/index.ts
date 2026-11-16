@@ -1,12 +1,13 @@
+import { createOrderSheets } from './orderSheets'
 import { createNotifications } from './notifications'
 import { createRefunds } from './refunds'
 import { createPromotions } from './promotions'
 import { createCoupons, createSellerCoupons } from './coupons'
 import { createSellerProducts } from './sellerProducts'
-import type { Api, CartItem, ChatMessage } from '../../domain/ports'
+import type { Api, ChatMessage } from '../../domain/ports'
 import type { PaymentGroup, CartCheckout, SellerLive, LiveInput } from '../../domain/types'
 import { createHttpAuth } from './auth'
-import { product, live, page, order, type ProductDto, type LiveDto, type PageDto, type OrderDto } from './mappers'
+import { product, live, page, order, cartItem, cartItems, type CartProductGroupDto, type CartItemDto, type ProductDto, type LiveDto, type PageDto, type OrderDto } from './mappers'
 const id = encodeURIComponent
 export function createHttpApi(baseUrl: string, testAccounts = false): Api {
   const { auth, request } = createHttpAuth(baseUrl, testAccounts)
@@ -31,12 +32,12 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
     return { ...input, thumbnailId: await upload }
   }
   const getOrder = async (n: string) => order(await request<OrderDto>(`/commercecore/v1/orders/${id(n)}`))
-  const cartItem = (c: CartItem) => ({ ...c, id: String(c.id), productId: String(c.productId) })
   type GroupDto = Omit<PaymentGroup, 'orders' | 'paymentId' | 'discountAmount' | 'payableAmount' | 'couponId'> & { discountAmount?: number; payableAmount?: number; couponId?: string | null; orders: OrderDto[]; paymentId: number | null }
   const group = (g: GroupDto): PaymentGroup => ({ ...g, discountAmount: g.discountAmount ?? 0, payableAmount: g.payableAmount ?? g.totalAmount, couponId: g.couponId ?? null, orders: g.orders.map(order), paymentId: g.paymentId === null ? null : String(g.paymentId) })
   const selection = (items: { itemId: string; version: number }[]) => items.map(i => ({ itemId: Number(i.itemId), version: i.version }))
   return {
     auth,
+    orderSheets: createOrderSheets(request),
     notifications: createNotifications(request),
     coupons: createCoupons(request),
     refunds: createRefunds(request),
@@ -90,7 +91,7 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
     cart: {
       checkout: async (items, couponId) => { const result = await request<CartCheckout>('/commercecore/v1/cart/checkout', { method: 'POST', body: { items: selection(items), ...(couponId ? { couponId } : {}) } }); return { ...result, items: result.items.map(i => ({ ...i, itemId: String(i.itemId), productId: String(i.productId) })) } },
       order: async ({ idempotencyKey, items, ...input }) => group(await request<GroupDto>('/commercecore/v1/cart/orders', { method: 'POST', headers: { 'X-Idempotency-Key': idempotencyKey }, body: { ...input, items: selection(items) } })),
-      list: async () => (await request<CartItem[]>('/commercecore/v1/cart/items')).map(cartItem),
+      list: async () => cartItems(await request<(CartProductGroupDto | CartItemDto)[]>('/commercecore/v1/cart/items')),
       add: async (n, quantity) => cartItem(await request('/commercecore/v1/cart/items', { method: 'POST', body: { productId: Number(n), quantity } })),
       update: async (n, quantity) => cartItem(await request(`/commercecore/v1/cart/items/${id(n)}`, { method: 'PATCH', body: { quantity } })),
       remove: n => request(`/commercecore/v1/cart/items/${id(n)}`, { method: 'DELETE' }),

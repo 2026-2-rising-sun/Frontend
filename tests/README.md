@@ -26,3 +26,12 @@ E2E_EXTERNAL_SERVER=true E2E_BASE_URL=http://127.0.0.1:5174 npm run e2e:features
 ```
 
 `npm run e2e:checkout-ui`에는 단건·0원 묶음 Payment 성공 응답 뒤 Core 주문/묶음 반영을 기다리는 fixture 회귀가 포함됩니다. 실제 새 서비스/DB/Kafka 결과 전달의 증거는 별도 Backend 연동 실행으로 확인해야 합니다. `BACKEND_DIR`는 Prism 실행 시에도 새 서비스 계약 YAML 경로로 사용됩니다.
+
+
+Cart 그룹 응답 호환은 `cartCheckout.test.ts`에서 서로 다른 productId/skuId/Cart ID·수량·버전·가격과 수정/견적/주문/삭제 요청을 검사합니다. `e2e:checkout-ui`는 그룹 응답 fixture에서 Cart 현재가/구매불가 표시를 Catalog 값으로 덮지 않는지와 선택·수량 변경·새로고침 복구를 검사합니다. 이 fixture 검사를 실제 Backend E2E로 보고하지 않으며, 실서버 실행은 Backend/Frontend 정확 SHA와 포트·데이터·요청 증거를 별도 기록합니다.
+
+
+`npm run e2e:cart-backend`는 이미 기동된 격리 Frontend/Core·팀원Payment와 명시적 인증/PG대역을 대상으로 새 주문서 쿠폰·승인후상태·Cart 버전 조건부 정리를 검사합니다. `E2E_BASE_URL`, `CART_E2E_PRODUCT_IDS`(단일SKU상품2개), 격리로그인 `CART_E2E_EMAIL`/`CART_E2E_PASSWORD`, 정확 `CART_E2E_BACKEND_SHA`/`CART_E2E_FRONTEND_SHA`, `CART_E2E_COUPON_ID`/`CART_E2E_COUPON_DISCOUNT`가 필요합니다. 실제Core응답을intercept하지않으며승인요청을실행하므로소유자와합의한테스트회원/PG대역만사용합니다. 자신이만든Cart만정리하고PAID주문에임의환불을실행하지않습니다. 인증헤더/JWT/paymentKey원문을증거에남기지않습니다. [상태와 검증 경계](order-sheet-verification.md)에실SDK미연결·실PG미검증및당시실행결과를명시합니다.
+
+
+`npm run e2e:order-sheet-backend`는 이미 준비된 격리 환경을 사용합니다. `--grep`으로 실단건/legacy재진입/사용자취소/late/SDK인터페이스콜백을각각선택합니다. 신원·상품·쿠폰·정확SHA는 ORDER_SHEET_E2E_*로주입하며late는소유자와사전협의한LATE_SIGNAL_FILE을사용합니다. SDK인터페이스대역과실Core/Payment/Kafka,실SDK미실행은 [검증 기록](order-sheet-verification.md)에서구분합니다. 재시도0이며실패실행도보존합니다.

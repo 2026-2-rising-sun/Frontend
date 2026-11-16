@@ -14,6 +14,7 @@ type CartEntry = { item: CartItem; product?: Product }
 async function readCart(api: Api): Promise<CartEntry[]> {
   const items = await api.cart.list()
   return Promise.all(items.map(async item => {
+    if (item.unitPrice !== undefined) return { item }
     try { return { item, product: await api.products.get(item.productId) } }
     catch { return { item } }
   }))
@@ -60,8 +61,9 @@ function CartContents({ initial }: { initial: CartEntry[] }) {
   }
 
   const selectedEntries = entries.filter(e => selected.includes(e.item.id))
-  const total = selectedEntries.reduce((sum, { item, product }) => sum + (product?.price ?? 0) * item.quantity, 0)
-  const pricesKnown = selectedEntries.every(entry => entry.product !== undefined) && Number.isSafeInteger(total)
+  const total = selectedEntries.reduce((sum, { item, product }) => sum + (item.unitPrice ?? product?.price ?? 0) * item.quantity, 0)
+  const pricesKnown = selectedEntries.every(({ item, product }) => Number.isSafeInteger(item.unitPrice ?? product?.price)) && Number.isSafeInteger(total)
+  const purchasable = selectedEntries.every(({ item }) => item.purchasable !== false)
   return <>
     {error && <Alert type="danger" title="장바구니를 다시 확인해 주세요">{error}<Button variant="secondary" onClick={() => { void change() }} disabled={busy}>다시 조회</Button></Alert>}
     {!entries.length ? <ResultState type="empty" title="장바구니가 비어 있어요" /> : <>
@@ -71,18 +73,24 @@ function CartContents({ initial }: { initial: CartEntry[] }) {
         <span>선택 상품 {selectedEntries.length}개 합계</span><strong>{pricesKnown ? formatPrice(total) : '가격 확인 필요'}</strong>
         <small>최종 결제 금액은 주문서에서 확인해 주세요.</small>
       </section>
-      <ButtonLink to={`/checkout/cart?itemIds=${encodeURIComponent([...selected].sort().join(','))}`} aria-disabled={busy || !!error || !selected.length || !pricesKnown} onClick={e => { if (busy || error || !selected.length || !pricesKnown) e.preventDefault() }}>선택 상품 주문</ButtonLink>
+      <ButtonLink to={`/checkout/cart?itemIds=${encodeURIComponent([...selected].sort().join(','))}`} aria-disabled={busy || !!error || !selected.length || !pricesKnown || !purchasable} onClick={e => { if (busy || error || !selected.length || !pricesKnown || !purchasable) e.preventDefault() }}>선택 상품 주문</ButtonLink>
     </>}
   </>
 }
 
 function CartRow({ item, product, busy, selected, onSelect, change }: { item: CartItem; product?: Product; busy: boolean; selected: boolean; onSelect: (checked: boolean) => void; change: (id?: string, quantity?: number) => Promise<void> }) {
-  const amount = product ? product.price * item.quantity : undefined
+  const name = item.productName ?? product?.name ?? '조회할 수 없는 상품'
+  const price = item.unitPrice === undefined ? product?.price : item.unitPrice
+  const image = item.mainImageUrl === undefined ? product?.imageUrl : item.mainImageUrl
+  const stock = item.available === undefined ? product?.stock : item.available
+  const amount = price === undefined || price === null ? undefined : price * item.quantity
+  const hasDetails = item.unitPrice !== undefined || product !== undefined
   return <section className={styles.card}>
-    <Checkbox label={`${product?.name ?? '상품'} 선택`} checked={selected} disabled={busy} onChange={e => onSelect(e.target.checked)} />
-    {product ? <div className={styles.summary}><Thumbnail src={product.imageUrl} alt={product.name} /><div className={styles.details}><h2 className="t-h4">{product.name}</h2><p>개당 {formatPrice(product.price)}</p><p aria-label="상품 금액" aria-live="polite"><strong>{amount !== undefined && Number.isSafeInteger(amount) ? formatPrice(amount) : '가격 확인 필요'}</strong></p></div></div> : <p>현재 구매할 수 없는 상품이에요.</p>}
+    <Checkbox label={`${name} 선택`} checked={selected} disabled={busy} onChange={e => onSelect(e.target.checked)} />
+    {hasDetails ? <div className={styles.summary}><Thumbnail src={image ?? null} alt={name} /><div className={styles.details}><h2 className="t-h4">{name}</h2><p>{price === undefined || price === null ? '가격 확인 필요' : `개당 ${formatPrice(price)}`}</p><p aria-label="상품 금액" aria-live="polite"><strong>{amount !== undefined && Number.isSafeInteger(amount) ? formatPrice(amount) : '가격 확인 필요'}</strong></p></div></div> : <p>현재 구매할 수 없는 상품이에요.</p>}
+    {item.purchasable === false && <p>현재 구매할 수 없는 상품이에요.</p>}
     <div className={styles.actions}>
-      <QuantityStepper value={item.quantity} min={1} max={Math.min(Math.max(product?.stock ?? 1, 1), 2147483647)} onChange={quantity => { void change(item.id, quantity) }} disabled={busy || !product} />
+      <QuantityStepper value={item.quantity} min={1} max={Math.min(Math.max(stock ?? 1, 1), 2147483647)} onChange={quantity => { void change(item.id, quantity) }} disabled={busy || !hasDetails} />
       <Button variant="secondary" onClick={() => { void change(item.id) }} disabled={busy}>삭제</Button>
     </div>
   </section>
