@@ -64,11 +64,8 @@ function DropButton({ drop, now, member, onChanged }: { drop: CouponDrop; now: n
       : state !== 'OPEN' ? <button type="button" className={[styles.coupon, styles.done].join(' ')} disabled><span className={styles.amount}>{amount}</span><span className={styles.icon}>마감</span></button>
       : member ? <button type="button" className={styles.coupon} disabled={busy} onClick={() => void claim()}>{label}<span className={styles.icon}>{busy ? '받는 중…' : <DownloadIcon size={20} />}</span></button>
       : <Link className={styles.coupon} to="/login" state={{ from: '/' }} aria-label={`로그인하고 ${amount} 받기`}>{label}<span className={styles.icon}><DownloadIcon size={20} /></span></Link>}
-    <p className={styles.detail}>
-      {state === 'OPEN' ? <><strong>{count(drop.remaining)}장</strong> 남음 / {count(drop.issuanceLimit)}장, {drop.condition}</>
-        : state === 'UPCOMING' ? <>{count(drop.issuanceLimit)}장 한정, {drop.condition}</>
-        : <>오늘 쿠폰이 모두 나갔어요. 내일 {kstTime(drop.opensAt)}에 다시 열려요.</>}
-    </p>
+    {state === 'UPCOMING' && <p className={styles.detail}>{count(drop.issuanceLimit)}장 한정</p>}
+    {(state === 'SOLD_OUT' || state === 'CLOSED') && <p className={styles.detail}>오늘 쿠폰이 모두 나갔어요. 내일 {kstTime(drop.opensAt)}에 다시 열려요.</p>}
     {message && <p className={message.type === 'success' ? styles.success : styles.error} role={message.type === 'error' ? 'alert' : 'status'}>{message.text}</p>}
   </>
 }

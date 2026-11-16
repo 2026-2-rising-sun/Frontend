@@ -101,13 +101,13 @@ export function exhibitionMock(products: MockProduct[], decorate: (items: MockPr
   }
 }
 
-interface DropSpec { couponId: number; name: string; fixedDiscount: number; condition: string; issuanceLimit: number }
+interface DropSpec { couponId: number; name: string; fixedDiscount: number; issuanceLimit: number }
 /** 매일 오픈 시각(한국 시간)과 받기 마감 */
 export const DROP_HOUR = 10
 const DROPS: DropSpec[] = [
-  { couponId: 9001, name: '뷰티 선착순 5,000원 쿠폰', fixedDiscount: 5000, condition: '뷰티 3만원 이상', issuanceLimit: 100 },
-  { couponId: 9002, name: '식품 선착순 3,000원 쿠폰', fixedDiscount: 3000, condition: '식품 2만원 이상', issuanceLimit: 100 },
-  { couponId: 9003, name: '가전 선착순 10,000원 쿠폰', fixedDiscount: 10000, condition: '가전 10만원 이상', issuanceLimit: 50 },
+  { couponId: 9001, name: '뷰티 선착순 5,000원 쿠폰', fixedDiscount: 5000, issuanceLimit: 100 },
+  { couponId: 9002, name: '식품 선착순 3,000원 쿠폰', fixedDiscount: 3000, issuanceLimit: 100 },
+  { couponId: 9003, name: '가전 선착순 10,000원 쿠폰', fixedDiscount: 10000, issuanceLimit: 50 },
 ]
 
 /**

@@ -6,8 +6,6 @@ export interface CouponDrop {
   couponId: string
   name: string
   fixedDiscount: number
-  /** 쓸 수 있는 조건. 예: "뷰티 3만원 이상" */
-  condition: string
   opensAt: string
   /** 받기 마감 시각 */
   endsAt: string

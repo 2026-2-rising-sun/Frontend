@@ -1,11 +1,11 @@
 import { expect, test, type Page } from '@playwright/test'
 
-// 홈 "Today's Brand" 왼쪽의 선착순 쿠폰: 검은 쿠폰 버튼(금액, 남은 시간), 알림 받기. 받을 수 있는 쿠폰을 먼저 내세운다.
+// 홈 맨 위 "Today's Brand" 왼쪽의 선착순 쿠폰: 검은 쿠폰 버튼(금액, 남은 시간), 알림 받기. 받을 수 있는 쿠폰을 먼저 내세운다.
 const NOW = '2026-11-16T03:00:00Z' // 12:00(한국 시간)
 const drops = [
-  { couponId: 9001, name: '뷰티 쿠폰', fixedDiscount: 5000, condition: '뷰티 3만원 이상', opensAt: '2026-11-16T05:00:00Z', endsAt: '2026-11-16T14:59:00Z', issuanceLimit: 100, remaining: 100 },
-  { couponId: 9002, name: '식품 쿠폰', fixedDiscount: 3000, condition: '식품 2만원 이상', opensAt: '2026-11-16T01:00:00Z', endsAt: '2026-11-16T14:59:00Z', issuanceLimit: 100, remaining: 37 },
-  { couponId: 9003, name: '가전 쿠폰', fixedDiscount: 10000, condition: '가전 10만원 이상', opensAt: '2026-11-16T01:00:00Z', endsAt: '2026-11-16T14:59:00Z', issuanceLimit: 50, remaining: 0 },
+  { couponId: 9001, name: '뷰티 쿠폰', fixedDiscount: 5000, opensAt: '2026-11-16T05:00:00Z', endsAt: '2026-11-16T14:59:00Z', issuanceLimit: 100, remaining: 100 },
+  { couponId: 9002, name: '식품 쿠폰', fixedDiscount: 3000, opensAt: '2026-11-16T01:00:00Z', endsAt: '2026-11-16T14:59:00Z', issuanceLimit: 100, remaining: 37 },
+  { couponId: 9003, name: '가전 쿠폰', fixedDiscount: 10000, opensAt: '2026-11-16T01:00:00Z', endsAt: '2026-11-16T14:59:00Z', issuanceLimit: 50, remaining: 0 },
 ]
 
 async function fixture(page: Page, options: { claimFailure?: boolean; noDrops?: boolean; only?: number } = {}) {
@@ -54,8 +54,10 @@ test('비회원에게는 받을 수 있는 쿠폰과 받기 마감까지 남은 
   await expect(coupon.getByRole('timer')).toHaveText('11:59:00') // 23:59 받기 마감까지
   await page.clock.runFor(5000)
   await expect(coupon.getByRole('timer')).toHaveText('11:58:55') // 1초마다 줄어든다
-  await expect(today.getByText('37장 남음 / 100장, 식품 2만원 이상')).toBeVisible()
+  await expect(today.getByText(/장 남음|이상/)).toHaveCount(0) // 남은 수량과 사용 조건은 보여 주지 않는다
   await expect(today.getByRole('link', { name: '로그인하고 알림 받기' })).toBeVisible()
+  const top = (name: string | RegExp) => page.getByRole('region', { name }).evaluate(el => el.getBoundingClientRect().top)
+  expect(await top(/Today/)).toBeLessThan(await top('요즘 주목 받는 상품')) // 홈 맨 위
 })
 
 test('오픈 전에는 오픈까지 남은 시간을, 모두 나가면 마감을 보여 준다', async ({ page }) => {
@@ -66,7 +68,7 @@ test('오픈 전에는 오픈까지 남은 시간을, 모두 나가면 마감을
   await expect(waiting).toBeDisabled()
   await expect(waiting).toContainText('14:00 오픈')
   await expect(waiting.getByRole('timer')).toHaveText('02:00:00')
-  await expect(section(page).getByText('100장 한정, 뷰티 3만원 이상')).toBeVisible()
+  await expect(section(page).getByText('100장 한정', { exact: true })).toBeVisible()
 
   await page.unrouteAll(); await fixture(page, { only: 9003 }); await page.reload()
   await expect(section(page).getByRole('button', { name: /선착순 10,000원 할인 쿠폰/ })).toContainText('마감')
@@ -83,7 +85,6 @@ test('회원은 쿠폰을 받고, 매일 오픈 알림을 신청하고 해제한
   await expect(today.getByRole('status')).toHaveText('쿠폰을 받았어요. 내 쿠폰에서 확인하세요.')
   await expect(today.getByRole('button', { name: /선착순 3,000원 할인 쿠폰/ })).toContainText('받음')
   await expect(today.getByRole('button', { name: /선착순 3,000원 할인 쿠폰/ })).toBeDisabled()
-  await expect(today.getByText('36장 남음 / 100장, 식품 2만원 이상')).toBeVisible() // 받은 뒤 남은 수량을 다시 불러온다
   expect(state.claims).toBe(1)
 
   const alert = today.getByRole('button', { name: /알림/ })

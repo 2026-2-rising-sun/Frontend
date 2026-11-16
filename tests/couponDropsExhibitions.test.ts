@@ -7,7 +7,7 @@ import { couponDrops } from '../scripts/mockPromotions'
 Object.assign(globalThis, { window: { location: { origin: 'http://localhost:5173' } } })
 const envelope = (data: unknown) => new Response(JSON.stringify({ success: true, data, error: null }))
 
-const drop = (remaining: number): CouponDrop => ({ couponId: '1', name: '쿠폰', fixedDiscount: 3000, condition: '식품 2만원 이상', opensAt: '2026-11-16T01:00:00Z', endsAt: '2026-11-16T14:59:00Z', issuanceLimit: 100, remaining })
+const drop = (remaining: number): CouponDrop => ({ couponId: '1', name: '쿠폰', fixedDiscount: 3000, opensAt: '2026-11-16T01:00:00Z', endsAt: '2026-11-16T14:59:00Z', issuanceLimit: 100, remaining })
 
 test('선착순 쿠폰은 오픈 전, 진행 중, 수량 소진, 받기 마감으로 나뉜다', () => {
   assert.equal(couponDropState(drop(100), Date.parse('2026-11-16T00:59:59Z')), 'UPCOMING')
