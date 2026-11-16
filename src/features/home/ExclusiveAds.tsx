@@ -17,6 +17,8 @@ import styles from './ExclusiveAds.module.css'
 
 /** 한 번에 보이는 기획전 카드 수 */
 const ADS_PER_PAGE = 2
+/** 홈에는 앞쪽 기획전만 내세운다. 나머지는 상단바 기획전 메뉴에서 본다. */
+const ADS_MAX = 6
 
 /**
  * "Today's Brand". 왼쪽은 매일 선착순 쿠폰(받기, 알림 받기), 오른쪽은 카탈로그가 관리하는 진행 중 기획전 카드다.
@@ -28,7 +30,7 @@ export function ExclusiveAds() {
   const exhibitions = useAsync(() => api.exhibitions.list(), [api])
   const drops = useCouponDrops()
   const [page, setPage] = useState(0)
-  const ads = exhibitions.data ?? []
+  const ads = (exhibitions.data ?? []).slice(0, ADS_MAX)
   const loading = !exhibitions.data && !exhibitions.error
   if (!loading && !ads.length && !drops.items.length) return null
   const pages = Math.ceil(ads.length / ADS_PER_PAGE)
