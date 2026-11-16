@@ -4,6 +4,8 @@ import type { CouponsPort, SellerCouponsPort } from './coupons'
 import type { AuthPort } from './auth'
 import type { NotificationsPort } from './notifications'
 import type { PromotionsPort } from './promotions'
+import type { CouponDropsPort } from './couponDrops'
+import type { ExhibitionsPort } from './exhibitions'
 import type { SellerLive, SellerProduct, SellerProductListParams, CreateOrderInput, LiveInput, LiveDetail, LiveStatus, LiveSummary, Order, PageParams, Paged, Product, ProductBasicInput, ProductListParams, SaleAction, SaleInfoInput } from './types'
 export interface ChatMessage { messageId: string; broadcastId: number; displayName: string; content: string; createdAt: string }
 export interface LikeTotal { broadcastId: number; total: number; version: number }
@@ -79,6 +81,8 @@ export interface Api {
   auth: AuthPort
   promotions: PromotionsPort
   refunds: RefundsPort
+  couponDrops: CouponDropsPort
+  exhibitions: ExhibitionsPort
   notifications: NotificationsPort; coupons: CouponsPort; products: ProductsPort; lives: LivesPort; orders: OrdersPort; payments: PaymentsPort; cart: CartPort; paymentGroups: PaymentGroupsPort
   seller: { products: SellerProductsPort; lives: SellerLivesPort; coupons: SellerCouponsPort }
 }

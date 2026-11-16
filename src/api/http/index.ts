@@ -3,6 +3,8 @@ import { createRefunds } from './refunds'
 import { createPromotions } from './promotions'
 import { createCoupons, createSellerCoupons } from './coupons'
 import { createSellerProducts } from './sellerProducts'
+import { createCouponDrops } from './couponDrops'
+import { createExhibitions } from './exhibitions'
 import type { Api, CartItem, ChatMessage } from '../../domain/ports'
 import type { PaymentGroup, CartCheckout, SellerLive, LiveInput } from '../../domain/types'
 import { createHttpAuth } from './auth'
@@ -41,6 +43,8 @@ export function createHttpApi(baseUrl: string, testAccounts = false): Api {
     coupons: createCoupons(request),
     refunds: createRefunds(request),
     promotions: createPromotions(request, publicRequest),
+    couponDrops: createCouponDrops(request, publicRequest),
+    exhibitions: createExhibitions(publicRequest),
     products: {
       async list(params) {
         const dto = await publicRequest<{ items: ProductDto[]; nextCursor: string | null; hasNext: boolean }>('/catalog/v1/products', { query: { cursor: params?.cursor, size: params?.size, q: params?.query, category: params?.category, subcategory: params?.subcategory, sort: params?.sort === 'RANKING' ? undefined : params?.sort, freeShipping: params?.freeShipping ? 'true' : undefined, minPrice: params?.minPrice, maxPrice: params?.maxPrice, status: params?.status === 'SELLING' ? 'ON_SALE' : params?.status === 'SOLD_OUT' ? 'SOLD_OUT' : undefined } })
