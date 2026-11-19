@@ -15,6 +15,9 @@ const frontendSha = required('PRODUCT_REGISTRATION_E2E_FRONTEND_SHA')
 function database(productId: number, key: string) {
   if (!Number.isSafeInteger(productId) || productId < 1 || !/^[a-f0-9-]{36}$/.test(key)) throw new Error('검증 식별자를 확인해 주세요.')
   const sql = `SELECT json_build_object(
+    'totalProducts',(SELECT count(*) FROM product),
+    'totalSkus',(SELECT count(*) FROM sku),
+    'totalImages',(SELECT count(*) FROM product_image),
     'products',(SELECT count(*) FROM product WHERE id=${productId}),
     'skus',(SELECT count(*) FROM sku WHERE product_id=${productId}),
     'registrations',(SELECT count(*) FROM product_registration WHERE request_key='${key}'),
@@ -95,13 +98,17 @@ test('실제 서버 커밋 후 응답 유실·새로고침 재전송에도 상�
   await fill(page, name, 7)
   const responses: Record<string, unknown>[] = []
   const keys: string[] = []
+  let afterFirstCommit: ReturnType<typeof database>
   await page.route('**/api/commercecore/v1/seller/products/registrations', async route => {
     // 실제 서버 응답을 받은 뒤 첫 응답만 브라우저에 전달하지 않는다. 서버 응답을 합성하지 않는다.
     const response = await route.fetch()
     expect(response.status()).toBe(201)
     responses.push((await response.json()).data)
     keys.push(route.request().headers()['x-idempotency-key'])
-    if (responses.length === 1) return route.abort('failed')
+    if (responses.length === 1) {
+      afterFirstCommit = database(Number(responses[0].productId), keys[0])
+      return route.abort('failed')
+    }
     return route.fulfill({ response })
   })
   await page.getByRole('button', { name: '상품 등록', exact: true }).click()
@@ -117,12 +124,13 @@ test('실제 서버 커밋 후 응답 유실·새로고침 재전송에도 상�
   const bundle = responses[0]
   const stored = database(Number(bundle.productId), keys[0])
   expect(stored).toMatchObject({ products: 1, skus: 1, registrations: 1, images: 1 })
+  expect(stored).toEqual(afterFirstCommit)
   const conflict = await page.request.post(registrationPath, { headers: { ...headers, 'X-Idempotency-Key': keys[0] }, multipart: {
     file, request: { name: 'request.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ name, description: '변경한 설명', skus: [{ optionLabel: '검정', price: 1200, initialStock: 7 }] })) },
   } })
   expect(conflict.status()).toBe(409)
   expect(database(Number(bundle.productId), keys[0])).toEqual(stored)
-  await writeFile(info.outputPath('evidence.json'), JSON.stringify({ backendSha, frontendSha, name, keys, responses, stored, changedRequestStatus: conflict.status(), failureInjection: '실제 서버 커밋 뒤 첫 브라우저 응답만 유실' }, null, 2))
+  await writeFile(info.outputPath('evidence.json'), JSON.stringify({ backendSha, frontendSha, name, keys, responses, afterFirstCommit, stored, changedRequestStatus: conflict.status(), failureInjection: '실제 서버 커밋 뒤 첫 브라우저 응답만 유실' }, null, 2))
 })
 
 test('실제 다중 SKU·재고 0 등록 결과를 보존하고 기존 조회의 제한을 확인한다', async ({ page }, info) => {
