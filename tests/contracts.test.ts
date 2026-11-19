@@ -49,13 +49,22 @@ test('Seller live management uses link ID and snapshot version without substitut
   assert.ok(calls.every(call => call.url.pathname.startsWith('/api/live/v1/seller/broadcasts/')))
   assert.equal(calls[2].url.pathname, '/api/live/v1/seller/broadcasts/1/products')
 })
-test('retry after an uncertain product create reuses its uploaded image ID and idempotency payload', async () => {
-  let uploads = 0; const bodies: unknown[] = []; let creates = 0
-  const request = (async (path: string, options?: { body?: unknown }) => {
-    if (path.endsWith('product-images')) return { imageId: ++uploads }
-    if (path.endsWith('/products')) { bodies.push(options?.body); if (++creates === 1) throw new Error('connection lost after commit'); return { productId: 3 } }
-    return { productId: 3, name: '상품', mainImageUrl: '/image', version: 0, salesStatus: 'NOT_REGISTERED', price: null, available: null }
+test('통합 등록 응답 유실 뒤 같은 파일·JSON·멱등키로 재시도한다', async () => {
+  const bodies: FormData[] = []; const keys: string[] = []
+  const request = (async (path: string, options?: { body?: unknown; headers?: Record<string, string> }) => {
+    assert.equal(path, '/commercecore/v1/seller/products/registrations')
+    bodies.push(options?.body as FormData); keys.push(options?.headers?.['X-Idempotency-Key'] ?? '')
+    if (bodies.length === 1) throw new Error('connection lost after commit')
+    return { productId: 3, mainImageId: 9, mainImageUrl: '/image', saleEnabled: true,
+      skus: [{ skuId: 4, optionLabel: null, price: 1200, available: 0, reserved: 0, status: 'SOLD_OUT' }] }
   }) as HttpClient
-  const api = createSellerProducts(request); const input = { name: '상품', description: '설명', image: new File(['png'], 'image.png'), idempotencyKey: 'same-key' }
-  await assert.rejects(api.create(input)); await api.create(input); assert.equal(uploads, 1); assert.deepEqual(bodies[0], bodies[1])
+  const api = createSellerProducts(request)
+  const input = { name: '상품', description: '설명', image: new File(['png'], 'image.png', { type: 'image/png' }),
+    skus: [{ optionLabel: null, price: 1200, initialStock: 0 }], idempotencyKey: 'same-key' }
+  await assert.rejects(api.create(input), /connection lost/)
+  assert.equal((await api.create(input)).productId, '3')
+  assert.equal(bodies.length, 2)
+  assert.deepEqual(keys, ['same-key', 'same-key'])
+  assert.equal(await (bodies[0].get('request') as Blob).text(), await (bodies[1].get('request') as Blob).text())
+  assert.equal(await (bodies[0].get('file') as File).text(), await (bodies[1].get('file') as File).text())
 })

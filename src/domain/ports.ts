@@ -1,4 +1,5 @@
 import type { OrderSheetsPort } from './orderSheets'
+import type { ProductCreateInput, ProductCreateResult } from './productRegistration'
 import type { RefundsPort } from './refunds'
 import type { CartSelection, CartCheckout, PaymentGroup } from './types'
 import type { CouponsPort, SellerCouponsPort } from './coupons'
@@ -68,7 +69,7 @@ export interface CartPort {
 export interface SellerProductsPort {
   list(params?: SellerProductListParams): Promise<Paged<SellerProduct>>
   get(id: string): Promise<SellerProduct>
-  create(input: ProductBasicInput & { idempotencyKey: string }): Promise<SellerProduct>
+  create(input: ProductCreateInput): Promise<ProductCreateResult>
   updateBasicInfo(id: string, input: ProductBasicInput & { version: number }): Promise<SellerProduct>
   setSaleInfo(id: string, input: SaleInfoInput): Promise<SellerProduct>
   changePrice(id: string, price: number): Promise<SellerProduct>

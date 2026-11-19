@@ -21,6 +21,13 @@
 .cardDesc { margin-top: 2px; font: 400 12px/18px var(--font-sans); color: var(--text-secondary); }
 
 .form { display: flex; flex-direction: column; gap: var(--space-4); max-width: 640px; }
+.registrationForm { display: flex; flex-direction: column; gap: var(--space-5); min-width: 0; }
+.skuFields { display: flex; flex-direction: column; gap: var(--space-3); min-width: 0; margin: 0; padding: var(--space-4); border: 1px solid var(--border-default); border-radius: var(--radius-md); }
+.skuFields legend { padding: 0 var(--space-2); font-weight: 600; }
+.skuFields > button { align-self: flex-end; }
+.skuResults { display: flex; flex-direction: column; gap: var(--space-3); padding: 0; list-style: none; }
+.skuResult { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-4); padding: var(--space-4); background: var(--bg-muted); border-radius: var(--radius-md); overflow-wrap: anywhere; }
+.skuResult strong { flex-basis: 100%; }
 .formRow { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--space-4); }
 .actions { display: flex; flex-wrap: wrap; gap: var(--space-2); }
 .hint { font: 400 12px/18px var(--font-sans); color: var(--text-tertiary); }
