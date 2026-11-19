@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { ApiError } from '../../domain/errors'
 
 /**
@@ -7,11 +7,14 @@ import { ApiError } from '../../domain/errors'
  * - 실패하면 ApiError 를 보관해 화면이 안내하고, 성공 여부를 반환한다.
  */
 export function useAction() {
+  const running = useRef(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<ApiError | null>(null)
 
   const run = async (key: string, fn: () => Promise<unknown>): Promise<boolean> => {
-    if (busy) return false
+    // React가 다음 렌더를 반영하기 전 발생한 두 번째 제출도 막는다.
+    if (running.current) return false
+    running.current = true
     setBusy(key)
     setError(null)
     try {
@@ -21,6 +24,7 @@ export function useAction() {
       setError(e instanceof ApiError ? e : new ApiError('UNKNOWN', '요청을 처리하지 못했어요.'))
       return false
     } finally {
+      running.current = false
       setBusy(null)
     }
   }

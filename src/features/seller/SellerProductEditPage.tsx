@@ -1,11 +1,10 @@
 import { useState, type FormEvent } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { useApi } from '../../app/apiContext'
 import { AsyncView } from '../../components/AsyncView'
 import { Alert, Button, ButtonLink, ImageUpload, Input, Skeleton, StatusBadge, Textarea, sellerProductBadge } from '../../components/ui'
 import { PRODUCT_DESCRIPTION_MAX, PRODUCT_NAME_MAX } from '../../domain/constraints'
 import type { SellerProduct, SaleAction } from '../../domain/types'
-import { useIdempotencyKey } from '../../hooks/useIdempotencyKey'
 import { useAsync } from '../../hooks/useAsync'
 import { formatPrice } from '../../lib/format'
 import { ActionAlert } from './components/ActionAlert'
@@ -13,7 +12,7 @@ import { SellerSection } from './components/SellerSection'
 import { useAction } from './useAction'
 import styles from './seller.module.css'
 
-/** 상품 등록(/seller/products/new) 과 수정(/seller/products/:id) 을 한 화면으로 처리한다. */
+/** 기존 상품의 기본정보·판매 설정을 수정한다. 신규 등록은 별도 화면에서 처리한다. */
 export function SellerProductEditPage() {
   const { productId } = useParams()
   const api = useApi()
@@ -69,11 +68,9 @@ function ProductEditor({ product, reload, onDone }: EditorProps & { product: Sel
 
 function BasicInfoSection({ product, reload, onDone }: EditorProps & { product: SellerProduct | null }) {
   const api = useApi()
-  const navigate = useNavigate()
   const { busy, error, run } = useAction()
   const [name, setName] = useState(product?.name ?? '')
   const [description, setDescription] = useState(product?.description ?? '')
-  const keyFor = useIdempotencyKey()
   const [image, setImage] = useState<File | null>(null)
   const [attempted, setAttempted] = useState(false)
 
@@ -85,20 +82,11 @@ function BasicInfoSection({ product, reload, onDone }: EditorProps & { product: 
     setAttempted(true)
     onDone(null)
     if (nameError || descError) return
-    if (!product) {
-      let createdId = ''
-      const ok = await run('save', async () => {
-        const created = await api.seller.products.create({ name, description, image, idempotencyKey: keyFor({ name, description, image: image ? [image.name, image.size, image.lastModified] : null }) })
-        createdId = created.id
-      })
-      // 기본정보만 저장된 상품(DRAFT)은 공개·주문 대상이 아니다. 이어서 같은 상품의 판매 설정으로 안내한다.
-      if (ok) navigate(`/seller/products/${createdId}`, { replace: true, state: { notice: '기본정보를 등록했어요. 이어서 판매 설정(가격·재고)을 해 주세요.' } })
-    } else {
-      const ok = await run('save', () => api.seller.products.updateBasicInfo(product.id, { name, description, image, version: product.version }))
-      if (ok) {
-        onDone('기본정보를 저장했어요.')
-        reload()
-      }
+    if (!product) return
+    const ok = await run('save', () => api.seller.products.updateBasicInfo(product.id, { name, description, image, version: product.version }))
+    if (ok) {
+      onDone('기본정보를 저장했어요.')
+      reload()
     }
   }
 
@@ -118,10 +106,9 @@ function BasicInfoSection({ product, reload, onDone }: EditorProps & { product: 
         />
         <div className={styles.actions}>
           <Button type="submit" disabled={busy !== null}>
-            {busy === 'save' ? '저장 중…' : product ? '기본정보 저장' : '기본정보 등록'}
+            {busy === 'save' ? '저장 중…' : '기본정보 저장'}
           </Button>
         </div>
-        {!product && <p className={styles.hint}>등록하면 &lsquo;기본정보만&rsquo; 상태가 되며, 판매 설정을 마치기 전까지는 공개 목록과 주문에 나타나지 않아요.</p>}
       </form>
     </SellerSection>
   )

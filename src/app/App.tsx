@@ -22,6 +22,7 @@ import type { Api } from '../domain/ports'
 import { SellerLayout } from '../features/seller/SellerLayout'
 import { SellerLiveEditPage } from '../features/seller/SellerLiveEditPage'
 import { SellerLiveListPage } from '../features/seller/SellerLiveListPage'
+import { SellerProductCreatePage } from '../features/seller/SellerProductCreatePage'
 import { SellerProductEditPage } from '../features/seller/SellerProductEditPage'
 import { SellerProductListPage } from '../features/seller/SellerProductListPage'
 import { CheckoutPage } from '../features/commerce/CheckoutPage'
@@ -81,7 +82,7 @@ function App({ api, paymentAuthentication }: AppProps) {
           <Route path="seller" element={<SellerLayout />}>
             <Route index element={<Navigate to="products" replace />} />
             <Route path="products" element={<SellerProductListPage />} />
-            <Route path="products/new" element={<SellerProductEditPage key="new" />} />
+            <Route path="products/new" element={<SellerProductCreatePage />} />
             <Route path="products/:productId" element={<SellerProductEditPage key="edit" />} />
             <Route path="refunds" element={<SellerRefundListPage />} />
             <Route path="refunds/:refundId" element={<SellerRefundDetailPage />} />

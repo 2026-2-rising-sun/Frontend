@@ -35,3 +35,5 @@ Cart 그룹 응답 호환은 `cartCheckout.test.ts`에서 서로 다른 productI
 
 
 `npm run e2e:order-sheet-backend`는 이미 준비된 격리 환경을 사용합니다. `--grep`으로 실단건/legacy재진입/사용자취소/late/SDK인터페이스콜백을각각선택합니다. 신원·상품·쿠폰·정확SHA는 ORDER_SHEET_E2E_*로주입하며late는소유자와사전협의한LATE_SIGNAL_FILE을사용합니다. SDK인터페이스대역과실Core/Payment/Kafka,실SDK미실행은 [검증 기록](order-sheet-verification.md)에서구분합니다. 재시도0이며실패실행도보존합니다.
+
+`npm run e2e:product-registration-backend`는 별도로 준비한 격리 Member/Core/Catalog·PostgreSQL·Redis·Kafka·로컬 이미지 저장소와 실제 등록 화면을 연결한다. `E2E_BASE_URL`, `PRODUCT_REGISTRATION_E2E_NAMESPACE`(`shoppinglive-fe86-` 접두사의 검증 공간), `PRODUCT_REGISTRATION_E2E_EMAIL`/`PRODUCT_REGISTRATION_E2E_PASSWORD`, 정확한 `PRODUCT_REGISTRATION_E2E_BACKEND_SHA`/`PRODUCT_REGISTRATION_E2E_FRONTEND_SHA`가 필요하다. 정상 등록·재고 0·Catalog 반영, 서버 커밋 후 첫 응답만 유실시킨 동일 키 재시도, 변경 입력 409, 실제 다중 SKU와 기존 조회 제한을 확인한다. PostgreSQL에서 상품·SKU·이미지·멱등 기록을 직접 읽어 증거 JSON에 남긴다. 실제 생성 요청과 테스트 상품을 만들며 삭제하지 않으므로 기존 데이터와 분리한 검증 공간을 사용한다. 서버 응답을 합성하지 않고 JWT·인증 헤더·비밀번호를 증거에 기록하지 않는다.

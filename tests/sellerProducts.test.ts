@@ -3,23 +3,49 @@ import { test } from 'node:test'
 import { createSellerProducts } from '../src/api/http/sellerProducts'
 import type { HttpClient } from '../src/api/http/client'
 
-test('seller basic information uses separate image upload, JSON create, then authenticated detail contract', async () => {
-  const calls: { path: string; options: unknown }[] = []
-  const request = (async (path: string, options: unknown) => {
-    calls.push({ path, options })
-    if (path.endsWith('product-images')) return { imageId: 9 }
-    if (path.endsWith('/products')) return { productId: 42 }
-    return { productId: 42, name: '상품', description: '설명', mainImageUrl: '/image', version: 0, salesStatus: 'NOT_REGISTERED', price: null, available: null }
-  }) as HttpClient
-  const products = createSellerProducts(request)
+const bundle = {
+  productId: 42, mainImageId: 9, mainImageUrl: '/image', saleEnabled: true,
+  skus: [{ skuId: 81, optionLabel: '검정', price: 1200, available: 7, reserved: 0, status: 'ON_SALE' },
+    { skuId: 82, optionLabel: '흰색', price: 1400, available: 0, reserved: 0, status: 'SOLD_OUT' }],
+}
+
+test('통합 생성은 JSON·이미지를 multipart POST 한 번으로 보내고 모든 SKU를 보존한다', async () => {
+  const calls: { path: string; options: Parameters<HttpClient>[1] }[] = []
+  const products = createSellerProducts((async (path, options) => {
+    calls.push({ path, options }); return bundle
+  }) as HttpClient)
   const image = new File(['image'], 'image.png', { type: 'image/png' })
-  const product = await products.create({ name: '상품', description: '설명', image, idempotencyKey: 'create-key' })
-  assert.equal(product.id, '42'); assert.equal(product.status, 'DRAFT')
-  assert.equal(calls[0].path, '/commercecore/v1/seller/product-images')
-  assert.ok((calls[0].options as { body: unknown }).body instanceof FormData)
-  assert.deepEqual(calls[1].options, { method: 'POST', headers: { 'X-Idempotency-Key': 'create-key' }, body: { name: '상품', description: '설명', mainImageId: 9 } })
-  assert.equal(calls[2].path, '/commercecore/v1/seller/products/42')
-  await assert.rejects(products.create({ name: '상품', description: '설명', idempotencyKey: 'empty-image' }), { code: 'VALIDATION' })
+  const input = { name: ' 상품 ', description: ' 설명 ', image, idempotencyKey: 'create-key',
+    skus: [{ optionLabel: ' 검정 ', price: 1200, initialStock: 7 }, { optionLabel: '흰색', price: 1400, initialStock: 0 }] }
+  const result = await products.create(input)
+  assert.equal(calls.length, 1)
+  assert.equal(calls[0].path, '/commercecore/v1/seller/products/registrations')
+  assert.equal(calls[0].options?.method, 'POST')
+  assert.deepEqual(calls[0].options?.headers, { 'X-Idempotency-Key': 'create-key' })
+  const body = calls[0].options?.body as FormData
+  assert.ok(body instanceof FormData)
+  assert.equal((body.get('file') as File).name, 'image.png')
+  const json = body.get('request') as Blob
+  assert.equal(json.type, 'application/json')
+  assert.deepEqual(JSON.parse(await json.text()), { name: '상품', description: '설명', skus: [
+    { optionLabel: '검정', price: 1200, initialStock: 7 }, { optionLabel: '흰색', price: 1400, initialStock: 0 },
+  ] })
+  assert.equal(result.productId, '42')
+  assert.deepEqual(result.skus.map(s => s.skuId), ['81', '82'])
+  assert.equal(result.skus[1].status, 'SOLD_OUT')
+  await products.create(input)
+  assert.equal(calls.length, 2)
+  assert.equal(calls[1].options?.headers?.['X-Idempotency-Key'], 'create-key')
+})
+
+test('생성 성공은 상세·주문서·Catalog 재조회에 의존하지 않는다', async () => {
+  const products = createSellerProducts((async (path: string) => {
+    assert.equal(path, '/commercecore/v1/seller/products/registrations')
+    return bundle
+  }) as HttpClient)
+  const result = await products.create({ name: '상품', description: '설명', image: new File(['image'], 'image.png', { type: 'image/png' }),
+    skus: [{ optionLabel: '검정', price: 1200, initialStock: 7 }, { optionLabel: '흰색', price: 1400, initialStock: 0 }], idempotencyKey: 'key' })
+  assert.equal(result.productId, '42')
 })
 
 test('판매정보 조회 실패 시 기본정보를 보존하고 미등록 상태와 구분한다', async () => {

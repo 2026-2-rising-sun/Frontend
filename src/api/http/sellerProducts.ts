@@ -1,11 +1,11 @@
 import type { SellerProductsPort } from '../../domain/ports'
 import type { ProductBasicInput } from '../../domain/types'
 import { ApiError } from '../../domain/errors'
+import { normalizeProductRegistration, parseProductCreateResult, validateProductRegistration } from '../../domain/productRegistration'
 import type { HttpClient } from './client'
 import { sellerProduct, page, type ProductDto, type PageDto } from './mappers'
 
 export function createSellerProducts(request: HttpClient): SellerProductsPort {
-  const uploads = new Map<string, Promise<Awaited<ReturnType<typeof body>>>>()
   const get = async (id: string) => {
     // 판매자 본인 상품 확인 후에만 조회한 판매 ID를 사용한다.
     const dto = await request<ProductDto>(`/commercecore/v1/seller/products/${encodeURIComponent(id)}`)
@@ -41,11 +41,17 @@ export function createSellerProducts(request: HttpClient): SellerProductsPort {
       return result
     }, get,
     async create(input) {
-      if (!input.image) throw new ApiError('VALIDATION', '대표 이미지를 선택해 주세요.')
-      if (!uploads.has(input.idempotencyKey)) uploads.set(input.idempotencyKey, body(input).catch(error => { uploads.delete(input.idempotencyKey); throw error }))
-      const payload = await uploads.get(input.idempotencyKey)!
-      const result = await request<{ productId: number }>('/commercecore/v1/seller/products', { method: 'POST', headers: { 'X-Idempotency-Key': input.idempotencyKey }, body: payload })
-      return get(String(result.productId))
+      const payload = normalizeProductRegistration(input)
+      const error = validateProductRegistration(payload, input.image)
+      if (error) throw new ApiError('VALIDATION', error)
+      if (!input.idempotencyKey.trim() || input.idempotencyKey.length > 64) throw new ApiError('VALIDATION', '등록 요청 키를 확인해 주세요.')
+      const data = new FormData()
+      data.set('file', input.image)
+      data.set('request', new Blob([JSON.stringify(payload)], { type: 'application/json' }))
+      const result = await request<unknown>('/commercecore/v1/seller/products/registrations', {
+        method: 'POST', headers: { 'X-Idempotency-Key': input.idempotencyKey }, body: data,
+      })
+      return parseProductCreateResult(result)
     },
     async updateBasicInfo(id, input) {
       await request(`/commercecore/v1/seller/products/${encodeURIComponent(id)}`, { method: 'PATCH', body: { ...await body(input), version: input.version } })
