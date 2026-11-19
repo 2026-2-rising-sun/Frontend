@@ -1,0 +1,180 @@
+{
+  "verifiedAt": "2026-11-19T13:39:48.846857+00:00",
+  "backendSha": "3537340c4686fec3b962da8ed02d368829d639af",
+  "frontendSha": "9a8b3ebefb65b8ea5501bb83f530e17ddf4f85da",
+  "frontendSourceTree": "678ba92feca087a436c293afe5299d276610eae2",
+  "namespace": "shoppinglive-fe86-registration",
+  "runtime": "실제 Member/JWT, Core·Catalog JAR, PostgreSQL 16.15, Redis, Kafka, 로컬 이미지 저장소",
+  "tests": {
+    "passed": 4,
+    "failed": 0,
+    "skipped": 0
+  },
+  "cases": [
+    {
+      "scenario": "FE86 실제 단일 7 77434775",
+      "productId": 5,
+      "skus": [
+        {
+          "skuId": 6,
+          "optionLabel": "검정",
+          "price": 1200,
+          "available": 7,
+          "reserved": 0,
+          "status": "ON_SALE"
+        }
+      ],
+      "database": {
+        "products": 1,
+        "skus": 1,
+        "registrations": 1,
+        "images": 1,
+        "totalProducts": 5,
+        "totalSkus": 6,
+        "totalImages": 5
+      },
+      "catalog": {
+        "success": true,
+        "data": {
+          "productId": 5,
+          "name": "FE86 실제 단일 7 77434775",
+          "description": "격리된 실제 API 연계 검증 상품",
+          "mainImageUrl": "/api/commercecore/v1/product-images/5",
+          "price": 1200,
+          "salesStatus": "ON_SALE",
+          "available": 7,
+          "purchasable": true,
+          "maxQuantity": 7,
+          "category": null
+        },
+        "error": null
+      }
+    },
+    {
+      "scenario": "FE86 실제 단일 0 742390bd",
+      "productId": 6,
+      "skus": [
+        {
+          "skuId": 7,
+          "optionLabel": "검정",
+          "price": 1200,
+          "available": 0,
+          "reserved": 0,
+          "status": "SOLD_OUT"
+        }
+      ],
+      "database": {
+        "products": 1,
+        "skus": 1,
+        "registrations": 1,
+        "images": 1,
+        "totalProducts": 6,
+        "totalSkus": 7,
+        "totalImages": 6
+      },
+      "catalog": {
+        "success": true,
+        "data": {
+          "productId": 6,
+          "name": "FE86 실제 단일 0 742390bd",
+          "description": "격리된 실제 API 연계 검증 상품",
+          "mainImageUrl": "/api/commercecore/v1/product-images/6",
+          "price": 1200,
+          "salesStatus": "SOLD_OUT",
+          "available": 0,
+          "purchasable": false,
+          "maxQuantity": 0,
+          "category": null
+        },
+        "error": null
+      }
+    },
+    {
+      "scenario": "FE86 실제 응답 유실 67b87183",
+      "productId": 7,
+      "skus": [
+        {
+          "skuId": 8,
+          "optionLabel": "검정",
+          "price": 1200,
+          "available": 7,
+          "reserved": 0,
+          "status": "ON_SALE"
+        }
+      ],
+      "database": {
+        "products": 1,
+        "skus": 1,
+        "registrations": 1,
+        "images": 1,
+        "totalProducts": 7,
+        "totalSkus": 8,
+        "totalImages": 7
+      },
+      "firstCommitTotals": {
+        "totalProducts": 7,
+        "totalSkus": 8,
+        "totalImages": 7
+      },
+      "identicalKey": true,
+      "identicalResponses": true,
+      "identicalDatabaseBeforeAfterRetry": true,
+      "changedRequestStatus": 409
+    },
+    {
+      "scenario": "FE86 실제 다중 93e5bb11",
+      "productId": 8,
+      "skus": [
+        {
+          "skuId": 9,
+          "optionLabel": "검정",
+          "price": 1200,
+          "available": 7,
+          "reserved": 0,
+          "status": "ON_SALE"
+        },
+        {
+          "skuId": 10,
+          "optionLabel": "흰색",
+          "price": 1400,
+          "available": 0,
+          "reserved": 0,
+          "status": "SOLD_OUT"
+        }
+      ],
+      "database": {
+        "products": 1,
+        "skus": 2,
+        "registrations": 1,
+        "images": 1,
+        "totalProducts": 8,
+        "totalSkus": 10,
+        "totalImages": 8
+      },
+      "sellerDetailStatus": 409,
+      "catalogDetailStatus": 503
+    }
+  ],
+  "afterBothRuns": {
+    "products": 8,
+    "skus": 10,
+    "imageRows": 8,
+    "imageFiles": 8,
+    "registrations": 8,
+    "outboxPublished": {
+      "commerce.product-info.v1": {
+        "total": 8,
+        "published": 8
+      },
+      "commerce.sales-info.v1": {
+        "total": 10,
+        "published": 10
+      }
+    }
+  },
+  "limitations": [
+    "응답 유실은 실제 서버 커밋 후 첫 브라우저 응답 전달만 차단했다.",
+    "S3·운영 배포·고객 다중 옵션 구매는 검증하지 않았다.",
+    "다중 SKU의 판매자 상세 409와 Catalog 상세 503은 현재 계약의 제한이다."
+  ]
+}
